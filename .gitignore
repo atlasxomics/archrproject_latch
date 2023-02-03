@@ -1,0 +1,5 @@
+.ssh_key
+.ssh_key.pub
+fragments.tsv.gz
+.logs/
+.latch_report.tar.gz
