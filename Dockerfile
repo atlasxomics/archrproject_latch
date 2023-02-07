@@ -9,9 +9,7 @@ RUN apt-get update -y && \
         r-base-dev \
         apt-transport-https \
         build-essential \
-        curl \
         gfortran \
-        git \
         libatlas-base-dev \
         libbz2-dev \        
         libcurl4-openssl-dev \

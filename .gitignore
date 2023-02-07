@@ -4,3 +4,5 @@ fragments.tsv.gz
 .logs/
 .latch_report.tar.gz
 wf/__pycache__/
+.latch_history
+metadata.json
