@@ -2,20 +2,24 @@ library(ArchR)
 
 args = commandArgs(trailingOnly=TRUE)
 
-inputFile <- args[1]
-run_id <- args[2]
-genome <- args[3]
-threads <- as.integer(args[4])
-tile_size <- as.integer(args[5])
-min_TSS <- as.numeric(args[6])
-min_frags <- as.integer(args[7])
+project_name <- args[1]
+genome <- args[2]
+threads <- as.integer(args[3])
+tile_size <- as.integer(args[4])
+min_TSS <- as.numeric(args[5])
+min_frags <- as.integer(args[6])
+
+
+runs = strsplit(args[7:length(args)], ',')
+inputs = c()
+for (run in runs) {inputs[run[1]] = run[2]}
 
 addArchRGenome(genome)
 addArchRThreads(threads=threads)
 
 ArrowFiles <- createArrowFiles(
-   inputFiles = inputFile,
-   sampleNames = run_id,
+   inputFiles = inputs,
+   sampleNames = names(inputs),
    minTSS = min_TSS,
    minFrags = min_frags,
    maxFrags = 1e+07,
@@ -28,6 +32,6 @@ ArrowFiles <- createArrowFiles(
 
 proj <- ArchRProject(
   ArrowFiles=ArrowFiles, 
-  outputDirectory= paste0(run_id, "_ArchRProject")
+  outputDirectory= paste0(project_name, "_ArchRProject")
 )
 

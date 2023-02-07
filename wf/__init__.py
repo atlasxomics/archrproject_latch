@@ -1,8 +1,13 @@
 ''' Short workflow for converting CellRanger output (fragments.tss.gz) into ArchR
 objects for downstream analysis.
 '''
+import pdb
 import subprocess
+
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
 from enum import Enum
+from typing import List
 
 from latch import medium_task, workflow
 from latch.types import (
@@ -13,6 +18,12 @@ from latch.types import (
     LatchParameter
 )
 
+@dataclass_json
+@dataclass
+class Run:
+    run_id: str
+    fragments_file: LatchFile
+    # add conditoin
 
 class Genome(Enum):
     mm10 = 'mm10'
@@ -20,8 +31,8 @@ class Genome(Enum):
 
 @medium_task
 def archr_task(
-    fragments_file: LatchFile,
-    run_id: str,
+    fragments_files: List[Run],
+    project_name: str,
     genome: Genome,
     threads: int,
     tile_size: int,
@@ -32,30 +43,34 @@ def archr_task(
     _archr_cmd = [
         'Rscript',
         '/root/wf/archr_objs.R',
-        fragments_file.local_path,
-        run_id,
+        project_name,
         genome.value,
         f'{threads}',
         f'{tile_size}',
         f'{min_TSS}',
         f'{min_frags}',
     ]
+
+    runs = [
+    f'{run.run_id},{run.fragments_file.local_path}' for run in fragments_files
+    ]
     
+    _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd)
 
-    subprocess.run(['mkdir', f'{run_id}_archr_outs'])
+    subprocess.run(['mkdir', f'{project_name}_archr_outs'])
     _mv_cmd = [
         'mv',
-        f'/root/{run_id}.arrow',
-        f'/root/{run_id}_ArchRProject',
-        f'{run_id}_archr_outs'
+        f'/root/{project_name}.arrow',
+        f'/root/{project_name}_ArchRProject',
+        f'{project_name}_archr_outs'
     ]
-
+    pdb.set_trace()
     subprocess.run(_mv_cmd)
 
     return LatchDir(
-        f'/root/{run_id}_archr_outs',
-        f'latch:///archr_outs/{run_id}_archr_outs'
+        f'/root/{project_name}_archr_outs',
+        f'latch:///archr_outs/{project_name}_archr_outs'
     )
 
 
@@ -69,17 +84,15 @@ metadata = LatchMetadata(
     repository='https://github.com/jpmcga/archr_latch/',
     license='MIT',
     parameters={
-        'fragments_file': LatchParameter(
-            display_name='fragments file',
-            description='fragments.tsv.gz from CellRanger outs folder.',
+        'fragments_files': LatchParameter(
+            display_name='fragment files',
+            description='List mapping Run ID to file path to fragments.tsv file.',
             batch_table_column=True, 
         ),
-        'run_id': LatchParameter(
-            display_name='run id',
-            description='Name of run with optional prefix, default to \
-                        Dxxxxx_NGxxxxx.',
+        'project_name' : LatchParameter(
+            display_name='project name',
+            description='Name prefix of output ArchRProject folder.',
             batch_table_column=True,
-            placeholder='Dxxxxx_NGxxxxx'
         ),
         'genome': LatchParameter(
             display_name='genome',
@@ -122,16 +135,15 @@ metadata = LatchMetadata(
 
 @workflow(metadata)
 def archr_workflow(
-    fragments_file: LatchFile,
-    run_id: str,
+    fragments_files: List[Run],
     genome: Genome,
+    project_name: str,
     threads: int=24,
     tile_size: int=5000,
     min_TSS: float=2.0,
     min_frags: int=0,
 ) -> LatchDir:
-    '''
-    Pipeline for converting fragment.tsv.gz files from 10x cellranger to 
+    '''Pipeline for converting fragment.tsv.gz files from 10x cellranger to \
     ArchR .arrow files and ArchRProject folders.
 
     For data from DBiT-seq for spatially-resolved epigenomics.
@@ -140,19 +152,19 @@ def archr_workflow(
     '''
 
     return archr_task(
-        fragments_file=fragments_file,
-        run_id=run_id,
+        fragments_files=fragments_files,
+        project_name=project_name,
         genome=genome,
         threads=threads,
         tile_size=tile_size,
         min_TSS=min_TSS,
-        min_frags=min_frags
+        min_frags=min_frags,
     )
 
 if __name__ == '__main__':
     archr_workflow(
-        fragments_file=LatchFile('latch:///runs/ds_D01033_NG01681/outs/fragments.tsv.gz'),
-        run_id='dev',
-        genome=Genome.hg38
+        fragments_files=[Run('dev', LatchFile('latch:///runs/ds_D01033_NG01681/outs/fragments.tsv.gz'))],
+        project_name='dev',
+        genome=Genome.hg38,
         )
 

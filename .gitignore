@@ -6,3 +6,5 @@ fragments.tsv.gz
 wf/__pycache__/
 .latch_history
 metadata.json
+logs
+Users
