@@ -1,7 +1,6 @@
 ''' Short workflow for converting CellRanger output (fragments.tss.gz) into ArchR
 objects for downstream analysis.
 '''
-import pdb
 import subprocess
 
 from dataclasses import dataclass
@@ -65,7 +64,6 @@ def archr_task(
         f'/root/{project_name}_ArchRProject',
         f'{project_name}_archr_outs'
     ]
-    pdb.set_trace()
     subprocess.run(_mv_cmd)
 
     return LatchDir(
