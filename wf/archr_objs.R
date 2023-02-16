@@ -1,6 +1,7 @@
 library(ArchR)
 
 args = commandArgs(trailingOnly=TRUE)
+print('hi')
 
 project_name <- args[1]
 genome <- args[2]
@@ -8,7 +9,6 @@ threads <- as.integer(args[3])
 tile_size <- as.integer(args[4])
 min_TSS <- as.numeric(args[5])
 min_frags <- as.integer(args[6])
-
 
 runs = strsplit(args[7:length(args)], ',')
 inputs = c()
@@ -34,4 +34,9 @@ proj <- ArchRProject(
   ArrowFiles=ArrowFiles, 
   outputDirectory= paste0(project_name, "_ArchRProject")
 )
+
+# Add an additional Conditions column
+for (run in runs) {proj$Condition[proj$Sample==run[1]] <- run[3]}
+
+saveArchRProject(ArchRProj = proj)
 
