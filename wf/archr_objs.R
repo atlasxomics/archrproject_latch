@@ -1,7 +1,6 @@
 library(ArchR)
 
 args = commandArgs(trailingOnly=TRUE)
-print('hi')
 
 project_name <- args[1]
 genome <- args[2]
