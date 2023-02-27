@@ -31,11 +31,21 @@ ArrowFiles <- createArrowFiles(
 
 proj <- ArchRProject(
   ArrowFiles=ArrowFiles, 
-  outputDirectory= paste0(project_name, "_ArchRProject")
+  outputDirectory= paste0(project_name, '_ArchRProject')
 )
 
 # Add an additional Conditions column
 for (run in runs) {proj$Condition[proj$Sample==run[1]] <- run[3]}
+
+# Filter on-tissue
+all_ontissue = c()
+for (run in runs) {
+  positions <- read.csv(run[4], header=FALSE)
+  positions$V1 <- paste(run[1], '#', positions$V1,'-1', sep="")
+  on_tissue <- positions$V1 [which(positions$V2 == 1)]
+  all_ontissue <- c(all_ontissue, on_tissue)
+}
+proj <- proj[proj$cellNames %in% all_ontissue]
 
 saveArchRProject(ArchRProj = proj)
 

@@ -22,8 +22,11 @@ from latch.types import (
 @dataclass
 class Run:
     run_id: str
-    condition: str
     fragments_file: LatchFile
+    condition: str
+    positions_file: LatchFile = LatchFile(
+        'latch:///position_files/all_tissue_positions_list.csv'
+    )
 
 class Genome(Enum):
     mm10 = 'mm10'
@@ -31,13 +34,13 @@ class Genome(Enum):
 
 @medium_task
 def archr_task(
-    fragments_files: List[Run],
+    runs: List[Run],
     project_name: str,
     genome: Genome,
     threads: int,
     tile_size: int,
     min_TSS: float,
-    min_frags: int
+    min_frags: int,
 ) -> LatchDir:
     
     _archr_cmd = [
@@ -52,8 +55,8 @@ def archr_task(
     ]
 
     runs = [
-    f'{run.run_id},{run.fragments_file.local_path},{run.condition}'
-    for run in fragments_files
+    f'{run.run_id},{run.fragments_file.local_path},{run.condition},{run.positions_file.local_path}'
+    for run in runs
     ]
     
     _archr_cmd.extend(runs)
@@ -61,10 +64,10 @@ def archr_task(
 
     out_dir = f'{project_name}_ArchRProject'
     subprocess.run(
-            [
-        'mv',
-        f'{out_dir}/Save-ArchR-Project.rds',
-        f'{out_dir}/{project_name}.rds'
+        [
+            'mv',
+            f'{out_dir}/Save-ArchR-Project.rds',
+            f'{out_dir}/{project_name}.rds'
         ]
     )
 
@@ -72,7 +75,6 @@ def archr_task(
         f'/root/{out_dir}',
         f'latch:///archr_outs/{out_dir}'
     )
-
 
 metadata = LatchMetadata(
     display_name='archr',
@@ -84,9 +86,11 @@ metadata = LatchMetadata(
     repository='https://github.com/jpmcga/archr_latch/',
     license='MIT',
     parameters={
-        'fragments_files': LatchParameter(
-            display_name='fragment files',
-            description='List mapping Run ID and condition to file path to fragments.tsv file.',
+        'runs': LatchParameter(
+            display_name='runs',
+            description='List of runs to be analyzed; each run must contain a \
+                         run_id and fragments.tsv file; optional: condition, \
+                         tissue position file for filtering on/off tissue.',
             batch_table_column=True, 
         ),
         'project_name' : LatchParameter(
@@ -110,14 +114,14 @@ metadata = LatchMetadata(
         'tile_size': LatchParameter(
             display_name='tile size', 
             description='The size of the tiles used for binning counts in the \
-                        'TileMatrix'.',
+                        TileMatrix.',
             batch_table_column=True,
             hidden=True
         ),
         'min_TSS': LatchParameter(
             display_name='minimum TSS',
             description='The minimum numeric transcription start site (TSS) \
-                    enrichment score required for a cell to pass filtering.',
+                        enrichment score required for a cell to pass filtering.',
             batch_table_column=True,
             hidden=True
         ),
@@ -135,7 +139,7 @@ metadata = LatchMetadata(
 
 @workflow(metadata)
 def archr_workflow(
-    fragments_files: List[Run],
+    runs: List[Run],
     genome: Genome,
     project_name: str,
     threads: int=24,
@@ -152,7 +156,7 @@ def archr_workflow(
     '''
 
     return archr_task(
-        fragments_files=fragments_files,
+        runs=runs,
         project_name=project_name,
         genome=genome,
         threads=threads,
@@ -165,13 +169,18 @@ LaunchPlan(
     archr_workflow,
     'Test Data',
     {
-        'fragments_files' : [
-                Run(
-                    'dev',
-                    'control',
-                    LatchFile('/cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz')
+        'runs' : [
+            Run(
+                'dev',
+                LatchFile(
+                    'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
+                ),
+                'control',
+                LatchFile(
+                    'latch:///position_files/all_tissue_positions_list.csv'
                 )
-            ],
+            )
+        ],
         'project_name' : 'dev',
         'genome' : Genome.hg38
     },
@@ -179,11 +188,16 @@ LaunchPlan(
 
 if __name__ == '__main__':
     archr_workflow(
-        fragments_files=[
+        runs=[
             Run(
                 'dev',
+                LatchFile(
+                    'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
+                ),
                 'control',
-                LatchFile('/cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz')
+                LatchFile(
+                    'latch:///position_files/D01033/test.csv'
+                )
             )
         ],
         project_name='dev',
