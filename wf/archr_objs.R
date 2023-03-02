@@ -12,7 +12,7 @@ min_TSS <- as.numeric(args[5])
 min_frags <- as.integer(args[6])
 lsi_iterations <- as.integer(args[7])
 lsi_resolution <- as.numeric(args[8])
-lsi_varfeatures <- as.integer(args[9])
+for (i in strsplit(args[9], ',')) {lsi_varfeatures <- as.integer(i)}
 clustering_resolution <- as.integer(args[10])
 umap_mindist <- as.numeric(args[11])
 
@@ -56,67 +56,76 @@ for (run in runs) {
 }
 proj <- proj[proj$cellNames %in% all_ontissue]
 
-proj <- addIterativeLSI(
-  ArchRProj = proj,
-  useMatrix = 'TileMatrix',
-  name = 'IterativeLSI',
-  iterations = lsi_iterations, 
-  clusterParams = list(
-    resolution = c(lsi_resolution), 
-    sampleCells = 10000, 
-    n.start = 10
-  ), 
-  varFeatures = lsi_varfeatures, 
-  dimsToUse = 1:30,
-  force = TRUE
-)
+for (i in 1:length(lsi_varfeatures)) {
 
-if (length(runs) > 1) {
-  proj <- addHarmony(
+  varfeatures = lsi_varfeatures[i]
+  proj <- addIterativeLSI(
     ArchRProj = proj,
-    reducedDims = 'IterativeLSI',
-    name = 'Harmony',
-    groupBy = 'Sample',
+    useMatrix = 'TileMatrix',
+    name = 'IterativeLSI',
+    iterations = lsi_iterations, 
+    clusterParams = list(
+      resolution = c(lsi_resolution), 
+      sampleCells = 10000, 
+      n.start = 10
+    ), 
+    varFeatures = varfeatures, 
+    dimsToUse = 1:30,
     force = TRUE
   )
-  name = 'Harmony'
-}else{
-  name = 'IterativeLSI'
+
+  if (length(runs) > 1) {
+    proj <- addHarmony(
+      ArchRProj = proj,
+      reducedDims = 'IterativeLSI',
+      name = 'Harmony',
+      groupBy = 'Sample',
+      force = TRUE
+    )
+    name = 'Harmony'
+  } else {
+    name = 'IterativeLSI'
+  }
+
+  proj <- addClusters(
+    input = proj,
+    F = name,
+    method = 'Seurat',
+    name = 'Clusters',
+    resolution = c(clustering_resolution), 
+    force = TRUE
+  )
+
+  proj <- addUMAP(
+    ArchRProj = proj, 
+    reducedDims = name, 
+    name = 'UMAP', 
+    nNeighbors = 30, 
+    minDist = umap_mindist,  
+    metric = 'cosine',
+    force = TRUE
+  )
+
+  p1 <- plotEmbedding(
+    ArchRProj = proj,
+    colorBy = "cellColData",
+    name = "Sample",
+    embedding = "UMAP"
+  )
+
+  p2 <- plotEmbedding(
+    ArchRProj = proj,
+    colorBy = "cellColData",
+    name = "Clusters",
+    embedding = "UMAP"
+  )
+
+  ggsave(
+    paste0(out_dir, '/umap_', varfeatures, '.pdf'),
+    p1 + p2,
+    width = 10,
+    height = 10
+  )
 }
-
-proj <- addClusters(
-  input = proj,
-  F = name,
-  method = 'Seurat',
-  name = 'Clusters',
-  resolution = c(clustering_resolution), 
-  force = TRUE
-)
-
-proj <- addUMAP(
-  ArchRProj = proj, 
-  reducedDims = name, 
-  name = 'UMAP', 
-  nNeighbors = 30, 
-  minDist = umap_mindist,  
-  metric = 'cosine',
-  force = TRUE
-)
-
-p1 <- plotEmbedding(
-  ArchRProj = proj,
-  colorBy = "cellColData",
-  name = "Sample",
-  embedding = "UMAP"
-)
-
-p2 <- plotEmbedding(
-  ArchRProj = proj,
-  colorBy = "cellColData",
-  name = "Clusters",
-  embedding = "UMAP"
-)
-
-ggsave(paste0(out_dir, '/umap.pdf'), p1+p2, width = 10, height = 10)
 
 saveArchRProject(ArchRProj = proj)

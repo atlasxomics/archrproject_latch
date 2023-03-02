@@ -43,7 +43,7 @@ def archr_task(
     min_frags: int,
     lsi_iterations: int,
     lsi_resolution: float,
-    lsi_varfeatures: int,
+    lsi_varfeatures: List[int],
     clustering_resolution: int,
     umap_mindist: float
 ) -> LatchDir:
@@ -59,7 +59,7 @@ def archr_task(
         f'{min_frags}',
         f'{lsi_iterations}',
         f'{lsi_resolution}',
-        f'{lsi_varfeatures}',
+        f'{",".join(str(i) for i in lsi_varfeatures)}',
         f'{clustering_resolution}',
         f'{umap_mindist}',
     ]
@@ -156,7 +156,9 @@ metadata = LatchMetadata(
         ),                
         'lsi_varfeatures': LatchParameter(
             display_name='LSI varFeatures',
-            description='varFeatures parameter from addIterativeLSI function.',
+            description='varFeatures parameter from addIterativeLSI function; \
+                        each will correspond to a umap.pdf, the last in the \
+                        will be used to make the RDS object.',
             batch_table_column=True
         ),              
         'clustering_resolution': LatchParameter(
@@ -187,7 +189,7 @@ def archr_workflow(
     min_frags: int=0,
     lsi_iterations: int=2,
     lsi_resolution: float=0.5,
-    lsi_varfeatures: int=25000,
+    lsi_varfeatures: List[int]=[25000],
     clustering_resolution: int=1,
     umap_mindist: float=0.0
 ) -> LatchDir:
@@ -250,6 +252,7 @@ if __name__ == '__main__':
             )
         ],
         project_name='dev',
-        genome=Genome.hg38
+        genome=Genome.hg38,
+        lsi_varfeatures=[25000, 10000]
     )
 
