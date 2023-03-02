@@ -10,8 +10,14 @@ threads <- as.integer(args[3])
 tile_size <- as.integer(args[4])
 min_TSS <- as.numeric(args[5])
 min_frags <- as.integer(args[6])
+lsi_iterations <- as.integer(args[7])
+lsi_resolution <- as.numeric(args[8])
+lsi_varfeatures <- as.integer(args[9])
+clustering_resolution <- as.integer(args[10])
+umap_mindist <- as.numeric(args[11])
 
-runs = strsplit(args[7:length(args)], ',')
+
+runs = strsplit(args[12:length(args)], ',')
 inputs = c()
 for (run in runs) {inputs[run[1]] = run[2]}
 
@@ -54,13 +60,13 @@ proj <- addIterativeLSI(
   ArchRProj = proj,
   useMatrix = 'TileMatrix',
   name = 'IterativeLSI',
-  iterations = 2,
+  iterations = lsi_iterations, 
   clusterParams = list(
-    resolution = c(0.5), 
+    resolution = c(lsi_resolution), 
     sampleCells = 10000, 
     n.start = 10
   ), 
-  varFeatures = 50000, 
+  varFeatures = lsi_varfeatures, 
   dimsToUse = 1:30,
   force = TRUE
 )
@@ -83,7 +89,7 @@ proj <- addClusters(
   F = name,
   method = 'Seurat',
   name = 'Clusters',
-  resolution = c(1),
+  resolution = c(clustering_resolution), 
   force = TRUE
 )
 
@@ -92,7 +98,7 @@ proj <- addUMAP(
   reducedDims = name, 
   name = 'UMAP', 
   nNeighbors = 30, 
-  minDist = 0.0, 
+  minDist = umap_mindist,  
   metric = 'cosine',
   force = TRUE
 )

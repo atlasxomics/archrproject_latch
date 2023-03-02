@@ -41,6 +41,11 @@ def archr_task(
     tile_size: int,
     min_TSS: float,
     min_frags: int,
+    lsi_iterations: int,
+    lsi_resolution: float,
+    lsi_varfeatures: int,
+    clustering_resolution: int,
+    umap_mindist: float
 ) -> LatchDir:
     
     _archr_cmd = [
@@ -52,6 +57,11 @@ def archr_task(
         f'{tile_size}',
         f'{min_TSS}',
         f'{min_frags}',
+        f'{lsi_iterations}',
+        f'{lsi_resolution}',
+        f'{lsi_varfeatures}',
+        f'{clustering_resolution}',
+        f'{umap_mindist}',
     ]
 
     runs = [
@@ -131,7 +141,36 @@ metadata = LatchMetadata(
                         required per cell to pass filtering.',
             batch_table_column=True,
             hidden=True
-        ),        
+        ),
+        'lsi_iterations': LatchParameter(
+            display_name='LSI iterations',
+            description='iterations parameter from addIterativeLSI function.',
+            batch_table_column=True,
+            hidden=True
+        ),                
+        'lsi_resolution': LatchParameter(
+            display_name='LSI resolution',
+            description='resolution parameter from \
+                        addIterativeLSI/clusterParams function.',
+            batch_table_column=True
+        ),                
+        'lsi_varfeatures': LatchParameter(
+            display_name='LSI varFeatures',
+            description='varFeatures parameter from addIterativeLSI function.',
+            batch_table_column=True
+        ),              
+        'clustering_resolution': LatchParameter(
+            display_name='clustering resolution',
+            description='resolution parameter from addClusters function.',
+            batch_table_column=True,
+            hidden=True
+        ),              
+        'umap_mindist': LatchParameter(
+            display_name='UMAP minimum distance',
+            description='minDist parameter from addUMAP function.',
+            batch_table_column=True,
+            hidden=True
+        ),                 
     },
     tags=[],
 )
@@ -146,6 +185,11 @@ def archr_workflow(
     tile_size: int=5000,
     min_TSS: float=2.0,
     min_frags: int=0,
+    lsi_iterations: int=2,
+    lsi_resolution: float=0.5,
+    lsi_varfeatures: int=25000,
+    clustering_resolution: int=1,
+    umap_mindist: float=0.0
 ) -> LatchDir:
     '''Pipeline for converting fragment.tsv.gz files from 10x cellranger to \
     ArchR .arrow files and ArchRProject folders.
@@ -163,6 +207,11 @@ def archr_workflow(
         tile_size=tile_size,
         min_TSS=min_TSS,
         min_frags=min_frags,
+        lsi_iterations=lsi_iterations,
+        lsi_resolution=lsi_resolution,
+        lsi_varfeatures=lsi_varfeatures,
+        clustering_resolution=clustering_resolution,
+        umap_mindist=umap_mindist
     )
 
 LaunchPlan(
