@@ -271,8 +271,7 @@ for (run in runs) {
     metadata = metadata,
     spatial_path = run[5],
   )
-
-    p1 <- SpatialPlot(
+  p1 <- SpatialPlot(
     seurat_object = obj,
     name = paste0(run[1], varfeatures)
   )
