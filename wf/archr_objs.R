@@ -2,6 +2,8 @@ library(ArchR)
 library(harmony)
 library(Seurat)
 
+# globals ---------------------------------------------------------------------
+
 args = commandArgs(trailingOnly=TRUE)
 
 project_name <- args[1]
@@ -16,12 +18,115 @@ for (i in strsplit(args[9], ',')) {lsi_varfeatures <- as.integer(i)}
 clustering_resolution <- as.integer(args[10])
 umap_mindist <- as.numeric(args[11])
 
-
 runs = strsplit(args[12:length(args)], ',')
 inputs = c()
 for (run in runs) {inputs[run[1]] = run[2]}
 
 out_dir <- paste0(project_name, '_ArchRProject')
+
+BuildAtlasSeuratObect <- function(
+  run_id,
+  matrix,
+  metadata,
+  spatial_path) {
+  # Prepare and combine gene matrix, metadata, and image for seurat object
+  # for runs within a project.
+  
+  image <- Read10X_Image(
+    image.dir = spatial_path,
+    filter.matrix = TRUE
+  )
+  
+  metadata <- metadata[metadata$Sample == run_id, ]
+
+  matrix <- matrix[, c(grep(pattern = run_id, colnames(matrix)))]
+  matrix@Dimnames[[ 2 ]] <- metadata@rownames
+  
+  object <- CreateSeuratObject(
+    counts = matrix,
+    assay  = "Spatial",
+    meta.data = as.data.frame(metadata)
+  )
+  
+  image <- image[Cells(x = object)]
+  DefaultAssay(object = image) <- "Spatial"
+  object[[ "slice1" ]] <- image
+}
+
+cvi_colours <- list(
+  cvi_purples=c(
+    "#381532",
+    "#4b1b42",
+    "#5d2252",
+    "#702963",
+    "#833074",
+    "#953784",
+    "#a83e95"
+  ),
+  atlas_color=c(
+    "#D72E89",
+    "#0CC3FC",
+    "#F7996E",
+    '#034C3C',
+    '#1EFFBC'
+  )
+)
+
+CviPalettes <- function(
+  name,
+  n,
+  all_palettes = cvi_colours,
+  type = c("discrete", "continuous")) {
+  
+  palette = all_palettes[[ name ]]
+  if (missing(n)) {n = length(palette)}
+  
+  out <- switch(
+    match.arg(type),
+    continuous = grDevices::colorRampPalette(palette)(n),
+    discrete = palette[1:n]
+  )
+
+  structure(
+    out,
+    name = name,
+    class = "palette"
+  )
+
+SpatialPlot <- function(seurat_object, name) { 
+  
+  clusters <- seq_len(length(unique(seurat_object$Clusters)))
+  cols <- ArchRPalettes$stallion2[as.character(clusters)]
+  names(cols) <- paste0('C', clusters)
+  
+  pp1 <- SpatialDimPlot(
+    seurat_object,
+    group.by = "Clusters",
+    label = FALSE,
+    label.size = 3,
+    pt.size.factor = 1,
+    cols = cols,
+    stroke = 0,
+    image.alpha = 1
+  ) +
+  theme(
+    plot.title = element_blank(),
+    legend.position = "right",
+    text=element_text(size=21)
+  ) +
+  ggtitle(
+    name
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    text=element_text(size=21)
+  ) 
+}
+
+}
+
+# create archr project --------------------------------------------------------
+
 addArchRGenome(genome)
 addArchRThreads(threads = threads)
 
@@ -55,6 +160,8 @@ for (run in runs) {
   all_ontissue <- c(all_ontissue, on_tissue)
 }
 proj <- proj[proj$cellNames %in% all_ontissue]
+
+# iterate plotting ------------------------------------------------------------
 
 for (i in 1:length(lsi_varfeatures)) {
 
@@ -126,6 +233,57 @@ for (i in 1:length(lsi_varfeatures)) {
     width = 10,
     height = 10
   )
+
+  proj <- addImputeWeights(proj)
+
+  # Create metadata object for Seurat object   
+  metadata <- getCellColData(ArchRProj = proj) 
+  rownames(metadata) <- str_split_fixed( 
+  str_split_fixed(
+    row.names(metadata),
+    '#',
+    2)[,2],
+  '-',
+  2)[, 1]
+metadata['LognFrags'] <- log(metadata$nFrags)
+
+# Create gene matrix for Seurat object.
+gene_matrix <- getMatrixFromProject(
+  ArchRProj = project,
+  useMatrix = "GeneScoreMatrix"
+)
+gene_matrix <- imputeMatrix(
+  matrix = assay(gene_matrix),
+  imputeWeights = getImputeWeights(project)
+)
+gene_row_names <- gene_matrix@elementMetadata$name
+rownames(gene_matrix) <- gene_row_names
+
+# Set plotting parameters.
+atlas = CviPalettes("atlas_color", type="discrete")
+
+seurat_objs = c()
+for (run in runs) {
+
+  obj <- BuildAtlasSeuratObect(
+    run_id = run[1],
+    matrix = gene_matrix,
+    metadata = metadata,
+    spatial_path = run[5],
+  )
+
+    p1 <- SpatialPlot(
+    seurat_object = obj,
+    name = paste0(run[1], varfeatures)
+  )
+  ggsave(
+    paste0(out_dir, '/', run[0], '_spatialdim_', varfeatures, '.pdf'),
+    p1,
+    width = 10,
+    height = 10
+  )
+  seurat_objs <- c(seurat_objs, obj)
+  }
 }
 
 saveArchRProject(ArchRProj = proj)

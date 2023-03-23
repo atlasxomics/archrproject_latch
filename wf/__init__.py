@@ -1,5 +1,6 @@
-''' Short workflow for converting CellRanger output (fragments.tss.gz) into ArchR
-objects for downstream analysis.
+''' Workflow for converting CellRanger output (fragments.tss.gz) into ArchR
+objects for downstream analysis; additionally, generates UMAP and
+SpatialDimPlots for a list of lsi_varfeatures.
 '''
 import subprocess
 
@@ -27,6 +28,7 @@ class Run:
     positions_file: LatchFile = LatchFile(
         'latch:///position_files/all_tissue_positions_list.csv'
     )
+    spatial_dir: LatchDir
 
 class Genome(Enum):
     mm10 = 'mm10'
@@ -65,7 +67,13 @@ def archr_task(
     ]
 
     runs = [
-    f'{run.run_id},{run.fragments_file.local_path},{run.condition},{run.positions_file.local_path}'
+        (
+        f'{run.run_id},'
+        f'{run.fragments_file.local_path},'
+        f'{run.condition},'
+        f'{run.positions_file.local_path},'
+        f'{run.spatial_dir.local_path},'
+    )
     for run in runs
     ]
     
@@ -100,7 +108,8 @@ metadata = LatchMetadata(
             display_name='runs',
             description='List of runs to be analyzed; each run must contain a \
                          run_id and fragments.tsv file; optional: condition, \
-                         tissue position file for filtering on/off tissue.',
+                         tissue position file for filtering on/off tissue, \
+                         spatial folder for SpatialDimPlot.',
             batch_table_column=True, 
         ),
         'project_name' : LatchParameter(
@@ -229,6 +238,9 @@ LaunchPlan(
                 'control',
                 LatchFile(
                     'latch:///position_files/all_tissue_positions_list.csv'
+                ),
+                LatchDir(
+                    'latch:////spatials/D00866/spatial'
                 )
             )
         ],
@@ -243,11 +255,14 @@ if __name__ == '__main__':
             Run(
                 'dev',
                 LatchFile(
-                    'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
+                    'latch:///cr_outs/ds_,v_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
                 ),
                 'control',
                 LatchFile(
                     'latch:///position_files/D01033/test.csv'
+                ),
+                LatchDir(
+                    'latch:////spatials/D00866/spatial'
                 )
             )
         ],
