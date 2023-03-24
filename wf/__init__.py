@@ -25,10 +25,10 @@ class Run:
     run_id: str
     fragments_file: LatchFile
     condition: str
+    spatial_dir: LatchDir
     positions_file: LatchFile = LatchFile(
         'latch:///position_files/all_tissue_positions_list.csv'
     )
-    spatial_dir: LatchDir
 
 class Genome(Enum):
     mm10 = 'mm10'
@@ -236,12 +236,13 @@ LaunchPlan(
                     'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
                 ),
                 'control',
+                LatchDir(
+                    'latch:////spatials/D00866/spatial'
+                ),
                 LatchFile(
                     'latch:///position_files/all_tissue_positions_list.csv'
                 ),
-                LatchDir(
-                    'latch:////spatials/D00866/spatial'
-                )
+
             )
         ],
         'project_name' : 'dev',
@@ -255,15 +256,15 @@ if __name__ == '__main__':
             Run(
                 'dev',
                 LatchFile(
-                    'latch:///cr_outs/ds_,v_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
+                    'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
                 ),
                 'control',
+                LatchDir(
+                    'latch:///spatials/D00866/spatial'
+                ),
                 LatchFile(
                     'latch:///position_files/D01033/test.csv'
                 ),
-                LatchDir(
-                    'latch:////spatials/D00866/spatial'
-                )
             )
         ],
         project_name='dev',

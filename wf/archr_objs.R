@@ -31,7 +31,7 @@ BuildAtlasSeuratObect <- function(
   spatial_path) {
   # Prepare and combine gene matrix, metadata, and image for seurat object
   # for runs within a project.
-  
+
   image <- Read10X_Image(
     image.dir = spatial_path,
     filter.matrix = TRUE
@@ -41,7 +41,7 @@ BuildAtlasSeuratObect <- function(
 
   matrix <- matrix[, c(grep(pattern = run_id, colnames(matrix)))]
   matrix@Dimnames[[ 2 ]] <- metadata@rownames
-  
+
   object <- CreateSeuratObject(
     counts = matrix,
     assay  = "Spatial",
@@ -51,6 +51,8 @@ BuildAtlasSeuratObect <- function(
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- "Spatial"
   object[[ "slice1" ]] <- image
+  
+  return (object)
 }
 
 cvi_colours <- list(
@@ -92,6 +94,7 @@ CviPalettes <- function(
     name = name,
     class = "palette"
   )
+}
 
 SpatialPlot <- function(seurat_object, name) { 
   
@@ -99,30 +102,20 @@ SpatialPlot <- function(seurat_object, name) {
   cols <- ArchRPalettes$stallion2[as.character(clusters)]
   names(cols) <- paste0('C', clusters)
   
-  pp1 <- SpatialDimPlot(
+  SpatialDimPlot(
     seurat_object,
     group.by = "Clusters",
     label = FALSE,
     label.size = 3,
     pt.size.factor = 1,
     cols = cols,
-    stroke = 0,
-    image.alpha = 1
-  ) +
+    stroke = 0) + 
   theme(
     plot.title = element_blank(),
     legend.position = "right",
-    text=element_text(size=21)
-  ) +
-  ggtitle(
-    name
-  ) +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    text=element_text(size=21)
-  ) 
-}
-
+    text=element_text(size=21)) +
+  ggtitle(name) +
+  theme(plot.title = element_text(hjust = 0.5), text=element_text(size=21)) 
 }
 
 # create archr project --------------------------------------------------------
@@ -249,15 +242,15 @@ metadata['LognFrags'] <- log(metadata$nFrags)
 
 # Create gene matrix for Seurat object.
 gene_matrix <- getMatrixFromProject(
-  ArchRProj = project,
+  ArchRProj = proj,
   useMatrix = "GeneScoreMatrix"
 )
-gene_matrix <- imputeMatrix(
-  matrix = assay(gene_matrix),
-  imputeWeights = getImputeWeights(project)
+matrix <- imputeMatrix(
+  mat = assay(gene_matrix),
+  imputeWeights = getImputeWeights(proj)
 )
 gene_row_names <- gene_matrix@elementMetadata$name
-rownames(gene_matrix) <- gene_row_names
+rownames(matrix) <- gene_row_names
 
 # Set plotting parameters.
 atlas = CviPalettes("atlas_color", type="discrete")
@@ -267,16 +260,17 @@ for (run in runs) {
 
   obj <- BuildAtlasSeuratObect(
     run_id = run[1],
-    matrix = gene_matrix,
+    matrix = matrix,
     metadata = metadata,
-    spatial_path = run[5],
+    spatial_path = run[5]
   )
   p1 <- SpatialPlot(
-    seurat_object = obj,
-    name = paste0(run[1], varfeatures)
-  )
+    obj,
+    name = paste(run[1], varfeatures)
+    )
+
   ggsave(
-    paste0(out_dir, '/', run[0], '_spatialdim_', varfeatures, '.pdf'),
+    paste0(out_dir, '/', run[1], '_spatialdim_', varfeatures, '.pdf'),
     p1,
     width = 10,
     height = 10

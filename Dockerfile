@@ -39,7 +39,7 @@ RUN apt-get update -y && \
 RUN apt-get install -y r-cran-devtools libcairo2-dev
 
 # Install packages
-RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'Seurat'), dependencies = TRUE)"
+RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'Seurat'))"
 RUN R -e "devtools::install_github('immunogenomics/harmony')"
 RUN R -e "devtools::install_github('GreenleafLab/ArchR', ref='master', repos = BiocManager::repositories())"
 RUN R -e "library('ArchR'); ArchR::installExtraPackages()"
