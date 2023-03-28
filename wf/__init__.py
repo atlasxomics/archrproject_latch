@@ -24,10 +24,12 @@ from latch.types import (
 class Run:
     run_id: str
     fragments_file: LatchFile
-    condition: str
-    spatial_dir: LatchDir
+    condition: str = 'None'
+    spatial_dir: LatchDir = LatchDir(
+        'latch:///spatials/default'
+    )
     positions_file: LatchFile = LatchFile(
-        'latch:///position_files/all_tissue_positions_list.csv'
+        'latch:///spatials/default/tissue_positions_list.csv'
     )
 
 class Genome(Enum):
@@ -73,7 +75,7 @@ def archr_task(
         f'{run.condition},'
         f'{run.positions_file.local_path},'
         f'{run.spatial_dir.local_path},'
-    )
+        )
     for run in runs
     ]
     
@@ -227,18 +229,18 @@ def archr_workflow(
 
 LaunchPlan(
     archr_workflow,
-    'Test Data',
+    'defaults',
     {
     'runs' : [
         Run(
-            'dev',
+            'default',
             LatchFile('latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'),
-            'control',
-            LatchDir('latch:////spatials/D00866/spatial'),
-            LatchFile('latch:///position_files/all_tissue_positions_list.csv')
-            ),
+            'default',
+            LatchDir('latch:///spatials/default'),
+            LatchFile('latch:///spatials/default/tissue_positions_list.csv'),
+            )
         ],
-    'project_name' : 'dev',
+    'project_name' : 'default',
     'genome' : Genome.hg38
     },
 )
@@ -249,7 +251,8 @@ if __name__ == '__main__':
     Run(
         'D01118_test25000',
         LatchFile('latch:///cr_outs/D01118_NG01975/outs/D01118_NG01975_fragments.tsv.gz'),
-        'control', LatchDir('latch:///spatials/D01118'),
+        'control',
+        LatchDir('latch:///spatials/D01118'),
         LatchFile('latch:///spatials/D01118/tissue_positions_list.csv')
         )
     ],
