@@ -229,46 +229,32 @@ LaunchPlan(
     archr_workflow,
     'Test Data',
     {
-        'runs' : [
-            Run(
-                'dev',
-                LatchFile(
-                    'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
-                ),
-                'control',
-                LatchDir(
-                    'latch:////spatials/D00866/spatial'
-                ),
-                LatchFile(
-                    'latch:///position_files/all_tissue_positions_list.csv'
-                ),
-
-            )
+    'runs' : [
+        Run(
+            'dev',
+            LatchFile('latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'),
+            'control',
+            LatchDir('latch:////spatials/D00866/spatial'),
+            LatchFile('latch:///position_files/all_tissue_positions_list.csv')
+            ),
         ],
-        'project_name' : 'dev',
-        'genome' : Genome.hg38
+    'project_name' : 'dev',
+    'genome' : Genome.hg38
     },
 )
 
 if __name__ == '__main__':
     archr_workflow(
-        runs=[
-            Run(
-                'dev',
-                LatchFile(
-                    'latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'
-                ),
-                'control',
-                LatchDir(
-                    'latch:///spatials/D00866/spatial'
-                ),
-                LatchFile(
-                    'latch:///position_files/D01033/test.csv'
-                ),
-            )
-        ],
-        project_name='dev',
-        genome=Genome.hg38,
-        lsi_varfeatures=[25000, 10000]
+    runs=[
+    Run(
+        'D01118_test25000',
+        LatchFile('latch:///cr_outs/D01118_NG01975/outs/D01118_NG01975_fragments.tsv.gz'),
+        'control', LatchDir('latch:///spatials/D01118'),
+        LatchFile('latch:///spatials/D01118/tissue_positions_list.csv')
+        )
+    ],
+    project_name='D01118',
+    genome=Genome.mm10,
+    lsi_varfeatures=[25000, 10000]
     )
 

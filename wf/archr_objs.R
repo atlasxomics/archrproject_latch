@@ -1,28 +1,33 @@
 library(ArchR)
+library(ggplot2)
 library(harmony)
 library(Seurat)
 
 # globals ---------------------------------------------------------------------
 
-args = commandArgs(trailingOnly=TRUE)
+args <- commandArgs(trailingOnly = TRUE)
 
 project_name <- args[1]
 genome <- args[2]
 threads <- as.integer(args[3])
 tile_size <- as.integer(args[4])
-min_TSS <- as.numeric(args[5])
+min_tss <- as.numeric(args[5])
 min_frags <- as.integer(args[6])
 lsi_iterations <- as.integer(args[7])
 lsi_resolution <- as.numeric(args[8])
-for (i in strsplit(args[9], ',')) {lsi_varfeatures <- as.integer(i)}
+for (i in strsplit(args[9], ",")) {
+  lsi_varfeatures <- as.integer(i)
+  }
 clustering_resolution <- as.integer(args[10])
 umap_mindist <- as.numeric(args[11])
 
-runs = strsplit(args[12:length(args)], ',')
-inputs = c()
-for (run in runs) {inputs[run[1]] = run[2]}
+runs <- strsplit(args[12:length(args)], ",")
+inputs <- c()
+for (run in runs) {
+  inputs[run[1]] <- run[2]
+  }
 
-out_dir <- paste0(project_name, '_ArchRProject')
+out_dir <- paste0(project_name, "_ArchRProject")
 
 BuildAtlasSeuratObect <- function(
   run_id,
@@ -36,86 +41,36 @@ BuildAtlasSeuratObect <- function(
     image.dir = spatial_path,
     filter.matrix = TRUE
   )
-  
   metadata <- metadata[metadata$Sample == run_id, ]
 
   matrix <- matrix[, c(grep(pattern = run_id, colnames(matrix)))]
-  matrix@Dimnames[[ 2 ]] <- metadata@rownames
+  matrix@Dimnames[[2]] <- metadata@rownames
 
   object <- CreateSeuratObject(
     counts = matrix,
     assay  = "Spatial",
     meta.data = as.data.frame(metadata)
   )
-  
   image <- image[Cells(x = object)]
   DefaultAssay(object = image) <- "Spatial"
-  object[[ "slice1" ]] <- image
-  
-  return (object)
+  object[["slice1"]] <- image
+  return(object)
 }
 
-cvi_colours <- list(
-  cvi_purples=c(
-    "#381532",
-    "#4b1b42",
-    "#5d2252",
-    "#702963",
-    "#833074",
-    "#953784",
-    "#a83e95"
-  ),
-  atlas_color=c(
-    "#D72E89",
-    "#0CC3FC",
-    "#F7996E",
-    '#034C3C',
-    '#1EFFBC'
-  )
-)
-
-CviPalettes <- function(
-  name,
-  n,
-  all_palettes = cvi_colours,
-  type = c("discrete", "continuous")) {
-  
-  palette = all_palettes[[ name ]]
-  if (missing(n)) {n = length(palette)}
-  
-  out <- switch(
-    match.arg(type),
-    continuous = grDevices::colorRampPalette(palette)(n),
-    discrete = palette[1:n]
-  )
-
-  structure(
-    out,
-    name = name,
-    class = "palette"
-  )
-}
-
-SpatialPlot <- function(seurat_object, name) { 
-  
-  clusters <- seq_len(length(unique(seurat_object$Clusters)))
-  cols <- ArchRPalettes$stallion2[as.character(clusters)]
-  names(cols) <- paste0('C', clusters)
-  
+SpatialPlot <- function(seurat_object, name) {
+  clusters <- sort(unique(seurat_object$Clusters))
+  colors <- ArchRPalettes$stallion2[seq_len(length(clusters))]
+  names(colors) <- clusters
   SpatialDimPlot(
     seurat_object,
     group.by = "Clusters",
-    label = FALSE,
-    label.size = 3,
     pt.size.factor = 1,
-    cols = cols,
-    stroke = 0) + 
-  theme(
-    plot.title = element_blank(),
-    legend.position = "right",
-    text=element_text(size=21)) +
-  ggtitle(name) +
-  theme(plot.title = element_text(hjust = 0.5), text=element_text(size=21)) 
+    cols = colors,
+    stroke = 0) +
+    ggtitle(name) +
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      text = element_text(size = 21))
 }
 
 # create archr project --------------------------------------------------------
@@ -126,29 +81,31 @@ addArchRThreads(threads = threads)
 ArrowFiles <- createArrowFiles(
    inputFiles = inputs,
    sampleNames = names(inputs),
-   minTSS = min_TSS,
+   minTSS = min_tss,
    minFrags = min_frags,
    maxFrags = 1e+07,
    addTileMat = TRUE,
    addGeneScoreMat = TRUE,
    offsetPlus = 0,
    offsetMinus = 0,
-   TileMatParams = list(tileSize=tile_size)
+   TileMatParams = list(tileSize = tile_size)
 )
 
 proj <- ArchRProject(
-  ArrowFiles = ArrowFiles, 
+  ArrowFiles = ArrowFiles,
   outputDirectory = out_dir
 )
 
 # Add an additional Conditions column
-for (run in runs) {proj$Condition[proj$Sample==run[1]] <- run[3]}
+for (run in runs) {
+  proj$Condition[proj$Sample == run[1]] <- run[3]
+}
 
 # Filter on-tissue
-all_ontissue = c()
+all_ontissue <- c()
 for (run in runs) {
   positions <- read.csv(run[4], header = FALSE)
-  positions$V1 <- paste(run[1], '#', positions$V1,'-1', sep = "")
+  positions$V1 <- paste(run[1], "#", positions$V1, "-1", sep = "")
   on_tissue <- positions$V1 [which(positions$V2 == 1)]
   all_ontissue <- c(all_ontissue, on_tissue)
 }
@@ -156,72 +113,66 @@ proj <- proj[proj$cellNames %in% all_ontissue]
 
 # iterate plotting ------------------------------------------------------------
 
-for (i in 1:length(lsi_varfeatures)) {
+for (i in seq_along((lsi_varfeatures))) {
 
-  varfeatures = lsi_varfeatures[i]
+  varfeatures <- lsi_varfeatures[i]
   proj <- addIterativeLSI(
     ArchRProj = proj,
-    useMatrix = 'TileMatrix',
-    name = 'IterativeLSI',
-    iterations = lsi_iterations, 
+    useMatrix = "TileMatrix",
+    name = "IterativeLSI",
+    iterations = lsi_iterations,
     clusterParams = list(
-      resolution = c(lsi_resolution), 
-      sampleCells = 10000, 
+      resolution = c(lsi_resolution),
+      sampleCells = 10000,
       n.start = 10
-    ), 
-    varFeatures = varfeatures, 
+    ),
+    varFeatures = varfeatures,
     dimsToUse = 1:30,
     force = TRUE
   )
-
   if (length(runs) > 1) {
     proj <- addHarmony(
       ArchRProj = proj,
-      reducedDims = 'IterativeLSI',
-      name = 'Harmony',
-      groupBy = 'Sample',
+      reducedDims = "IterativeLSI",
+      name = "Harmony",
+      groupBy = "Sample",
       force = TRUE
     )
-    name = 'Harmony'
+    name <- "Harmony"
   } else {
-    name = 'IterativeLSI'
+    name <- "IterativeLSI"
   }
-
   proj <- addClusters(
     input = proj,
     F = name,
-    method = 'Seurat',
-    name = 'Clusters',
-    resolution = c(clustering_resolution), 
+    method = "Seurat",
+    name = "Clusters",
+    resolution = c(clustering_resolution),
     force = TRUE
   )
-
   proj <- addUMAP(
-    ArchRProj = proj, 
-    reducedDims = name, 
-    name = 'UMAP', 
-    nNeighbors = 30, 
-    minDist = umap_mindist,  
-    metric = 'cosine',
+    ArchRProj = proj,
+    reducedDims = name,
+    name = "UMAP",
+    nNeighbors = 30,
+    minDist = umap_mindist,
+    metric = "cosine",
     force = TRUE
   )
-
   p1 <- plotEmbedding(
     ArchRProj = proj,
     colorBy = "cellColData",
     name = "Sample",
     embedding = "UMAP"
   )
-
   p2 <- plotEmbedding(
     ArchRProj = proj,
     colorBy = "cellColData",
     name = "Clusters",
     embedding = "UMAP"
   )
-
   ggsave(
-    paste0(out_dir, '/umap_', varfeatures, '.pdf'),
+    paste0(out_dir, "/umap_", varfeatures, ".pdf"),
     p1 + p2,
     width = 10,
     height = 10
@@ -229,16 +180,16 @@ for (i in 1:length(lsi_varfeatures)) {
 
   proj <- addImputeWeights(proj)
 
-  # Create metadata object for Seurat object   
-  metadata <- getCellColData(ArchRProj = proj) 
-  rownames(metadata) <- str_split_fixed( 
+  # Create metadata object for Seurat object
+  metadata <- getCellColData(ArchRProj = proj)
+  rownames(metadata) <- str_split_fixed(
   str_split_fixed(
     row.names(metadata),
-    '#',
-    2)[,2],
-  '-',
+    "#",
+    2)[, 2],
+  "-",
   2)[, 1]
-metadata['LognFrags'] <- log(metadata$nFrags)
+metadata["LognFrags"] <- log(metadata$nFrags)
 
 # Create gene matrix for Seurat object.
 gene_matrix <- getMatrixFromProject(
@@ -252,10 +203,7 @@ matrix <- imputeMatrix(
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
 
-# Set plotting parameters.
-atlas = CviPalettes("atlas_color", type="discrete")
-
-seurat_objs = c()
+seurat_objs <- c()
 for (run in runs) {
 
   obj <- BuildAtlasSeuratObect(
@@ -270,7 +218,7 @@ for (run in runs) {
     )
 
   ggsave(
-    paste0(out_dir, '/', run[1], '_spatialdim_', varfeatures, '.pdf'),
+    paste0(out_dir, "/", run[1], "_spatialdim_", varfeatures, ".pdf"),
     p1,
     width = 10,
     height = 10
