@@ -67,10 +67,25 @@ SpatialPlot <- function(seurat_object, name) {
     pt.size.factor = 1,
     cols = colors,
     stroke = 0) +
-    ggtitle(name) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      text = element_text(size = 21))
+  ggtitle(name) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    text = element_text(size = 21))
+}
+
+FeaturePlot <- function(seurat_obj, feature, name) {
+  SpatialFeaturePlot(
+    object = seurat_obj,
+    features = feature,
+    alpha = c(0.2, 1),
+    pt.size.factor = 1
+    ) +
+  ggtitle(paste0(feature, " : ", name)) +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5),
+    text = element_text(size = 15)
+  )
 }
 
 # create archr project --------------------------------------------------------
@@ -189,42 +204,56 @@ for (i in seq_along((lsi_varfeatures))) {
     2)[, 2],
   "-",
   2)[, 1]
-metadata["LognFrags"] <- log(metadata$nFrags)
+  metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-# Create gene matrix for Seurat object.
-gene_matrix <- getMatrixFromProject(
-  ArchRProj = proj,
-  useMatrix = "GeneScoreMatrix"
-)
-matrix <- imputeMatrix(
-  mat = assay(gene_matrix),
-  imputeWeights = getImputeWeights(proj)
-)
-gene_row_names <- gene_matrix@elementMetadata$name
-rownames(matrix) <- gene_row_names
-
-seurat_objs <- c()
-for (run in runs) {
-
-  obj <- BuildAtlasSeuratObect(
-    run_id = run[1],
-    matrix = matrix,
-    metadata = metadata,
-    spatial_path = run[5]
+  # Create gene matrix for Seurat object.
+  gene_matrix <- getMatrixFromProject(
+    ArchRProj = proj,
+    useMatrix = "GeneScoreMatrix"
   )
-  p1 <- SpatialPlot(
-    obj,
-    name = paste(run[1], varfeatures)
+  matrix <- imputeMatrix(
+    mat = assay(gene_matrix),
+    imputeWeights = getImputeWeights(proj)
+  )
+  gene_row_names <- gene_matrix@elementMetadata$name
+  rownames(matrix) <- gene_row_names
+
+  seurat_objs <- c()
+  for (run in runs) {
+
+    obj <- BuildAtlasSeuratObect(
+      run_id = run[1],
+      matrix = matrix,
+      metadata = metadata,
+      spatial_path = run[5]
     )
+    p1 <- SpatialPlot(
+      obj,
+      name = paste(run[1], varfeatures)
+      )
 
-  ggsave(
-    paste0(out_dir, "/", run[1], "_spatialdim_", varfeatures, ".pdf"),
-    p1,
-    width = 10,
-    height = 10
-  )
-  seurat_objs <- c(seurat_objs, obj)
-  }
+    ggsave(
+      paste0(out_dir, "/", run[1], "_spatialdim_", varfeatures, ".pdf"),
+      p1,
+      width = 10,
+      height = 10
+    )
+    seurat_objs <- c(seurat_objs, obj)
+    }
+}
+
+for (obj in seurat_objs) {
+  name <- unique(obj@meta.data[["Sample"]])
+
+  nfrags_plot <- FeaturePlot(obj, "log10_nFrags", name)
+  tss_plot <- FeaturePlot(obj, "TSSEnrichment", name)
+
+  pdf(paste0(out_dir, "/", name, "_qc_plots.pdf"))
+    print(nfrags_plot)
+    par(newpage = TRUE)
+    print(tss_plot)
+  dev.off()
+
 }
 
 saveArchRProject(ArchRProj = proj)

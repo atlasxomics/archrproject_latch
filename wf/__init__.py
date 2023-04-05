@@ -249,15 +249,15 @@ if __name__ == '__main__':
     archr_workflow(
     runs=[
     Run(
-        'D01118_test25000',
-        LatchFile('latch:///cr_outs/D01118_NG01975/outs/D01118_NG01975_fragments.tsv.gz'),
+        'dev',
+        LatchFile('latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'),
         'control',
-        LatchDir('latch:///spatials/D01118'),
-        LatchFile('latch:///spatials/D01118/tissue_positions_list.csv')
+        LatchDir('latch:///spatials/default'),
+        LatchFile('latch:///spatials/default/tissue_positions_list.csv')
         )
     ],
-    project_name='D01118',
-    genome=Genome.mm10,
+    project_name='dev',
+    genome=Genome.hg38,
     lsi_varfeatures=[25000, 10000]
     )
 
