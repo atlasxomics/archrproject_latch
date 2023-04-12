@@ -29,7 +29,7 @@ for (run in runs) {
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
-BuildAtlasSeuratObect <- function(
+build_atlas_seurat_object <- function(
   run_id,
   matrix,
   metadata,
@@ -57,7 +57,7 @@ BuildAtlasSeuratObect <- function(
   return(object)
 }
 
-SpatialPlot <- function(seurat_object, name) {
+spatial_plot <- function(seurat_object, name) {
   clusters <- sort(unique(seurat_object$Clusters))
   colors <- ArchRPalettes$stallion2[seq_len(length(clusters))]
   names(colors) <- clusters
@@ -73,8 +73,8 @@ SpatialPlot <- function(seurat_object, name) {
     text = element_text(size = 21))
 }
 
-FeaturePlot <- function(seurat_obj, feature, name) {
-  SpatialFeaturePlot(
+feature_plot <- function(seurat_obj, feature, name) {
+  Spatialfeature_plot(
     object = seurat_obj,
     features = feature,
     alpha = c(0.2, 1),
@@ -93,7 +93,7 @@ FeaturePlot <- function(seurat_obj, feature, name) {
 addArchRGenome(genome)
 addArchRThreads(threads = threads)
 
-ArrowFiles <- createArrowFiles(
+arrow_files <- createarrow_files(
    inputFiles = inputs,
    sampleNames = names(inputs),
    minTSS = min_tss,
@@ -107,7 +107,7 @@ ArrowFiles <- createArrowFiles(
 )
 
 proj <- ArchRProject(
-  ArrowFiles = ArrowFiles,
+  arrow_files = arrow_files,
   outputDirectory = out_dir
 )
 
@@ -221,13 +221,13 @@ for (i in seq_along((lsi_varfeatures))) {
   seurat_objs <- c()
   for (run in runs) {
 
-    obj <- BuildAtlasSeuratObect(
+    obj <- build_atlas_seurat_object(
       run_id = run[1],
       matrix = matrix,
       metadata = metadata,
       spatial_path = run[5]
     )
-    p1 <- SpatialPlot(
+    p1 <- spatial_plot(
       obj,
       name = paste(run[1], varfeatures)
       )
@@ -245,8 +245,8 @@ for (i in seq_along((lsi_varfeatures))) {
 for (obj in seurat_objs) {
   name <- unique(obj@meta.data[["Sample"]])
 
-  nfrags_plot <- FeaturePlot(obj, "log10_nFrags", name)
-  tss_plot <- FeaturePlot(obj, "TSSEnrichment", name)
+  nfrags_plot <- feature_plot(obj, "log10_nFrags", name)
+  tss_plot <- feature_plot(obj, "TSSEnrichment", name)
 
   pdf(paste0(out_dir, "/", name, "_qc_plots.pdf"))
     print(nfrags_plot)
