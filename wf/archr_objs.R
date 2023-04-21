@@ -93,7 +93,7 @@ feature_plot <- function(seurat_obj, feature, name) {
 addArchRGenome(genome)
 addArchRThreads(threads = threads)
 
-arrow_files <- createarrow_files(
+arrow_files <- createArrowFiles(
    inputFiles = inputs,
    sampleNames = names(inputs),
    minTSS = min_tss,
