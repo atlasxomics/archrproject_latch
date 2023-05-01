@@ -227,6 +227,12 @@ for (i in seq_along((lsi_varfeatures))) {
       metadata = metadata,
       spatial_path = run[5]
     )
+
+    saveRDS(
+      obj,
+      file = paste0(out_dir, "/", run[1], "_SeuratObj_", varfeatures, ".rds")
+      )
+
     p1 <- spatial_plot(
       obj,
       name = paste(run[1], varfeatures)
