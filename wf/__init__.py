@@ -147,7 +147,7 @@ metadata = LatchMetadata(
             hidden=True
         ),
         'min_frags': LatchParameter(
-            display_name='minumum fragments',
+            display_name='minimum fragments',
             description='The minimum number of mapped ATAC-seq fragments \
                         required per cell to pass filtering.',
             batch_table_column=True,

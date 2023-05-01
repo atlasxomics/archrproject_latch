@@ -74,7 +74,7 @@ spatial_plot <- function(seurat_object, name) {
 }
 
 feature_plot <- function(seurat_obj, feature, name) {
-  Seurat::Spatialfeature_plot(
+  SpatialFeaturePlot(
     object = seurat_obj,
     features = feature,
     alpha = c(0.2, 1),
