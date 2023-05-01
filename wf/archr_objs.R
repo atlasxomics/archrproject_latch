@@ -74,7 +74,7 @@ spatial_plot <- function(seurat_object, name) {
 }
 
 feature_plot <- function(seurat_obj, feature, name) {
-  Spatialfeature_plot(
+  Seurat::Spatialfeature_plot(
     object = seurat_obj,
     features = feature,
     alpha = c(0.2, 1),
@@ -107,7 +107,7 @@ arrow_files <- createArrowFiles(
 )
 
 proj <- ArchRProject(
-  arrow_files = arrow_files,
+  ArrowFiles = arrow_files,
   outputDirectory = out_dir
 )
 
