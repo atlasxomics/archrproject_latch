@@ -9,19 +9,18 @@ args <- commandArgs(trailingOnly = TRUE)
 
 project_name <- args[1]
 genome <- args[2]
-threads <- as.integer(args[3])
-tile_size <- as.integer(args[4])
-min_tss <- as.numeric(args[5])
-min_frags <- as.integer(args[6])
-lsi_iterations <- as.integer(args[7])
-lsi_resolution <- as.numeric(args[8])
-for (i in strsplit(args[9], ",")) {
+tile_size <- as.integer(args[3])
+min_tss <- as.numeric(args[4])
+min_frags <- as.integer(args[5])
+lsi_iterations <- as.integer(args[6])
+lsi_resolution <- as.numeric(args[7])
+for (i in strsplit(args[8], ",")) {
   lsi_varfeatures <- as.integer(i)
   }
-clustering_resolution <- as.integer(args[10])
-umap_mindist <- as.numeric(args[11])
+clustering_resolution <- as.integer(args[9])
+umap_mindist <- as.numeric(args[10])
 
-runs <- strsplit(args[12:length(args)], ",")
+runs <- strsplit(args[11:length(args)], ",")
 inputs <- c()
 for (run in runs) {
   inputs[run[1]] <- run[2]

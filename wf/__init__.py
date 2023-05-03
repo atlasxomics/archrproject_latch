@@ -17,7 +17,8 @@ from latch.types import (
     LatchDir,
     LatchFile,
     LatchMetadata,
-    LatchParameter
+    LatchParameter,
+    LatchRule
 )
 
 @dataclass_json
@@ -58,7 +59,6 @@ def archr_task(
         '/root/wf/archr_objs.R',
         project_name,
         genome.value,
-        f'{threads}',
         f'{tile_size}',
         f'{min_TSS}',
         f'{min_frags}',
@@ -87,7 +87,7 @@ def archr_task(
     subprocess.run(['mkdir', f'{out_dir}'])
 
     project_dirs = glob.glob(f'{project_name}_*')
-    figures = glob.glob('*.pdf')
+    figures = glob.glob('*plots.pdf')
 
     _mv_cmd = ['mv'] + project_dirs + figures + [out_dir]
 
@@ -120,19 +120,18 @@ metadata = LatchMetadata(
             display_name='project name',
             description='Name prefix of output ArchRProject folder.',
             batch_table_column=True,
+            rules=[
+                LatchRule(
+                    regex="^[^/].*",
+                    message="project name cannot start with a '/'"
+                )
+            ]
         ),
         'genome': LatchParameter(
             display_name='genome',
             description='Reference genome to be used for geneAnnotation and \
                         genomeAnnotation',
             batch_table_column=True,
-        ),
-        'threads': LatchParameter( # Might want to set a rule here
-            display_name='threads',
-            description='The number of threads to be used for parallel \
-                        computing; max 24',
-            batch_table_column=True,
-            hidden=True
         ),
         'tile_size': LatchParameter(
             display_name='tile size', 
@@ -177,8 +176,7 @@ metadata = LatchMetadata(
         'clustering_resolution': LatchParameter(
             display_name='clustering resolution',
             description='resolution parameter from addClusters function.',
-            batch_table_column=True,
-            hidden=True
+            batch_table_column=True
         ),              
         'umap_mindist': LatchParameter(
             display_name='UMAP minimum distance',
@@ -190,13 +188,11 @@ metadata = LatchMetadata(
     tags=[],
 )
 
-
 @workflow(metadata)
 def archr_workflow(
     runs: List[Run],
     genome: Genome,
     project_name: str,
-    threads: int=24,
     tile_size: int=5000,
     min_TSS: float=2.0,
     min_frags: int=0,
@@ -218,7 +214,6 @@ def archr_workflow(
         runs=runs,
         project_name=project_name,
         genome=genome,
-        threads=threads,
         tile_size=tile_size,
         min_TSS=min_TSS,
         min_frags=min_frags,
