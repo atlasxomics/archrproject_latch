@@ -90,7 +90,7 @@ feature_plot <- function(seurat_obj, feature, name) {
 # create archr project --------------------------------------------------------
 
 addArchRGenome(genome)
-addArchRThreads(threads = threads)
+addArchRThreads(threads = 24)
 
 arrow_files <- createArrowFiles(
    inputFiles = inputs,

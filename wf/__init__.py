@@ -43,7 +43,6 @@ def archr_task(
     runs: List[Run],
     project_name: str,
     genome: Genome,
-    threads: int,
     tile_size: int,
     min_TSS: float,
     min_frags: int,
@@ -87,7 +86,7 @@ def archr_task(
     subprocess.run(['mkdir', f'{out_dir}'])
 
     project_dirs = glob.glob(f'{project_name}_*')
-    figures = glob.glob('*plots.pdf')
+    figures = glob.glob('*_plots.pdf')
 
     _mv_cmd = ['mv'] + project_dirs + figures + [out_dir]
 
