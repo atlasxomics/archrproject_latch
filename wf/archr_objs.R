@@ -126,12 +126,21 @@ for (run in runs) {
 }
 proj <- proj[proj$cellNames %in% all_ontissue]
 
+# save .rds and ArrowFiles for unprocessed project
+saveArchRProject(ArchRProj = proj)
+
 # iterate plotting ------------------------------------------------------------
 
 for (i in seq_along((lsi_varfeatures))) {
 
   varfeatures <- lsi_varfeatures[i]
-  proj <- addIterativeLSI(
+
+  # make a new output directory to store data for each varfeature
+  out_i <- paste0(project_name, "_", varfeatures)
+  dir.create(out_i)
+
+  # work with a copy of the original project
+  proj_i <- addIterativeLSI(
     ArchRProj = proj,
     useMatrix = "TileMatrix",
     name = "IterativeLSI",
@@ -146,8 +155,8 @@ for (i in seq_along((lsi_varfeatures))) {
     force = TRUE
   )
   if (length(runs) > 1) {
-    proj <- addHarmony(
-      ArchRProj = proj,
+    proj_i <- addHarmony(
+      ArchRProj = proj_i,
       reducedDims = "IterativeLSI",
       name = "Harmony",
       groupBy = "Sample",
@@ -157,16 +166,16 @@ for (i in seq_along((lsi_varfeatures))) {
   } else {
     name <- "IterativeLSI"
   }
-  proj <- addClusters(
-    input = proj,
+  proj_i <- addClusters(
+    input = proj_i,
     F = name,
     method = "Seurat",
     name = "Clusters",
     resolution = c(clustering_resolution),
     force = TRUE
   )
-  proj <- addUMAP(
-    ArchRProj = proj,
+  proj_i <- addUMAP(
+    ArchRProj = proj_i,
     reducedDims = name,
     name = "UMAP",
     nNeighbors = 30,
@@ -175,28 +184,28 @@ for (i in seq_along((lsi_varfeatures))) {
     force = TRUE
   )
   p1 <- plotEmbedding(
-    ArchRProj = proj,
+    ArchRProj = proj_i,
     colorBy = "cellColData",
     name = "Sample",
     embedding = "UMAP"
   )
   p2 <- plotEmbedding(
-    ArchRProj = proj,
+    ArchRProj = proj_i,
     colorBy = "cellColData",
     name = "Clusters",
     embedding = "UMAP"
   )
   ggsave(
-    paste0(out_dir, "/umap_", varfeatures, ".pdf"),
+    paste0(out_i, "/umap_", varfeatures, ".pdf"),
     p1 + p2,
     width = 10,
     height = 10
   )
 
-  proj <- addImputeWeights(proj)
+  proj_i <- addImputeWeights(proj_i)
 
-  # Create metadata object for Seurat object
-  metadata <- getCellColData(ArchRProj = proj)
+  # create metadata object for Seurat object
+  metadata <- getCellColData(ArchRProj = proj_i)
   rownames(metadata) <- str_split_fixed(
   str_split_fixed(
     row.names(metadata),
@@ -206,17 +215,28 @@ for (i in seq_along((lsi_varfeatures))) {
   2)[, 1]
   metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-  # Create gene matrix for Seurat object.
+  # create gene matrix for Seurat object
   gene_matrix <- getMatrixFromProject(
-    ArchRProj = proj,
+    ArchRProj = proj_i,
     useMatrix = "GeneScoreMatrix"
   )
   matrix <- imputeMatrix(
     mat = assay(gene_matrix),
-    imputeWeights = getImputeWeights(proj)
+    imputeWeights = getImputeWeights(proj_i)
   )
   gene_row_names <- gene_matrix@elementMetadata$name
   rownames(matrix) <- gene_row_names
+
+  # create a new ArchRProject for each varfeatures, in dir out_i
+  saveArchRProject(
+    ArchRProj = proj_i,
+    outputDirectory = paste0(
+      out_i,
+      "/",
+      out_i,
+      "_ArchRProject"
+    )
+  )
 
   seurat_objs <- c()
   for (run in runs) {
@@ -230,8 +250,15 @@ for (i in seq_along((lsi_varfeatures))) {
 
     saveRDS(
       obj,
-      file = paste0(out_dir, "/", run[1], "_SeuratObj_", varfeatures, ".rds")
+      file = paste0(
+        out_i,
+        "/",
+        run[1],
+        "_SeuratObj_",
+        varfeatures,
+        ".rds"
       )
+    )
 
     p1 <- spatial_plot(
       obj,
@@ -239,7 +266,7 @@ for (i in seq_along((lsi_varfeatures))) {
       )
 
     ggsave(
-      paste0(out_dir, "/", run[1], "_spatialdim_", varfeatures, ".pdf"),
+      paste0(out_i, "/", run[1], "_spatialdim_", varfeatures, ".pdf"),
       p1,
       width = 10,
       height = 10
@@ -254,12 +281,10 @@ for (obj in seurat_objs) {
   nfrags_plot <- feature_plot(obj, "log10_nFrags", name)
   tss_plot <- feature_plot(obj, "TSSEnrichment", name)
 
-  pdf(paste0(out_dir, "/", name, "_qc_plots.pdf"))
+  pdf(paste0(name, "_qc_plots.pdf"))
     print(nfrags_plot)
     par(newpage = TRUE)
     print(tss_plot)
   dev.off()
 
 }
-
-saveArchRProject(ArchRProj = proj)

@@ -2,6 +2,7 @@
 objects for downstream analysis; additionally, generates UMAP and
 SpatialDimPlots for a list of lsi_varfeatures.
 '''
+import glob
 import subprocess
 
 from dataclasses import dataclass
@@ -82,14 +83,15 @@ def archr_task(
     _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd)
 
-    out_dir = f'{project_name}_ArchRProject'
-    subprocess.run(
-        [
-            'mv',
-            f'{out_dir}/Save-ArchR-Project.rds',
-            f'{out_dir}/{project_name}.rds'
-        ]
-    )
+    out_dir = project_name
+    subprocess.run(['mkdir', f'{out_dir}'])
+
+    project_dirs = glob.glob(f'{project_name}_*')
+    figures = glob.glob('*.pdf')
+
+    _mv_cmd = ['mv'] + project_dirs + figures + [out_dir]
+
+    subprocess.run(_mv_cmd)
 
     return LatchDir(
         f'/root/{out_dir}',
