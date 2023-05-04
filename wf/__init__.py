@@ -49,7 +49,7 @@ def archr_task(
     lsi_iterations: int,
     lsi_resolution: float,
     lsi_varfeatures: List[int],
-    clustering_resolution: int,
+    clustering_resolution: float,
     umap_mindist: float
 ) -> LatchDir:
     
@@ -198,7 +198,7 @@ def archr_workflow(
     lsi_iterations: int=2,
     lsi_resolution: float=0.5,
     lsi_varfeatures: List[int]=[25000],
-    clustering_resolution: int=1,
+    clustering_resolution: float=1.0,
     umap_mindist: float=0.0
 ) -> LatchDir:
     '''Pipeline for converting fragment.tsv.gz files from 10x cellranger to \
