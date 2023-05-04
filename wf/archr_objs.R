@@ -69,7 +69,7 @@ spatial_plot <- function(seurat_object, name) {
   ggtitle(name) +
   theme(
     plot.title = element_text(hjust = 0.5),
-    text = element_text(size = 21))
+    text = element_text(size = 10))
 }
 
 feature_plot <- function(seurat_obj, feature, name) {
@@ -129,6 +129,9 @@ proj <- proj[proj$cellNames %in% all_ontissue]
 saveArchRProject(ArchRProj = proj)
 
 # iterate plotting ------------------------------------------------------------
+
+# init 'dict' to store dimplots
+dimplots <- list()
 
 for (i in seq_along((lsi_varfeatures))) {
 
@@ -258,32 +261,30 @@ for (i in seq_along((lsi_varfeatures))) {
         ".rds"
       )
     )
-
-    p1 <- spatial_plot(
-      obj,
-      name = paste(run[1], varfeatures)
-      )
-
-    ggsave(
-      paste0(out_i, "/", run[1], "_spatialdim_", varfeatures, ".pdf"),
-      p1,
-      width = 10,
-      height = 10
-    )
     seurat_objs <- c(seurat_objs, obj)
+
+    p1 <- spatial_plot(obj, name = paste(run[1], varfeatures))
+    dimplots[[run[1]]][[i]] <- p1
     }
 }
 
+# save spatialdim plots in a single pdf
+pdf("spatialdim_plots.pdf")
+for (i in seq_along((dimplots))) {
+  print(grid.arrange(grobs = dimplots[[i]], ncol = 2))
+}
+dev.off()
+
+# save qc plots in a single pdf
+pdf("qc_plots.pdf")
 for (obj in seurat_objs) {
   name <- unique(obj@meta.data[["Sample"]])
-
   nfrags_plot <- feature_plot(obj, "log10_nFrags", name)
   tss_plot <- feature_plot(obj, "TSSEnrichment", name)
 
-  pdf(paste0(name, "_qc_plots.pdf"))
     print(nfrags_plot)
-    par(newpage = TRUE)
     print(tss_plot)
-  dev.off()
+    par(newpage = TRUE)
 
 }
+dev.off()
