@@ -17,7 +17,7 @@ lsi_resolution <- as.numeric(args[7])
 for (i in strsplit(args[8], ",")) {
   lsi_varfeatures <- as.integer(i)
   }
-clustering_resolution <- as.integer(args[9])
+clustering_resolution <- as.numeric(args[9])
 umap_mindist <- as.numeric(args[10])
 
 runs <- strsplit(args[11:length(args)], ",")
