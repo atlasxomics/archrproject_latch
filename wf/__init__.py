@@ -254,6 +254,8 @@ if __name__ == '__main__':
     ],
     project_name='dev',
     genome=Genome.hg38,
-    lsi_varfeatures=[25000, 10000]
+    lsi_varfeatures=[25000, 10000],
+    min_TSS=1.5,
+    min_frags=2500, 
     )
 

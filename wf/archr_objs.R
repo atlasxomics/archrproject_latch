@@ -28,6 +28,8 @@ for (run in runs) {
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
+print(paste(tile_size, min_tss, min_frags))
+
 build_atlas_seurat_object <- function(
   run_id,
   matrix,
@@ -170,7 +172,7 @@ for (i in seq_along((lsi_varfeatures))) {
   }
   proj_i <- addClusters(
     input = proj_i,
-    F = name,
+    reducedDims = name,
     method = "Seurat",
     name = "Clusters",
     resolution = c(clustering_resolution),
