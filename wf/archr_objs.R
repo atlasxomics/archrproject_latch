@@ -28,8 +28,6 @@ for (run in runs) {
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
-print(paste(tile_size, min_tss, min_frags))
-
 build_atlas_seurat_object <- function(
   run_id,
   matrix,
