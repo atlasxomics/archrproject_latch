@@ -117,7 +117,7 @@ metadata = LatchMetadata(
         ),
         'project_name' : LatchParameter(
             display_name='project name',
-            description='Name prefix of output ArchRProject folder.',
+            description='Name of output directory in archr_outs/',
             batch_table_column=True,
             rules=[
                 LatchRule(
