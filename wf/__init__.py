@@ -1,4 +1,4 @@
-''' Workflow for converting CellRanger output (fragments.tss.gz) into ArchR
+''' Workflow for converting ATAC fragments (fragments.tss.gz) into ArchR
 objects for downstream analysis; additionally, generates UMAP and
 SpatialDimPlots for a list of lsi_varfeatures.
 '''
@@ -28,10 +28,10 @@ class Run:
     fragments_file: LatchFile
     condition: str = 'None'
     spatial_dir: LatchDir = LatchDir(
-        'latch:///spatials/default'
+        'latch:///spatials/demo/spatial/'
     )
     positions_file: LatchFile = LatchFile(
-        'latch:///spatials/default/tissue_positions_list.csv'
+        'latch:///spatials/demo/spatial/tissue_positions_list.csv'
     )
 
 class Genome(Enum):
@@ -100,11 +100,11 @@ def archr_task(
 metadata = LatchMetadata(
     display_name='archr',
     author=LatchAuthor(
-        name='James McGann',
-        email='jpaulmcgann@gmail.com',
-        github='github.com/jpmcga',
+        name='AtlasXomics, Inc.',
+        email='jamesm@atlasxomics.com',
+        github='github.com/atlasxomics',
     ),
-    repository='https://github.com/jpmcga/archr_latch/',
+    repository='https://github.com/atlasxomics/archr_latch',
     license='MIT',
     parameters={
         'runs': LatchParameter(
@@ -201,11 +201,9 @@ def archr_workflow(
     clustering_resolution: float=1.0,
     umap_mindist: float=0.0
 ) -> LatchDir:
-    '''Pipeline for converting fragment.tsv.gz files from 10x cellranger to \
-    ArchR .arrow files and ArchRProject folders.
+    '''Workflow for converting fragment.tsv.gz files from to ArchRProjects.
 
     For data from DBiT-seq for spatially-resolved epigenomics.
-
     - See Deng, Y. et al 2022.
     '''
 
@@ -230,32 +228,13 @@ LaunchPlan(
     'runs' : [
         Run(
             'default',
-            LatchFile('latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'),
-            'default',
-            LatchDir('latch:///spatials/default'),
-            LatchFile('latch:///spatials/default/tissue_positions_list.csv'),
+            LatchFile('latch:///atac_outs/demo/outs/demo_fragments.tsv.gz'),
+            'demo',
+            LatchDir('latch:///spatials/demo/spatial'),
+            LatchFile('latch:///spatials/demo/spatial/tissue_positions_list.csv'),
             )
         ],
-    'project_name' : 'default',
+    'project_name' : 'demo',
     'genome' : Genome.hg38
     },
 )
-
-if __name__ == '__main__':
-    archr_workflow(
-    runs=[
-    Run(
-        'dev',
-        LatchFile('latch:///cr_outs/ds_D01033_NG01681/outs/ds_D01033_NG01681_fragments.tsv.gz'),
-        'control',
-        LatchDir('latch:///spatials/default'),
-        LatchFile('latch:///spatials/default/tissue_positions_list.csv')
-        )
-    ],
-    project_name='dev',
-    genome=Genome.hg38,
-    lsi_varfeatures=[25000, 10000],
-    min_TSS=1.5,
-    min_frags=2500, 
-    )
-
