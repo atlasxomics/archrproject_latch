@@ -48,7 +48,7 @@ def archr_task(
     min_frags: int,
     lsi_iterations: int,
     lsi_resolution: float,
-    lsi_varfeatures: List[int],
+    lsi_varfeatures: int,
     clustering_resolution: float,
     umap_mindist: float
 ) -> LatchDir:
@@ -63,7 +63,7 @@ def archr_task(
         f'{min_frags}',
         f'{lsi_iterations}',
         f'{lsi_resolution}',
-        f'{",".join(str(i) for i in lsi_varfeatures)}',
+        f'{lsi_varfeatures}',
         f'{clustering_resolution}',
         f'{umap_mindist}',
     ]
@@ -86,9 +86,9 @@ def archr_task(
     subprocess.run(['mkdir', f'{out_dir}'])
 
     project_dirs = glob.glob(f'{project_name}_*')
-    figures = glob.glob('*_plots.pdf')
+    seurat_objs = glob.glob('*.rds')
 
-    _mv_cmd = ['mv'] + project_dirs + figures + [out_dir]
+    _mv_cmd = ['mv'] + project_dirs + seurat_objs + [out_dir]
 
     subprocess.run(_mv_cmd)
 
@@ -98,13 +98,13 @@ def archr_task(
     )
 
 metadata = LatchMetadata(
-    display_name='archr',
+    display_name='create ArchRProject',
     author=LatchAuthor(
         name='AtlasXomics, Inc.',
         email='jamesm@atlasxomics.com',
         github='github.com/atlasxomics',
     ),
-    repository='https://github.com/atlasxomics/archr_latch',
+    repository='https://github.com/atlasxomics/archrproject_latch',
     license='MIT',
     parameters={
         'runs': LatchParameter(
@@ -167,9 +167,7 @@ metadata = LatchMetadata(
         ),                
         'lsi_varfeatures': LatchParameter(
             display_name='LSI varFeatures',
-            description='varFeatures parameter from addIterativeLSI function; \
-                        each will correspond to a umap.pdf, the last in the \
-                        will be used to make the RDS object.',
+            description='varFeatures parameter from addIterativeLSI function.',
             batch_table_column=True
         ),              
         'clustering_resolution': LatchParameter(
@@ -197,12 +195,14 @@ def archr_workflow(
     min_frags: int=0,
     lsi_iterations: int=2,
     lsi_resolution: float=0.5,
-    lsi_varfeatures: List[int]=[25000],
+    lsi_varfeatures: int=25000,
     clustering_resolution: float=1.0,
     umap_mindist: float=0.0
 ) -> LatchDir:
     '''Workflow for converting fragment.tsv.gz files from to ArchRProjects.
 
+    # Workflow for converting fragment.tsv.gz files from to ArchRProjects.
+    
     For data from DBiT-seq for spatially-resolved epigenomics.
     - See Deng, Y. et al 2022.
     '''

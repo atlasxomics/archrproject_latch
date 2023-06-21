@@ -1,5 +1,4 @@
 library(ArchR)
-library(ggplot2)
 library(harmony)
 library(Seurat)
 
@@ -14,9 +13,7 @@ min_tss <- as.numeric(args[4])
 min_frags <- as.integer(args[5])
 lsi_iterations <- as.integer(args[6])
 lsi_resolution <- as.numeric(args[7])
-for (i in strsplit(args[8], ",")) {
-  lsi_varfeatures <- as.integer(i)
-  }
+lsi_varfeatures <- as.integer(8)
 clustering_resolution <- as.numeric(args[9])
 umap_mindist <- as.numeric(args[10])
 
@@ -54,37 +51,6 @@ build_atlas_seurat_object <- function(
   DefaultAssay(object = image) <- "Spatial"
   object[["slice1"]] <- image
   return(object)
-}
-
-spatial_plot <- function(seurat_object, name) {
-  clusters <- sort(unique(seurat_object$Clusters))
-  colors <- ArchRPalettes$stallion2[seq_len(length(clusters))]
-  names(colors) <- clusters
-  SpatialDimPlot(
-    seurat_object,
-    group.by = "Clusters",
-    pt.size.factor = 1,
-    cols = colors,
-    stroke = 0) +
-  ggtitle(name) +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    text = element_text(size = 10))
-}
-
-feature_plot <- function(seurat_obj, feature, name) {
-  SpatialFeaturePlot(
-    object = seurat_obj,
-    features = feature,
-    alpha = c(0.2, 1),
-    pt.size.factor = 1
-    ) +
-  ggtitle(paste0(feature, " : ", name)) +
-  theme(
-    legend.position = "right",
-    plot.title = element_text(hjust = 0.5),
-    text = element_text(size = 15)
-  )
 }
 
 # create archr project --------------------------------------------------------
@@ -125,166 +91,91 @@ for (run in runs) {
 }
 proj <- proj[proj$cellNames %in% all_ontissue]
 
-# save .rds and ArrowFiles for unprocessed project
-saveArchRProject(ArchRProj = proj)
-
-# iterate plotting ------------------------------------------------------------
-
-# init 'dict' to store dimplots
-dimplots <- list()
-
-for (i in seq_along((lsi_varfeatures))) {
-
-  varfeatures <- lsi_varfeatures[i]
-
-  # make a new output directory to store data for each varfeature
-  out_i <- paste0(project_name, "_", varfeatures)
-  dir.create(out_i)
-
-  # work with a copy of the original project
-  proj_i <- addIterativeLSI(
+proj <- addIterativeLSI(
+  ArchRProj = proj,
+  useMatrix = "TileMatrix",
+  name = "IterativeLSI",
+  iterations = lsi_iterations,
+  clusterParams = list(
+    resolution = c(lsi_resolution),
+    sampleCells = 10000,
+    n.start = 10
+  ),
+  varFeatures = lsi_varfeatures,
+  dimsToUse = 1:30,
+  force = TRUE
+)
+if (length(runs) > 1) {
+  proj <- addHarmony(
     ArchRProj = proj,
-    useMatrix = "TileMatrix",
-    name = "IterativeLSI",
-    iterations = lsi_iterations,
-    clusterParams = list(
-      resolution = c(lsi_resolution),
-      sampleCells = 10000,
-      n.start = 10
-    ),
-    varFeatures = varfeatures,
-    dimsToUse = 1:30,
+    reducedDims = "IterativeLSI",
+    name = "Harmony",
+    groupBy = "Sample",
     force = TRUE
   )
-  if (length(runs) > 1) {
-    proj_i <- addHarmony(
-      ArchRProj = proj_i,
-      reducedDims = "IterativeLSI",
-      name = "Harmony",
-      groupBy = "Sample",
-      force = TRUE
-    )
-    name <- "Harmony"
-  } else {
-    name <- "IterativeLSI"
+  name <- "Harmony"
+} else {
+  name <- "IterativeLSI"
+}
+proj <- addClusters(
+  input = proj,
+  reducedDims = name,
+  method = "Seurat",
+  name = "Clusters",
+  resolution = c(clustering_resolution),
+  force = TRUE
+)
+proj <- addUMAP(
+  ArchRProj = proj,
+  reducedDims = name,
+  name = "UMAP",
+  nNeighbors = 30,
+  minDist = umap_mindist,
+  metric = "cosine",
+  force = TRUE
+)
+
+proj <- addImputeWeights(proj)
+
+# create metadata object for Seurat object
+metadata <- getCellColData(ArchRProj = proj)
+rownames(metadata) <- str_split_fixed(
+str_split_fixed(
+  row.names(metadata),
+  "#",
+  2)[, 2],
+"-",
+2)[, 1]
+metadata["log10_nFrags"] <- log(metadata$nFrags)
+
+# create gene matrix for Seurat object
+gene_matrix <- getMatrixFromProject(
+  ArchRProj = proj,
+  useMatrix = "GeneScoreMatrix"
+)
+matrix <- imputeMatrix(
+  mat = assay(gene_matrix),
+  imputeWeights = getImputeWeights(proj)
+)
+gene_row_names <- gene_matrix@elementMetadata$name
+rownames(matrix) <- gene_row_names
+
+# save ArchRProject
+saveArchRProject(
+  ArchRProj = proj,
+  outputDirectory = paste0(project_name, "_ArchRProject")
+)
+
+seurat_objs <- c()
+for (run in runs) {
+
+  obj <- build_atlas_seurat_object(
+    run_id = run[1],
+    matrix = matrix,
+    metadata = metadata,
+    spatial_path = run[5]
+  )
+
+  saveRDS(obj, file = paste0(run[1], "_SeuratObj.rds"))
+  seurat_objs <- c(seurat_objs, obj)
   }
-  proj_i <- addClusters(
-    input = proj_i,
-    reducedDims = name,
-    method = "Seurat",
-    name = "Clusters",
-    resolution = c(clustering_resolution),
-    force = TRUE
-  )
-  proj_i <- addUMAP(
-    ArchRProj = proj_i,
-    reducedDims = name,
-    name = "UMAP",
-    nNeighbors = 30,
-    minDist = umap_mindist,
-    metric = "cosine",
-    force = TRUE
-  )
-  p1 <- plotEmbedding(
-    ArchRProj = proj_i,
-    colorBy = "cellColData",
-    name = "Sample",
-    embedding = "UMAP"
-  )
-  p2 <- plotEmbedding(
-    ArchRProj = proj_i,
-    colorBy = "cellColData",
-    name = "Clusters",
-    embedding = "UMAP"
-  )
-  ggsave(
-    paste0(out_i, "/umap_", varfeatures, ".pdf"),
-    p1 + p2,
-    width = 10,
-    height = 10
-  )
-
-  proj_i <- addImputeWeights(proj_i)
-
-  # create metadata object for Seurat object
-  metadata <- getCellColData(ArchRProj = proj_i)
-  rownames(metadata) <- str_split_fixed(
-  str_split_fixed(
-    row.names(metadata),
-    "#",
-    2)[, 2],
-  "-",
-  2)[, 1]
-  metadata["log10_nFrags"] <- log(metadata$nFrags)
-
-  # create gene matrix for Seurat object
-  gene_matrix <- getMatrixFromProject(
-    ArchRProj = proj_i,
-    useMatrix = "GeneScoreMatrix"
-  )
-  matrix <- imputeMatrix(
-    mat = assay(gene_matrix),
-    imputeWeights = getImputeWeights(proj_i)
-  )
-  gene_row_names <- gene_matrix@elementMetadata$name
-  rownames(matrix) <- gene_row_names
-
-  # create a new ArchRProject for each varfeatures, in dir out_i
-  saveArchRProject(
-    ArchRProj = proj_i,
-    outputDirectory = paste0(
-      out_i,
-      "/",
-      out_i,
-      "_ArchRProject"
-    )
-  )
-
-  seurat_objs <- c()
-  for (run in runs) {
-
-    obj <- build_atlas_seurat_object(
-      run_id = run[1],
-      matrix = matrix,
-      metadata = metadata,
-      spatial_path = run[5]
-    )
-
-    saveRDS(
-      obj,
-      file = paste0(
-        out_i,
-        "/",
-        run[1],
-        "_SeuratObj_",
-        varfeatures,
-        ".rds"
-      )
-    )
-    seurat_objs <- c(seurat_objs, obj)
-
-    p1 <- spatial_plot(obj, name = paste(run[1], varfeatures))
-    dimplots[[run[1]]][[i]] <- p1
-    }
-}
-
-# save spatialdim plots in a single pdf
-pdf("spatialdim_plots.pdf")
-for (i in seq_along((dimplots))) {
-  print(grid.arrange(grobs = dimplots[[i]], ncol = 2))
-}
-dev.off()
-
-# save qc plots in a single pdf
-pdf("qc_plots.pdf")
-for (obj in seurat_objs) {
-  name <- unique(obj@meta.data[["Sample"]])
-  nfrags_plot <- feature_plot(obj, "log10_nFrags", name)
-  tss_plot <- feature_plot(obj, "TSSEnrichment", name)
-
-    print(nfrags_plot)
-    print(tss_plot)
-    par(newpage = TRUE)
-
-}
-dev.off()
