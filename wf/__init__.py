@@ -94,7 +94,7 @@ def archr_task(
 
     return LatchDir(
         f'/root/{out_dir}',
-        f'latch:///archr_outs/{out_dir}'
+        f'latch:///ArchRProjects/{out_dir}'
     )
 
 metadata = LatchMetadata(

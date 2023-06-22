@@ -1,6 +1,9 @@
-library(ArchR)
-library(harmony)
-library(Seurat)
+library("ArchR")
+library("BSgenome")
+library("BSgenome.Hsapiens.UCSC.hg38")
+library("BSgenome.Mmusculus.UCSC.mm10")
+library("harmony")
+library("Seurat")
 
 # globals ---------------------------------------------------------------------
 
@@ -21,7 +24,7 @@ runs <- strsplit(args[11:length(args)], ",")
 inputs <- c()
 for (run in runs) {
   inputs[run[1]] <- run[2]
-  }
+}
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
@@ -91,6 +94,8 @@ for (run in runs) {
 }
 proj <- proj[proj$cellNames %in% all_ontissue]
 
+# dimension reduction and clustering ------------------------------------------
+
 proj <- addIterativeLSI(
   ArchRProj = proj,
   useMatrix = "TileMatrix",
@@ -137,6 +142,40 @@ proj <- addUMAP(
 
 proj <- addImputeWeights(proj)
 
+# peak calling with MACS2 -----------------------------------------------------
+
+proj <- addGroupCoverages(
+  ArchRProj = proj,
+  groupBy = "Clusters",
+  maxCells = 1500,
+  force = TRUE
+)
+# get genome size
+species <- getGenome(ArchRProj = proj)
+if (species == "BSgenome.Hsapiens.UCSC.hg38"){
+  genome_size <- 3.3e+09
+} else if (species == "BSgenome.Mmusculus.UCSC.mm10") {
+  genome_size = 3.0e+09
+}
+pathToMacs2 <- findMacs2()
+proj <- addReproduciblePeakSet(
+  ArchRProj = proj,
+  groupBy = "Clusters",
+  pathToMacs2 = pathToMacs2,
+  genomeSize = genome_size,
+  maxPeaks = 300000,
+  force = TRUE 
+)
+proj <- addPeakMatrix(proj, force = TRUE)
+
+# save ArchRProject
+saveArchRProject(
+  ArchRProj = proj,
+  outputDirectory = paste0(project_name, "_ArchRProject")
+)
+
+# create seurat objects -------------------------------------------------------
+
 # create metadata object for Seurat object
 metadata <- getCellColData(ArchRProj = proj)
 rownames(metadata) <- str_split_fixed(
@@ -159,12 +198,6 @@ matrix <- imputeMatrix(
 )
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
-
-# save ArchRProject
-saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
-)
 
 seurat_objs <- c()
 for (run in runs) {
