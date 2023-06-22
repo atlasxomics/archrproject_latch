@@ -186,7 +186,7 @@ metadata = LatchMetadata(
 )
 
 @workflow(metadata)
-def archr_workflow(
+def archrproject_workflow(
     runs: List[Run],
     genome: Genome,
     project_name: str,
@@ -222,7 +222,7 @@ def archr_workflow(
     )
 
 LaunchPlan(
-    archr_workflow,
+    archrproject_workflow,
     'defaults',
     {
     'runs' : [

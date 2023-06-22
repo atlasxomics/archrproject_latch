@@ -13,7 +13,7 @@ min_tss <- as.numeric(args[4])
 min_frags <- as.integer(args[5])
 lsi_iterations <- as.integer(args[6])
 lsi_resolution <- as.numeric(args[7])
-lsi_varfeatures <- as.integer(8)
+lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
 umap_mindist <- as.numeric(args[10])
 
