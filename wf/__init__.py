@@ -10,7 +10,7 @@ from dataclasses_json import dataclass_json
 from enum import Enum
 from typing import List
 
-from latch import medium_task, workflow
+from latch import large_task, workflow
 from latch.resources.launch_plan import LaunchPlan
 from latch.types import (
     LatchAuthor,
@@ -38,7 +38,7 @@ class Genome(Enum):
     mm10 = 'mm10'
     hg38 = 'hg38'
 
-@medium_task
+@large_task
 def archr_task(
     runs: List[Run],
     project_name: str,
@@ -87,8 +87,11 @@ def archr_task(
 
     project_dirs = glob.glob(f'{project_name}_*')
     seurat_objs = glob.glob('*.rds')
+    gene_lists = glob.glob('*.csv')
+    volcanos = glob.glob('inpMarkers.txt')
+    volcanos_motif = glob.glob('inpMarkers_motif.txt')
 
-    _mv_cmd = ['mv'] + project_dirs + seurat_objs + [out_dir]
+    _mv_cmd = ['mv'] + project_dirs + seurat_objs + gene_lists + volcanos + volcanos_motif + [out_dir]
 
     subprocess.run(_mv_cmd)
 

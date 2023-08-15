@@ -1,15 +1,19 @@
 FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base:dd8f-main
+RUN apt-get update -y
+RUN apt-get install -y gdebi-core 
+RUN apt install -y aptitude
+RUN aptitude install -y libjpeg-dev
+RUN apt-get update -y
 
 # Install R
 RUN apt-get update -y && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository "deb http://cloud.r-project.org/bin/linux/debian buster-cran40/" && \
     apt-get install -y \
         r-base \
         r-base-dev \
         apt-transport-https \
         build-essential \
         gfortran \
+        libhdf5-dev \
         libatlas-base-dev \
         libbz2-dev \        
         libcurl4-openssl-dev \
@@ -29,23 +33,56 @@ RUN apt-get update -y && \
         libxml2-dev \
         libxt-dev \
         libx11-dev \
+        libtiff-dev \
+        libharfbuzz-dev \
+        libfribidi-dev \
         locales \
         make \
         pandoc \
         tzdata \
-        zlib1g-dev        
+        vim \
+        wget \
+        zlib1g-dev \
+        r-cran-rjava        
 
-# Have to install devtools like this; see https://stackoverflow.com/questions/20923209, also cairo
+RUN echo "alias ll='ls -l --color=auto'" >> .bashrc
+
+# Fix systemd conflict with timedatectl
+RUN echo "TZ=$( cat /etc/timezone )" >> /etc/R/Renviron.site
+
+# Have to install devtools, cairo like this; see https://stackoverflow.com/questions/20923209
 RUN apt-get install -y r-cran-devtools libcairo2-dev
 
 # Install packages
-RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'Seurat'))"
+RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'Seurat','shiny', 'shinyhelper', 'data.table', 'Matrix', 'DT', 'magrittr','ggplot2','ggrepel','hdf5r','ggdendro','gridExtra', 'ggseqlogo', 'circlize','tidyverse','qdap'))"
 RUN R -e "devtools::install_github('immunogenomics/harmony')"
 RUN R -e "devtools::install_github('GreenleafLab/ArchR', ref='master', repos = BiocManager::repositories())"
+RUN R -e "devtools::install_github('GreenleafLab/chromVARmotifs')"
 RUN R -e "library('ArchR'); ArchR::installExtraPackages()"
 
 RUN R -e "BiocManager::install('BSgenome.Mmusculus.UCSC.mm10')"
 RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38')"
+RUN R -e "devtools::install_github('SGDDNB/ShinyCell')"
+RUN R -e "BiocManager::install('ComplexHeatmap')"
+
+# Upgrade R to version 4.3.0
+RUN wget https://cran.r-project.org/src/base/R-4/R-4.3.0.tar.gz
+RUN tar zxvf R-4.3.0.tar.gz
+RUN cd R-4.3.0 && ./configure --enable-R-shlib
+RUN cd R-4.3.0 && make && make install
+
+# Install java
+RUN apt install -y default-jdk
+RUN R CMD javareconf
+
+# Install more R packages
+RUN R -e "install.packages(c('pkgconfig', 'munsell', 'zip', 'zoo', 'xtable', 'listenv', 'lazyeval', 'bit64', 'rJava', 'labeling'), repos = 'http://cran.us.r-project.org')"
+
+RUN R -e "ArchR::installExtraPackages()"
+
+RUN R -e "BiocManager::install(version = '3.17',ask = FALSE)"
+RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38', ask = FALSE)"
+RUN R -e "BiocManager::install('BSgenome.Mmusculus.UCSC.mm10', ask = FALSE)"
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
@@ -53,7 +90,10 @@ RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38')"
 RUN python3 -m pip install --upgrade latch
 RUN python3 -m pip install macs2==2.2.6
 COPY wf /root/wf
+COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
+COPY SpatialDimPlot_new.R /root/SpatialDimPlot_new.R
+COPY SpatialPlot_new.R /root/SpatialPlot_new.R
+
 ARG tag
 ENV FLYTE_INTERNAL_IMAGE $tag
 WORKDIR /root
-
