@@ -220,7 +220,7 @@ markersGS <- getMarkerFeatures(
   useMatrix = "GeneScoreMatrix",
   groupBy = "Clusters",
   bias = c("TSSEnrichment", "log10(nFrags)"),
-  testMethod = "ttest",
+  testMethod = "ttest"
 )
 
 saveRDS(markersGS, "markersGS_clusters.rds")
@@ -289,7 +289,7 @@ markersGS <- getMarkerFeatures(
   useMatrix = "GeneScoreMatrix",
   groupBy = "Condition",
   bias = c("TSSEnrichment", "log10(nFrags)"),
-  testMethod = "ttest",
+  testMethod = "ttest"
 )
 # save for shiny app
 saveRDS(markersGS, "markersGS_treatment.rds")

@@ -46,15 +46,11 @@ RUN apt-get update -y && \
         r-cran-rjava        
 
 RUN echo "alias ll='ls -l --color=auto'" >> .bashrc
-#RUN echo "export TZ='America/New_York'" >> .bashrc
-#RUN echo "export TZ='America/New_York'" >> /usr/lib/R/etc/Renviron
-#RUN echo "export TZ='America/New_York'" >> /etc/R/Renviron
+
 # Fix systemd conflict with timedatectl
 RUN echo "TZ=$( cat /etc/timezone )" >> /etc/R/Renviron.site
 
-
-
-# Have to install devtools like this; see https://stackoverflow.com/questions/20923209, also cairo
+# Have to install devtools, cairo like this; see https://stackoverflow.com/questions/20923209
 RUN apt-get install -y r-cran-devtools libcairo2-dev
 
 # Install packages
@@ -69,23 +65,24 @@ RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38')"
 RUN R -e "devtools::install_github('SGDDNB/ShinyCell')"
 RUN R -e "BiocManager::install('ComplexHeatmap')"
 
-
 # Upgrade R to version 4.3.0
-
 RUN wget https://cran.r-project.org/src/base/R-4/R-4.3.0.tar.gz
 RUN tar zxvf R-4.3.0.tar.gz
 RUN cd R-4.3.0 && ./configure --enable-R-shlib
 RUN cd R-4.3.0 && make && make install
+
+# Install java
 RUN apt install -y default-jdk
 RUN R CMD javareconf
 
-RUN R -e "install.packages(c('pkgconfig','munsell','zip','zoo','xtable','listenv','lazyeval','bit64','rJava','labeling'),repos = 'http://cran.us.r-project.org')"
+# Install more R packages
+RUN R -e "install.packages(c('pkgconfig', 'munsell', 'zip', 'zoo', 'xtable', 'listenv', 'lazyeval', 'bit64', 'rJava', 'labeling'), repos = 'http://cran.us.r-project.org')"
 
 RUN R -e "ArchR::installExtraPackages()"
 
 RUN R -e "BiocManager::install(version = '3.17',ask = FALSE)"
-RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38',ask = FALSE)"
-RUN R -e "BiocManager::install('BSgenome.Mmusculus.UCSC.mm10',ask = FALSE)"
+RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38', ask = FALSE)"
+RUN R -e "BiocManager::install('BSgenome.Mmusculus.UCSC.mm10', ask = FALSE)"
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works

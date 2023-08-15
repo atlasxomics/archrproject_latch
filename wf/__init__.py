@@ -10,7 +10,7 @@ from dataclasses_json import dataclass_json
 from enum import Enum
 from typing import List
 
-from latch import large_task, medium_task, workflow
+from latch import large_task, workflow
 from latch.resources.launch_plan import LaunchPlan
 from latch.types import (
     LatchAuthor,
@@ -90,7 +90,6 @@ def archr_task(
     gene_lists = glob.glob('*.csv')
     volcanos = glob.glob('inpMarkers.txt')
     volcanos_motif = glob.glob('inpMarkers_motif.txt')
-
 
     _mv_cmd = ['mv'] + project_dirs + seurat_objs + gene_lists + volcanos + volcanos_motif + [out_dir]
 
