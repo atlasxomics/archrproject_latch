@@ -84,16 +84,17 @@ RUN R -e "BiocManager::install(version = '3.17',ask = FALSE)"
 RUN R -e "BiocManager::install('BSgenome.Hsapiens.UCSC.hg38', ask = FALSE)"
 RUN R -e "BiocManager::install('BSgenome.Mmusculus.UCSC.mm10', ask = FALSE)"
 
+# numpy needed to be install before macs2 v-2.2.6
+RUN python3 -m pip install numpy
+RUN python3 -m pip install macs2==2.2.6
+
+COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
+
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
 # correctly with latch.
 RUN python3 -m pip install --upgrade latch
-RUN python3 -m pip install macs2==2.2.6
 COPY wf /root/wf
-COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
-COPY SpatialDimPlot_new.R /root/SpatialDimPlot_new.R
-COPY SpatialPlot_new.R /root/SpatialPlot_new.R
-
 ARG tag
 ENV FLYTE_INTERNAL_IMAGE $tag
 WORKDIR /root
