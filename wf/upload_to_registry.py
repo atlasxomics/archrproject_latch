@@ -13,16 +13,21 @@ logging.basicConfig(format="%(levelname)s - %(asctime)s - %(message)s")
 class Run:
     run_id: str
     fragments_file: LatchFile
-    condition: str = 'None'
+    condition: str = "None"
     spatial_dir: LatchDir = LatchDir(
-        'latch:///spatials/demo/spatial/'
+        "latch:///spatials/demo/spatial/"
     )
     positions_file: LatchFile = LatchFile(
-        'latch:///spatials/demo/spatial/tissue_positions_list.csv'
+        "latch:///spatials/demo/spatial/tissue_positions_list.csv"
     )
 
 @small_task(retries=0)
-def upload_to_registry(runs: List[Run] , archr_project: LatchDir, run_table_id: str = "761", project_table_id: str = "779"):
+def upload_to_registry(
+    runs: List[Run],
+    archr_project: LatchDir,
+    run_table_id: str="761",
+    project_table_id: str = "779"
+):
     run_table = Table(run_table_id)
     project_table = Table(project_table_id)
     try:

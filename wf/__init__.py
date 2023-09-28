@@ -344,7 +344,7 @@ LaunchPlan(
         ],
     'project_name' : 'demo',
     'genome' : Genome.hg38,
-    'run_table_id': "761",
-    'project_table_id': "779"
+    'run_table_id': '761',
+    'project_table_id': '779'
     },
 )
