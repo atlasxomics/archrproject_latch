@@ -5,8 +5,6 @@ SpatialDimPlots for a list of lsi_varfeatures.
 import glob
 import subprocess
 
-from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 from enum import Enum
 from typing import List
 
@@ -21,18 +19,7 @@ from latch.types import (
     LatchRule
 )
 
-@dataclass_json
-@dataclass
-class Run:
-    run_id: str
-    fragments_file: LatchFile
-    condition: str = 'None'
-    spatial_dir: LatchDir = LatchDir(
-        'latch:///spatials/demo/spatial/'
-    )
-    positions_file: LatchFile = LatchFile(
-        'latch:///spatials/demo/spatial/tissue_positions_list.csv'
-    )
+from wf.upload_to_registry import upload_to_registry, Run
 
 class Genome(Enum):
     mm10 = 'mm10'
@@ -124,7 +111,8 @@ metadata = LatchMetadata(
                          run_id and fragments.tsv file; optional: condition, \
                          tissue position file for filtering on/off tissue, \
                          spatial folder for SpatialDimPlot.',
-            batch_table_column=True, 
+            batch_table_column=True,
+            samplesheet=True 
         ),
         'project_name' : LatchParameter(
             display_name='project name',
@@ -191,7 +179,15 @@ metadata = LatchMetadata(
             description='minDist parameter from addUMAP function.',
             batch_table_column=True,
             hidden=True
-        ),                 
+        ),         
+        'run_table_id': LatchParameter(
+            display_name='Registry Table ID',
+            description='The runs will be updated in Registry with its corresponding condition, spatial directory, condition, and location of the output archR project.'
+        ),
+        'project_table_id': LatchParameter(
+            display_name='The ID of the SOWs Registry table',
+            description='The ArchR project will be inserted into the SOW table for the corresponding runs.'
+        )   
     },
     tags=[],
 )
@@ -208,7 +204,9 @@ def archrproject_workflow(
     lsi_resolution: float=0.5,
     lsi_varfeatures: int=25000,
     clustering_resolution: float=1.0,
-    umap_mindist: float=0.0
+    umap_mindist: float=0.0,
+    run_table_id: str="761",
+    project_table_id: str="779"
 ) -> LatchDir:
   '''Workflow for converting fragment.tsv.gz files to ArchRProjects.
     # create ArchRProject
@@ -275,7 +273,7 @@ def archrproject_workflow(
     Questions? Comments?  Contact support@atlasxomics.com or post in AtlasXomics [Discord](https://discord.com/channels/1004748539827597413/1005222888384770108).
     '''
 
-  return archr_task(
+    archr_project = archr_task(
         runs=runs,
         project_name=project_name,
         genome=genome,
@@ -288,6 +286,15 @@ def archrproject_workflow(
         clustering_resolution=clustering_resolution,
         umap_mindist=umap_mindist
     )
+
+    upload_to_registry(
+        runs=runs,
+        archr_project=archr_project,
+        run_table_id=run_table_id,
+        project_table_id=project_table_id
+    )
+
+    return archr_project
 
 LaunchPlan(
     archrproject_workflow,
@@ -303,6 +310,8 @@ LaunchPlan(
             )
         ],
     'project_name' : 'demo',
-    'genome' : Genome.hg38
+    'genome' : Genome.hg38,
+    'run_table_id': '761',
+    'project_table_id': '779'
     },
 )
