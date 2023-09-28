@@ -208,6 +208,7 @@ def archrproject_workflow(
     run_table_id: str="761",
     project_table_id: str="779"
 ) -> LatchDir:
+
   '''Workflow for converting fragment.tsv.gz files to ArchRProjects.
     # create ArchRProject
     <br>
@@ -272,8 +273,7 @@ def archrproject_workflow(
     ## Support
     Questions? Comments?  Contact support@atlasxomics.com or post in AtlasXomics [Discord](https://discord.com/channels/1004748539827597413/1005222888384770108).
     '''
-
-    archr_project = archr_task(
+  archr_project = archr_task(
         runs=runs,
         project_name=project_name,
         genome=genome,
@@ -286,15 +286,14 @@ def archrproject_workflow(
         clustering_resolution=clustering_resolution,
         umap_mindist=umap_mindist
     )
-
-    upload_to_registry(
+  upload_to_registry(
         runs=runs,
         archr_project=archr_project,
         run_table_id=run_table_id,
         project_table_id=project_table_id
     )
-
-    return archr_project
+  
+  return archr_project
 
 LaunchPlan(
     archrproject_workflow,
