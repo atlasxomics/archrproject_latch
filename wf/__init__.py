@@ -187,7 +187,11 @@ metadata = LatchMetadata(
         'project_table_id': LatchParameter(
             display_name='The ID of the SOWs Registry table',
             description='The ArchR project will be inserted into the SOW table for the corresponding runs.'
-        )   
+        ),
+        'project_table_id_new': LatchParameter(
+            display_name='The ID of the new version of the SOWs Registry table',
+            description='The ArchR project will be inserted into the SOW table for the corresponding runs.'
+        )    
     },
     tags=[],
 )
@@ -206,7 +210,8 @@ def archrproject_workflow(
     clustering_resolution: float=1.0,
     umap_mindist: float=0.0,
     run_table_id: str="761",
-    project_table_id: str="779"
+    project_table_id: str="779",
+    project_table_id_new: str="917",
 ) -> LatchDir:
     '''Workflow for converting fragment.tsv.gz files to ArchRProjects.
 
@@ -294,7 +299,8 @@ def archrproject_workflow(
         runs=runs,
         archr_project=archr_project,
         run_table_id=run_table_id,
-        project_table_id=project_table_id
+        project_table_id=project_table_id,
+        project_table_id_new=project_table_id_new
     )
    
     return archr_project
@@ -315,6 +321,7 @@ LaunchPlan(
     'project_name' : 'demo',
     'genome' : Genome.hg38,
     'run_table_id': '761',
-    'project_table_id': '779'
+    'project_table_id': '779',
+    'project_table_id_new': '917',
     },
 )

@@ -26,10 +26,12 @@ def upload_to_registry(
     runs: List[Run],
     archr_project: LatchDir,
     run_table_id: str="761",
-    project_table_id: str = "779"
+    project_table_id: str = "779",
+    project_table_id_new: str = "917",
 ):
     run_table = Table(run_table_id)
     project_table = Table(project_table_id)
+    project_table_new = Table(project_table_id_new)
     try:
         with run_table.update() as updater:
             for run in runs:
@@ -48,9 +50,10 @@ def upload_to_registry(
                     positions_file=run.positions_file,
                     archrproject_outs=archr_project
                 )
-        
+
         with project_table.update() as updater:
             for run in runs:
+
                 message(
                     "info",
                     {
@@ -62,6 +65,30 @@ def upload_to_registry(
                     run.run_id,
                     archrproject_outs=archr_project
                 )
+
+        # Update records in new projects table
+        for run in runs:
+            for page in project_table_new.list_records():
+                for project_id, record in page.items():
+                    project = record.get_values()
+                    project_name = record.get_name()
+                    try:
+                        if len(project['Runs']) > 0:
+                            for project_run in project['Runs']:
+                                record_name = project_run.get_name()
+                                if record_name == run:
+                                    with project_table_new.update() as updater:
+                                        message(
+                                            "info",
+                                            {
+                                                "title": f"Updating project {project_name} in registry table ID {project_table_id_new}"
+                                            },
+                                        )
+                                        updater.upsert_record(project_name, archrproject_outs=archr_project)
+                                        break
+                    except:        
+                        break
+
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         return
@@ -103,5 +130,6 @@ if __name__ == "__main__":
         ],
         archr_project=LatchDir("latch://13502.account/ArchRProjects/Babeyev"),
         run_table_id="761",
-        project_table_id="779"
+        project_table_id="779",
+        project_table_id_new="917"
     )
