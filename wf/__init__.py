@@ -55,6 +55,7 @@ def archr_task(
         f'{umap_mindist}',
     ]
 
+    print(runs)
     runs = [
         (
         f'{run.run_id},'
@@ -65,6 +66,7 @@ def archr_task(
         )
     for run in runs
     ]
+    print(runs)
     
     _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd)

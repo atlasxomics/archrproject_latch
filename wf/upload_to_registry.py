@@ -25,8 +25,8 @@ class Run:
 def upload_to_registry(
     runs: List[Run],
     archr_project: LatchDir,
-    run_table_id: str="761",
-    project_table_id: str = "779",
+    run_table_id: str="923",
+    project_table_id: str = "922",
     project_table_id_new: str = "917",
 ):
     run_table = Table(run_table_id)
@@ -50,43 +50,48 @@ def upload_to_registry(
                     positions_file=run.positions_file,
                     archrproject_outs=archr_project
                 )
+        
+        # with project_table.update() as updater:
+        #     for run in runs:
+        #         message(
+        #             "info",
+        #             {
+        #                 "title": f"Updating run {run.run_id} in registry table ID {project_table_id}"
+        #             },
+        #         )
 
-        with project_table.update() as updater:
-            for run in runs:
-
-                message(
-                    "info",
-                    {
-                        "title": f"Updating run {run.run_id} in registry table ID {project_table_id}"
-                    },
-                )
-
-                updater.upsert_record(
-                    run.run_id,
-                    archrproject_outs=archr_project
-                )
-
-        # Update records in new projects table
+        #         updater.upsert_record(
+        #             run.run_id,
+        #             archrproject_outs=archr_project
+        #         )
         for run in runs:
-            for page in project_table_new.list_records():
+        # loop through projects with linked uns
+            for page in project_table.list_records():
                 for project_id, record in page.items():
                     project = record.get_values()
                     project_name = record.get_name()
+                    print(project)
                     try:
                         if len(project['Runs']) > 0:
                             for project_run in project['Runs']:
                                 record_name = project_run.get_name()
                                 if record_name == run:
-                                    with project_table_new.update() as updater:
+                                    print(record_name)
+                                    with project_table.update() as updater:
                                         message(
                                             "info",
                                             {
-                                                "title": f"Updating project {project_name} in registry table ID {project_table_id_new}"
+                                                "title": f"Updating project {project_name} in registry table ID 917"
                                             },
                                         )
-                                        updater.upsert_record(project_name, archrproject_outs=archr_project)
+                                        updater.upsert_record(
+                                            project_name,
+                                            test_string="DONE"
+                                        )
+
                                         break
-                    except:        
+                    except:
+                                
                         break
 
     except Exception as err:
