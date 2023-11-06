@@ -184,7 +184,7 @@ metadata = LatchMetadata(
         'run_table_id': LatchParameter(
             display_name='Runs Table ID',
             description='The ID of the runs table in Registry. \
-            The runs will be updated in Registry with its \
+            The runs will be updated in Registry with their \
                 corresponding condition, spatial directory, condition, and \
                 location of the optimized output archR project.'
         ),
