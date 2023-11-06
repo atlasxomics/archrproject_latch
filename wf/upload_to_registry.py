@@ -21,17 +21,59 @@ class Run:
         "latch:///spatials/demo/spatial/tissue_positions_list.csv"
     )
 
+@dataclass
+class Project:
+    project_id: str
+    cleaned_frag_file: bool
+
+def initialize_runs(projects: List[Project], project_table_id: str) -> List[Run]:
+    runs = []
+    project_table=Table(project_table_id)
+
+    try:
+        for p in projects:
+            for page in project_table.list_records(): 
+                for p_id, record in page.items():
+                    p_id = record.get_name()
+                    if p_id == p.project_id:
+                        project = record.get_values()
+                        try:
+                            if len(project['Runs']) > 0:
+                                for project_run in project['Runs']:
+                                    run_info = project_run.get_values()
+                                    run_id = project_run.get_name()
+                                    try:
+                                        if p.cleaned_frag_file:
+                                            run_fragments_file = run_info['cleaned_fragment_file']
+                                        else:   
+                                            run_fragments_file = run_info['fragments_file']
+                                        try:
+                                            run_condition = run_info['condition']
+                                        except:
+                                            run_condition = ""
+                                        run_spatial_dir = run_info['spatial_directory']
+                                        run_positions_file = run_info['positions_file']
+                                        runs.append(Run(run_id, run_fragments_file, run_condition, run_spatial_dir, run_positions_file))
+                                    except:
+                                        print(f"Data missing for run: {run_id}")
+                        except:
+                            break
+        return runs
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        return
+
+
 @small_task(retries=0)
 def upload_to_registry(
-    runs: List[Run],
+    projects: List[Project],
     archr_project: LatchDir,
-    run_table_id: str="923",
-    project_table_id: str = "922",
-    project_table_id_new: str = "917",
+    run_table_id: str="761",
+    project_table_id: str = "917",
 ):
     run_table = Table(run_table_id)
     project_table = Table(project_table_id)
-    project_table_new = Table(project_table_id_new)
+    runs=initialize_runs(projects, project_table_id)
     try:
         with run_table.update() as updater:
             for run in runs:
@@ -51,48 +93,12 @@ def upload_to_registry(
                     archrproject_outs=archr_project
                 )
         
-        # with project_table.update() as updater:
-        #     for run in runs:
-        #         message(
-        #             "info",
-        #             {
-        #                 "title": f"Updating run {run.run_id} in registry table ID {project_table_id}"
-        #             },
-        #         )
-
-        #         updater.upsert_record(
-        #             run.run_id,
-        #             archrproject_outs=archr_project
-        #         )
-        for run in runs:
-        # loop through projects with linked uns
-            for page in project_table.list_records():
-                for project_id, record in page.items():
-                    project = record.get_values()
-                    project_name = record.get_name()
-                    print(project)
-                    try:
-                        if len(project['Runs']) > 0:
-                            for project_run in project['Runs']:
-                                record_name = project_run.get_name()
-                                if record_name == run:
-                                    print(record_name)
-                                    with project_table.update() as updater:
-                                        message(
-                                            "info",
-                                            {
-                                                "title": f"Updating project {project_name} in registry table ID 917"
-                                            },
-                                        )
-                                        updater.upsert_record(
-                                            project_name,
-                                            test_string="DONE"
-                                        )
-
-                                        break
-                    except:
-                                
-                        break
+        with project_table.update() as updater:
+            for project in projects:
+                updater.upsert_record(
+                    project.project_id,
+                    archrproject_outs=archr_project
+                )
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
@@ -101,40 +107,39 @@ def upload_to_registry(
         return
 
 
-if __name__ == "__main__":
-    upload_to_registry(
-        runs=[
-            Run(
-                'D1291',
-                LatchFile('latch:///atac_outs/6bp_D01291_NG02620/outs/6bp_D01291_NG02620_fragments.tsv.gz'),
-                'old',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial'),
-                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial/tissue_positions_list.csv'),
-            ),
-            Run(
-                'D1292',
-                LatchFile('latch:///cleaned/Babayev_cleaned/cleaned_D01292_NG02621_fragments.tsv.gz'),
-                'old',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial'),
-                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial/tissue_positions_list.csv')
-            ),
-            Run(
-                'D1293',
-                LatchFile('latch:///atac_outs/6bp_D01293_NG02622/outs/6bp_D01293_NG02622_fragments.tsv.gz'),
-                'young',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial'),
-                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial/tissue_positions_list.csv')
-            ),
-            Run(
-                'D1294',
-                LatchFile('latch:///atac_outs/D01294_NG02624/outs/D01294_NG02624_fragments.tsv.gz'),
-                'young',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial'),
-                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial/tissue_positions_list.csv')
-            )
-        ],
-        archr_project=LatchDir("latch://13502.account/ArchRProjects/Babeyev"),
-        run_table_id="761",
-        project_table_id="779",
-        project_table_id_new="917"
-    )
+# if __name__ == "__main__":
+#     upload_to_registry(
+#         runs=[
+#             Run(
+#                 'D1291',
+#                 LatchFile('latch:///atac_outs/6bp_D01291_NG02620/outs/6bp_D01291_NG02620_fragments.tsv.gz'),
+#                 'old',
+#                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial'),
+#                 LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial/tissue_positions_list.csv'),
+#             ),
+#             Run(
+#                 'D1292',
+#                 LatchFile('latch:///cleaned/Babayev_cleaned/cleaned_D01292_NG02621_fragments.tsv.gz'),
+#                 'old',
+#                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial'),
+#                 LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial/tissue_positions_list.csv')
+#             ),
+#             Run(
+#                 'D1293',
+#                 LatchFile('latch:///atac_outs/6bp_D01293_NG02622/outs/6bp_D01293_NG02622_fragments.tsv.gz'),
+#                 'young',
+#                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial'),
+#                 LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial/tissue_positions_list.csv')
+#             ),
+#             Run(
+#                 'D1294',
+#                 LatchFile('latch:///atac_outs/D01294_NG02624/outs/D01294_NG02624_fragments.tsv.gz'),
+#                 'young',
+#                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial'),
+#                 LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial/tissue_positions_list.csv')
+#             )
+#         ],
+#         archr_project=LatchDir("latch://13502.account/ArchRProjects/Babeyev"),
+#         run_table_id="761",
+#         project_table_id="779",
+#     )
