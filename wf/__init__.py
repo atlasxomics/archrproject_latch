@@ -21,9 +21,11 @@ from latch.types import (
 
 from wf.upload_to_registry import upload_to_registry, Run, Project, initialize_runs
 
+
 class Genome(Enum):
     mm10 = 'mm10'
     hg38 = 'hg38'
+
 
 @custom_task(cpu=62, memory=384, storage_gib=500)
 def archr_task(
@@ -40,7 +42,7 @@ def archr_task(
     umap_mindist: float,
     project_table_id: str,
 ) -> LatchDir:
-    
+
     _archr_cmd = [
         'Rscript',
         '/root/wf/archr_objs.R',
@@ -60,15 +62,15 @@ def archr_task(
 
     runs = [
         (
-        f'{run.run_id},'
-        f'{run.fragments_file.local_path},'
-        f'{run.condition},'
-        f'{run.positions_file.local_path},'
-        f'{run.spatial_dir.local_path},'
+            f'{run.run_id},'
+            f'{run.fragments_file.local_path},'
+            f'{run.condition},'
+            f'{run.positions_file.local_path},'
+            f'{run.spatial_dir.local_path},'
         )
-    for run in runs
+        for run in runs
     ]
-    
+
     _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd)
 
@@ -98,6 +100,7 @@ def archr_task(
         f'latch:///ArchRProjects/{out_dir}'
     )
 
+
 metadata = LatchMetadata(
     display_name='create ArchRProject',
     author=LatchAuthor(
@@ -113,9 +116,9 @@ metadata = LatchMetadata(
             description='List of projects to be analyzed; each project must contain a \
                          project name and boolean value for which fragment file to use to process its runs', 
             batch_table_column=True,
-            samplesheet=True 
+            samplesheet=True
         ),
-        'project_name' : LatchParameter(
+        'project_name': LatchParameter(
             display_name='project name',
             description='Name of output directory in archr_outs/',
             batch_table_column=True,
@@ -133,7 +136,7 @@ metadata = LatchMetadata(
             batch_table_column=True,
         ),
         'tile_size': LatchParameter(
-            display_name='tile size', 
+            display_name='tile size',
             description='The size of the tiles used for binning counts in the \
                         TileMatrix.',
             batch_table_column=True,
@@ -158,45 +161,47 @@ metadata = LatchMetadata(
             description='iterations parameter from addIterativeLSI function.',
             batch_table_column=True,
             hidden=True
-        ),                
+        ),
         'lsi_resolution': LatchParameter(
             display_name='LSI resolution',
             description='resolution parameter from \
                         addIterativeLSI/clusterParams function.',
             batch_table_column=True
-        ),                
+        ),
         'lsi_varfeatures': LatchParameter(
             display_name='LSI varFeatures',
             description='varFeatures parameter from addIterativeLSI function.',
             batch_table_column=True
-        ),              
+        ),
         'clustering_resolution': LatchParameter(
             display_name='clustering resolution',
             description='resolution parameter from addClusters function.',
             batch_table_column=True
-        ),              
+        ),
         'umap_mindist': LatchParameter(
             display_name='UMAP minimum distance',
             description='minDist parameter from addUMAP function.',
             batch_table_column=True,
             hidden=True
-        ),         
+        ),
         'run_table_id': LatchParameter(
             display_name='Runs Table ID',
             description='The ID of the runs table in Registry. \
-            The runs will be updated in Registry with their \
-                corresponding condition, spatial directory, condition, and \
-                location of the optimized output archR project.'
+                        The runs will be updated in Registry with their \
+                        corresponding condition, spatial directory, \
+                        condition, and location of the optimized output \
+                        archR project.'
         ),
         'project_table_id': LatchParameter(
             display_name='Projects Table ID',
             description='The ID of the projects/SOW table in Registry.\
-            The optimized ArchR project will be inserted into \
-                the SOW table for the corresponding runs.'
+                         The optimized ArchR project will be inserted into \
+                         the SOW table for the corresponding runs.'
         )
     },
     tags=[],
 )
+
 
 @workflow(metadata)
 def archrproject_workflow(
@@ -278,10 +283,10 @@ def archrproject_workflow(
     ## Next Steps
     Analysis can be performed locally or in a latch.bio [Pod](https://wiki.latch.bio/wiki/pods/overview).  For access to ATX-specific Pods, please contact your AtlasXomics Support Scientist.  
     Output from **create ArchRProject** can be provided to the **atlasShiny** workflow to create input for a DBiT-seq-specific R Shiny App.  For access to this workflow and app, please contact your AtlasXomics Support Scientist.
-    
+
     ## Support
     Questions? Comments?  Contact support@atlasxomics.com or post in AtlasXomics [Discord](https://discord.com/channels/1004748539827597413/1005222888384770108).
-    
+
     '''
     archr_project = archr_task(
         projects=projects,
@@ -304,21 +309,18 @@ def archrproject_workflow(
         run_table_id=run_table_id,
         project_table_id=project_table_id,
     )
-   
+
     return archr_project
+
 
 LaunchPlan(
     archrproject_workflow,
     'defaults',
     {
-    'projects' : [
-        Project(
-            'demo_row_archr', False
-            )
-        ],
-    'project_name' : 'demo',
-    'genome' : Genome.hg38,
-    'run_table_id': '761',
-    'project_table_id': '917',
+        'projects': [Project('demo_row_archr', False)],
+        'project_name': 'demo',
+        'genome': Genome.hg38,
+        'run_table_id': '761',
+        'project_table_id': '917',
     },
 )
