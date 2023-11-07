@@ -13,13 +13,12 @@ from latch.resources.launch_plan import LaunchPlan
 from latch.types import (
     LatchAuthor,
     LatchDir,
-    LatchFile,
     LatchMetadata,
     LatchParameter,
     LatchRule
 )
 
-from wf.upload_to_registry import upload_to_registry, Run, Project, initialize_runs
+from wf.upload_to_registry import upload_to_registry, Project, initialize_runs
 
 
 class Genome(Enum):
@@ -113,8 +112,9 @@ metadata = LatchMetadata(
     parameters={
         'projects': LatchParameter(
             display_name='projects',
-            description='List of projects to be analyzed; each project must contain a \
-                         project name and boolean value for which fragment file to use to process its runs', 
+            description='List of projects to be analyzed; each project must \
+                        contain a project name and boolean value for which \
+                        fragment file to use to process its runs',
             batch_table_column=True,
             samplesheet=True
         ),
@@ -145,7 +145,8 @@ metadata = LatchMetadata(
         'min_TSS': LatchParameter(
             display_name='minimum TSS',
             description='The minimum numeric transcription start site (TSS) \
-                        enrichment score required for a cell to pass filtering.',
+                        enrichment score required for a cell to pass \
+                        filtering.',
             batch_table_column=True,
             hidden=True
         ),
@@ -165,7 +166,7 @@ metadata = LatchMetadata(
         'lsi_resolution': LatchParameter(
             display_name='LSI resolution',
             description='resolution parameter from \
-                        addIterativeLSI/clusterParams function.',
+                        addIterativeLSI clusterParams function.',
             batch_table_column=True
         ),
         'lsi_varfeatures': LatchParameter(
@@ -208,24 +209,24 @@ def archrproject_workflow(
     projects: List[Project],
     genome: Genome,
     project_name: str,
-    tile_size: int=5000,
-    min_TSS: float=2.0,
-    min_frags: int=0,
-    lsi_iterations: int=2,
-    lsi_resolution: float=0.5,
-    lsi_varfeatures: int=25000,
-    clustering_resolution: float=1.0,
-    umap_mindist: float=0.0,
-    run_table_id: str="761",
-    project_table_id: str="917"
+    tile_size: int = 5000,
+    min_TSS: float = 2.0,
+    min_frags: int = 0,
+    lsi_iterations: int = 2,
+    lsi_resolution: float = 0.5,
+    lsi_varfeatures: int = 25000,
+    clustering_resolution: float = 1.0,
+    umap_mindist: float = 0.0,
+    run_table_id: str = "761",
+    project_table_id: str = "917"
 ) -> LatchDir:
     '''Workflow for converting fragment.tsv.gz files to ArchRProjects.
 
     # create ArchRProject
-    
+
     **create ArchRProject** is a [latch.bio](https://latch.bio/) workflow for generating R objects and data for downstream analysis of epigenomic [DBiT-seq](https://www.nature.com/articles/s41586-022-05094-1) experiments.  Provided fragments from a single-cell ATAC-seq preprocessing and alignment workflow and spatial information, **create ArchRProjectr** performs the heavy computational steps of ArchR and Seurat and returns files that can be easily input into custom scripts for more neuanced analysis without the need to perform intensive computation.
     The workflow utilizes [ArchR](https://www.archrproject.com/articles/Articles/tutorial.html) to perform epigenomic single-cell analysis and [Seurat](https://satijalab.org/seurat/) to spatially align the data.  The workflow can take data from either a single tissue-sample analyzed via DBiT-seq or multiple tissue-samples; in ATX parlance, tissue-samples analyzed via DBIT-seq are termed 'Runs'.  All Runs input to **create ArchRProject** are merged into a single ArchRProject for analysis.  
-    
+
     ## Inputs
     All input files for **create ArchRProject** must be on the latch.bio [file system](https://wiki.latch.bio/wiki/data/overview).  One or more Projects are inputted into the workflow, each of which is linked to multiple runs. Each run inputted into the workflow through their
     linked projects takes the following parameters,
@@ -302,7 +303,7 @@ def archrproject_workflow(
         umap_mindist=umap_mindist,
         project_table_id=project_table_id,
     )
-    
+
     upload_to_registry(
         projects=projects,
         archr_project=archr_project,
