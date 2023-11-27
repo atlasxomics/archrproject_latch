@@ -68,7 +68,7 @@ def initialize_runs(projects: List[Project], project_table_id: str) -> List[Run]
 def upload_to_registry(
     projects: List[Project],
     archr_project: LatchDir,
-    run_table_id: str="761",
+    run_table_id: str = "761",
     project_table_id: str = "917",
 ):
     run_table = Table(run_table_id)
