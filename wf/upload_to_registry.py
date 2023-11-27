@@ -9,6 +9,7 @@ from latch.functions.messages import message
 
 logging.basicConfig(format="%(levelname)s - %(asctime)s - %(message)s")
 
+
 @dataclass
 class Run:
     run_id: str
@@ -21,18 +22,23 @@ class Run:
         "latch:///spatials/demo/spatial/tissue_positions_list.csv"
     )
 
+
 @dataclass
 class Project:
     project_id: str
     cleaned_frag_file: bool
 
-def initialize_runs(projects: List[Project], project_table_id: str) -> List[Run]:
+
+def initialize_runs(
+    projects: List[Project], project_table_id: str
+) -> List[Run]:
+
     runs = []
-    project_table=Table(project_table_id)
+    project_table = Table(project_table_id)
 
     try:
         for p in projects:
-            for page in project_table.list_records(): 
+            for page in project_table.list_records():
                 for p_id, record in page.items():
                     p_id = record.get_name()
                     if p_id == p.project_id:
@@ -73,7 +79,7 @@ def upload_to_registry(
 ):
     run_table = Table(run_table_id)
     project_table = Table(project_table_id)
-    runs=initialize_runs(projects, project_table_id)
+    runs = initialize_runs(projects, project_table_id)
     try:
         with run_table.update() as updater:
             for run in runs:
