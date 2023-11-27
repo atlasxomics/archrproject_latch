@@ -42,7 +42,7 @@ build_atlas_seurat_object <- function(
 }
 
 plot_feature <- function(seurat_obj, feature, name) {
-# Wrapper of Seurat's SpatialFeaturePlot with specific aesthetics
+  # Wrapper of Seurat's SpatialFeaturePlot with specific aesthetics
 
   SpatialFeaturePlot(
     object = seurat_obj,
@@ -52,13 +52,13 @@ plot_feature <- function(seurat_obj, feature, name) {
       ggtitle(name) +
       theme(
         legend.position = "right",
-        plot.title = element_text(hjust = 0.5),
-        text = element_text(size = 15)
+        plot.title = element_text(size = 15, hjust = 0.5),
+        text = element_text(size = 10)
       )
 }
 
 plot_spatial <- function(seurat_object, name) {
-# Wrapper of Seurat's SpatialDimPlot with specific aesthetics
+  # Wrapper of Seurat's SpatialDimPlot with specific aesthetics
 
   clusters <- sort(unique(seurat_object$Clusters))
   colors <- ArchRPalettes$stallion2[seq_len(length(clusters))]
@@ -73,7 +73,7 @@ plot_spatial <- function(seurat_object, name) {
     stroke = 0) +
       ggtitle(name) +
       theme(
-        plot.title = element_text(hjust = 0.5),
+        plot.title = element_text(size= 15),
         text = element_text(size = 10),
         legend.position = "bottom"
       )
@@ -103,10 +103,6 @@ plot_umap <- function(archrproj, name) {
     colorBy = "cellColData",
     name = name,
     embedding = "UMAP"
-  ) +
-    labs(
-    title = paste("UMAP of Harmony by", name)
-    )
-  
+  )
   return(p)
 }
