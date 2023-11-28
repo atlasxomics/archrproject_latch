@@ -11,3 +11,8 @@ Users
 .vscode
 bar/
 config
+**/*_ArchRProject
+**/ArchRLogs
+wf/testing.R
+**/*SeuratObj*
+wf/tidy_tutorial.R
