@@ -78,6 +78,7 @@ def archr_task(
     seurat_objs = glob.glob('*.rds')
     gene_lists = glob.glob('*.csv')
     volcanos = glob.glob('*.txt')
+    figures = glob.glob('*.pdf')
 
     _mv_cmd = (
         ['mv'] +
@@ -85,6 +86,7 @@ def archr_task(
         seurat_objs +
         gene_lists +
         volcanos +
+        figures +
         [out_dir]
     )
 
