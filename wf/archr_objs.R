@@ -20,7 +20,7 @@ library("circlize")
 library(data.table)
 
 source("/root/getDeviation_ArchR.R")
-source("utils.R")
+source("/root/wf/utils.R")
 
 
 
@@ -212,7 +212,7 @@ for (run in runs) {
 
 spatial_cluster_plots <- list()
 for (i in seq_along(run_ids)){
-  plot <- spatial_plot(seurat_objs[[i]], run_ids[i])
+  plot <- plot_spatial(seurat_objs[[i]], run_ids[i])
   spatial_cluster_plots[[i]] <- plot
 }
 
