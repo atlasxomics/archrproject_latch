@@ -196,6 +196,8 @@ matrix <- imputeMatrix(
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
 
+print("+++++++++++creating seurat objs++++++++++++++")
+
 seurat_objs <- c()
 for (run in runs) {
 
@@ -210,6 +212,9 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
+print("+++++++++++creating spatial plots++++++++++++++")
+
+run_ids <- unique(proj$Sample)
 spatial_cluster_plots <- list()
 for (i in seq_along(run_ids)){
   plot <- plot_spatial(seurat_objs[[i]], run_ids[i])
@@ -224,6 +229,8 @@ wrap_plots(spatial_cluster_plots, guides = "collect") &
     plot.title = element_text(size = 10)
   )
 dev.off()
+
+print("+++++++++++creating qc plots++++++++++++++")
 
 # feature plot from utils
 metrics <- c("TSSEnrichment", "nFrags", "log10_nFrags")
@@ -245,7 +252,6 @@ for (i in seq_along(metrics)) {
   )
 }
 dev.off()
-
 
 ############-------------Identifying Marker Genes------------###################
 # per cluster
@@ -293,7 +299,7 @@ heatmap_gs_plotting <- plotMarkerHeatmap(
 )
 # save for plotting with peaks and motifs
 gene_hm <- ComplexHeatmap::draw(
-  heatmapGS,
+  heatmap_gs_plotting,
   heatmap_legend_side = "bot",
   annotation_legend_side = "bot",
   column_title = paste0("Marker genes ()", gene_cutoff, ")"),
@@ -749,7 +755,7 @@ markersPeaks <- getMarkerFeatures(
 
 ######################### Plot marker peaks, motifs ###########################
 
-hpeak_cutoff <- "FDR <= 0.05 & Log2FC >= 1"
+peak_cutoff <- "FDR <= 0.05 & Log2FC >= 1"
 heatmap_peaks <- plotMarkerHeatmap(
   seMarker = markersPeaks,
   cutOff = peak_cutoff,

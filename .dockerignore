@@ -6,3 +6,5 @@
 wf/testing.R
 **/*SeuratObj*
 wf/tidy_tutorial.R
+wf/*.csv
+wf/*.pdf
