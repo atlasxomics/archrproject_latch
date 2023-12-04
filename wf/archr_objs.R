@@ -302,7 +302,7 @@ gene_hm <- ComplexHeatmap::draw(
   heatmap_gs_plotting,
   heatmap_legend_side = "bot",
   annotation_legend_side = "bot",
-  column_title = paste0("Marker genes ()", gene_cutoff, ")"),
+  column_title = paste0("Marker genes (", gene_cutoff, ")"),
   column_title_gp = gpar(fontsize = 12)
 )
 heatmaps[[1]] <- gene_hm
@@ -566,7 +566,6 @@ if (length(unique(proj$Condition))>1){
 
 
 
-
 tempdir <- "/root"
 genes_per_cluster_hm <- find_func(tempdir,"genes_per_cluster_hm.csv")
 hm_per_clust <- read.csv(genes_per_cluster_hm)
@@ -790,6 +789,8 @@ heatmap_motifs <- ComplexHeatmap::draw(
 )
 
 heatmaps[[3]] <- heatmap_motifs
+
+print("+++++++++++creating heatmap plots++++++++++++++")
 
 pdf("heatmaps_all.pdf")
 for (i in seq_along(heatmaps)) {

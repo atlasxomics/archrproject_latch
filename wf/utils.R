@@ -106,3 +106,35 @@ plot_umap <- function(archrproj, name) {
   )
   return(p)
 }
+
+scvolcano <- function(inpMarkers){
+  
+  # Prepare ggData
+  ggData = inpMarkers[cluster == input$sc1de1inp]
+  minfdr = 0.09
+  minfdr1 = 10^-(1/6 *(-log10(min(inpMarkers[cluster == input$sc1de1inp]$p_val_adj))))
+  
+  minfdr2 = 10^-(2/3 *(-log10(min(inpMarkers[cluster == input$sc1de1inp]$p_val_adj))))
+  
+  ggData$Significance = ifelse(ggData$p_val_adj < minfdr,
+                               # & abs(ggData$avg_log2FC) >= 0.58,
+                               ifelse(ggData$avg_log2FC > 0.0
+                                      ,sc1def$Condition1,sc1def$Condition2)
+                               ,'Not siginficant'
+  )
+  ggData$Significance <- factor(ggData$Significance
+                                , levels = c(sc1def$Condition1,sc1def$Condition2,'Not siginficant'))
+  
+  ggData[p_val_adj < 1e-300]$p_val_adj = 1e-300
+  ggData$log10fdr = -log10(ggData$p_val_adj)
+  
+  # Actual ggplot
+  ggOut =
+    ggplot(ggData, aes(avg_log2FC, log10fdr)) +
+    geom_point() + sctheme() + ylab("-log10(FDR)")+  geom_point(aes(color = Significance)) +
+    scale_color_manual(values = c("#F8766D","#619CFF","gray")) +
+    geom_text_repel(data = subset(ggData, p_val_adj < minfdr1 ),aes(label = gene))
+  return(ggOut)
+}
+
+
