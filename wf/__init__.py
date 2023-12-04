@@ -75,16 +75,22 @@ def archr_task(
     subprocess.run(['mkdir', f'{out_dir}'])
 
     project_dirs = glob.glob(f'{project_name}_*')
+    www = glob.glob('www')
     seurat_objs = glob.glob('*.rds')
     gene_lists = glob.glob('*.csv')
     volcanos = glob.glob('*.txt')
+    h5_files = glob.glob('*.h5')
+    R_files = glob.glob('*.R')
 
     _mv_cmd = (
         ['mv'] +
         project_dirs +
+        www +
         seurat_objs +
         gene_lists +
         volcanos +
+        h5_files +
+        R_files +
         [out_dir]
     )
 
@@ -294,76 +300,35 @@ def archrproject_workflow(
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
     `ArchRProjects` directory.
 
-    ## Outputs
+    ## Outputs (_in progress_)
     Outputs from **create ArchRProject** are loaded into latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
     `ArchRProjects` directory.
     * ArchRProject/
-        * This folder contains all of arrow/peak files and the ArchR object to load
-        an pre-computed ArchRProject.
-    * _SeuratObj.rds
-        * A Seurat object for each of the samples in ArchRProject with all metadata.
-        The count matrix is the gene accessibility matrix that is stored in the Arrow
-        files as GeneScoreMatrix.
-    * _SeuratObjMotif.rds.
-        * Seurat object for each of the samples in ArchRProject with all metadata.
-        The count matrix is the motif deviation score matrix calculated by
-        [getDeviation ArchR script](https://github.com/atlasxomics/archrproject_latch/blob/main/getDeviation_ArchR.R).
+    * SeuratObj.rds
+    * SeuratObjMotif.rds
     * UMAPHarmony.csv
-        * Coordinates of the UMAP plot for the merged samples, extracted from the
-        ArchRProject.
     * enrichMotifs_clusters.rds
-        * [SummarizedExperiment](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html)
-        object where rows are marker motifs per cluster and columns are the clusters.
-        Pvalues, FDR and other informations per clusters can be found in the assays
-        of this object.
     * enrichMotifs_sample.rds
-        * Same as enrichMotifs_clusters.rds but per sample.
     * enrichMotifs_treatment.rds
-        * Same as enrichMotifs_clusters.rds but per condition.
     * genes_per_cluster_hm.csv
-        * The general matrix data for gene accessibility heatmap of clusters.
     * genes_per_sample_hm.csv
-        * The general matrix data for gene accessibility heatmap of samples.
     * genes_per_treatment_hm.csv
-        * The general matrix data for gene accessibility heatmap of conditions.
     * inpMarkers.txt
-        * A table with columns avg_log2FC, p_val,	p_val_adj,	gene, cluster,
-        Significance that is used for volcano plots of genes per group.
     * inpMarkers_motif.txt
-        * A table with columns avg_log2FC, p_val,	p_val_adj,	gene, cluster,
-        Significance  that used for volcano plots of motifs per group.
     * markersGS_clusters.rds
-        * [SummarizedExperiment](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html)
-        object where rows are marker genes per cluster and columns are the clusters.
-        Pvalues, FDR and other informations per clusters can be found in the assays
-        of this object.
     * markersGS_sample.rds
-        * Same as markersGS_clusters.rds but per sample.
     * markersGS_treatment.rds
-        * Same as markersGS_clusters.rds but per condition.
     * motif_per_cluster_hm.csv
-        * The general matrix data for motif enrichment heatmap of clusters.
     * motif_per_sample_hm.csv
-        * The general matrix data for motif enrichment heatmap of samples.
     * motif_per_treatment_hm.csv
-        * The general matrix data for motif enrichment heatmap of conditions.
     * req_genes1.csv
-        * List of the genes used as default in heatmap of clusters.
     * req_genes2.csv
-        * List of the genes used as default in heatmap of conditions.
     * req_genes3.csv
-        * List of the genes used as default in heatmap of samples.
     * req_motifs1.csv
-        * List of the motifs used as default in heatmap of clusters.
     * req_motifs2.csv
-        * List of the motifs used as default in heatmap of conditions.
     * req_motifs3.csv
-        * List of the motifs used as default in heatmap of samples.
     * seqlogo.rds
-        * Position weight matrices class for plotting sequence logos using the
-    [seqlogo](https://bioconductor.org/packages/release/bioc/html/seqLogo.html)
-    package.
     ## Next Steps
     Analysis can be performed locally or in a latch.bio
     [Pod](https://wiki.latch.bio/wiki/pods/overview).  For access to
