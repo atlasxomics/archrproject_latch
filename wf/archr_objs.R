@@ -552,18 +552,25 @@ if (length(unique(proj$Condition))>1){
     write.table(de,paste0("inpMarkers_",j,".txt"), sep = '\t', quote = F, row.names = F)
     
     print(paste0("writing inpMarkers_",j,".txt is done!"))
-    
+
+    features <- unique(de$cluster)
+    volcano_plots <- list()
+    for (i in seq_along(features)) {
+      volcano_plots[[i]] <- scvolcano(de, features[[i]])
+    }
+
+    pdf("volcano_plots.pdf")
+    for (plot in volcano_plots) {
+      print(plot)
+    }
+    dev.off()
+
   }
   
 } else {
   
   de <- "there is not enough conditions to be compared with!"  
 }   
-
-
-
-
-
 
 
 tempdir <- "/root"
