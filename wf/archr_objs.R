@@ -267,6 +267,13 @@ markersGS <- getMarkerFeatures(
 
 saveRDS(markersGS,"markersGS_clusters.rds")
 
+marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+write.csv(
+  marker_list,
+  file = "marker_genes_per_cluster.csv",
+  row.names = FALSE
+)
+
 for (rd in names(proj@reducedDims)){
   if (rd == "Harmony") {
     proj <- addImputeWeights(proj, reducedDims = "Harmony")
@@ -326,6 +333,13 @@ markersGS <- getMarkerFeatures(
 # save for shiny app
 saveRDS(markersGS,"markersGS_sample.rds")
 
+marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+write.csv(
+  marker_list,
+  file = "marker_genes_per_sample.csv",
+  row.names = FALSE
+)
+
 
 for (rd in names(proj@reducedDims)){
   if (rd=="Harmony"){
@@ -372,6 +386,13 @@ for (i in seq_along(treatment)){
   )
   # save for shiny app
   saveRDS(markersGS,paste0("markersGS_treatment_",i,".rds"))
+
+  marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+  write.csv(
+    marker_list,
+    file = paste0("marker_genes_per_treatment_", i, ".csv"),
+    row.names = FALSE
+  )
   
   
   for (rd in names(proj@reducedDims)){
@@ -559,7 +580,7 @@ if (length(unique(proj$Condition))>1){
       volcano_plots[[i]] <- scvolcano(de, features[[i]])
     }
 
-    pdf("volcano_plots.pdf")
+    pdf(paste0("volcano_plots_", j, ".pdf"))
     for (plot in volcano_plots) {
       print(plot)
     }
