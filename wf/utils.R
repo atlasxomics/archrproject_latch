@@ -118,7 +118,8 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
     axis.text = element_text(size = base_size),
     axis.text.x = element_text(angle = Xang, hjust = XjusH),
     legend.position = "bottom",
-    legend.key = element_rect(colour = NA, fill = NA)
+    legend.key = element_rect(colour = NA, fill = NA),
+    
   )
   if(!XYval) {
     oupTheme <- oupTheme + theme(
@@ -169,6 +170,10 @@ scvolcano <- function(inpMarkers, feature = "All") {
       data = subset(ggData, p_val_adj < minfdr1),
       aes(label = gene)) +
     ggtitle(paste("Marker genes:", feature)) +
-    theme(plot.title = element_text(hjust = 0.5, size = 20))
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 20),
+      legend.text = element_text(size = 15),
+      legend.title = element_text(size = 18)
+    )
   return(ggOut)
 }
