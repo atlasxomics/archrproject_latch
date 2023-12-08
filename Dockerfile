@@ -89,6 +89,27 @@ RUN python3 -m pip install numpy
 RUN python3 -m pip install macs2==2.2.6
 
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
+COPY makeShinyFiles.R /root/makeShinyFiles.R
+COPY server.R /root/server.R
+COPY ui.R /root/ui.R
+COPY server_2.R /root/server_2.R
+COPY ui_2.R /root/ui_2.R
+COPY server_3.R /root/server_3.R
+COPY ui_3.R /root/ui_3.R
+COPY www /root/www
+
+#RUN R -e "BiocManager::install('org.Mm.eg.db', ask = FALSE)"
+#RUN R -e "BiocManager::install('org.Hs.eg.db', ask = FALSE)"
+#RUN R -e "install.packages(c('devtools'), repos = 'http://cran.us.r-project.org')"
+#                           'remotes','GGally','network','sna','ggraph','pheatmap','scico',
+#RUN R -e "devtools::install_github('briatte/ggnet')"
+#RUN apt-get update -y && \
+#    apt-get install -y \
+#        libmagick++-dev \
+#        libgdal-dev
+
+#RUN R -e "remotes::install_github('jbergenstrahle/STUtility')"
+
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works

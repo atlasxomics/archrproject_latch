@@ -11,18 +11,28 @@ library("plyr")                                     # Load plyr package
 library("readr")
 library("qdap")
 library("ShinyCell")
-require("tidyverse")
 library("seqLogo")
 require("ggseqlogo")
 library("chromVARmotifs")
-library("ComplexHeatmap")
-library("circlize")
-library(data.table)
+suppressPackageStartupMessages(require(tidyverse))
+suppressPackageStartupMessages(library("ComplexHeatmap"))
+suppressPackageStartupMessages(library("circlize"))
+suppressPackageStartupMessages(library(data.table))
 
+source("/root/makeShinyFiles.R")
 source("/root/getDeviation_ArchR.R")
 source("/root/wf/utils.R")
 
-
+find_func <- function(tempdir,pattern){
+  
+  list.files(
+    path = tempdir, # replace with the directory you want
+    pattern = pattern, # has "test", followed by 0 or more characters,
+    # then ".csv", and then nothing else ($)
+    full.names = TRUE # include the directory in the result
+    , recursive = TRUE
+  )
+}
 
 # globals ---------------------------------------------------------------------
 
@@ -242,6 +252,15 @@ for (i in seq_along(metrics)) {
     spatial_qc_plots[[j]] <- plot
   }
   all_qc_plots[[i]] <- spatial_qc_plots
+
+print('this is available seurat_objs')
+seurat_objs
+
+all <-  list()
+for (i in seq_along(seurat_objs)){
+  all[[i]] <- seurat_objs[[i]]
+  
+  all[[i]] <- RenameCells(all[[i]], new.names = paste0(unique(all[[i]]@meta.data$Sample),"#",colnames(all[[i]]),"-1"))
 }
 
 pdf("qc_plots.pdf")
@@ -687,7 +706,7 @@ if (length(unique(proj$Condition))>1){
 
 
 
-UMAPHarmony <-getEmbedding(ArchRProj = proj, embedding = "UMAP", returnDF = TRUE)
+UMAPHarmony <- getEmbedding(ArchRProj = proj, embedding = "UMAP", returnDF = TRUE)
 write.csv(UMAPHarmony,"UMAPHarmony.csv")
 
 
@@ -945,6 +964,15 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
+print('this is available seurat_objMotifs')
+seurat_objs
+
+all_m <-  list()
+for (i in seq_along(seurat_objs)){
+  all_m[[i]] <- seurat_objs[[i]]
+  
+  all_m[[i]] <- RenameCells(all_m[[i]], new.names = paste0(unique(all_m[[i]]@meta.data$Sample),"#",colnames(all_m[[i]]),"-1"))
+}
 
 
 
@@ -1254,7 +1282,7 @@ if (length(unique(proj$Condition))>1){
       bias = c("TSSEnrichment", "log10(nFrags)"),maxCells = ncells[[i]] ,normBy = "none",
       testMethod = "ttest")
   }
-  names(markerList_C) <- req_clusters
+  names(markersMotifs_C) <- req_clusters
   
   
   dev_score <- getDeviation_ArchR(ArchRProj = proj, name = motifs
@@ -1280,8 +1308,6 @@ if (length(unique(proj$Condition))>1){
   
   
   # percluster
-  
-  
   
   markersMotifs_df1_C <- list()
   markersMotifs_df2_C <- list()
@@ -1358,7 +1384,7 @@ saveArchRProject(
 #################------------- Motif Logo ---------------#######################
 
 
-data("human_pwms_v1")
+#data("human_pwms_v1")
 
 PWMs <- getPeakAnnotation(proj, "Motif")$motifs
 
@@ -1384,3 +1410,322 @@ lapply(ProbMatrices, colSums) %>% range
 
 saveRDS(ProbMatrices,"seqlogo.rds")
 
+######creating combimed.rds files ########
+
+main_func <- function(seurat_lst){
+  find_samples_name <- function(seurat_lst){
+    
+    sapply(seq_along(seurat_lst), function(i) unique(seurat_lst[[i]]@meta.data$Sample))
+    
+    
+  }
+  
+  samples <- find_samples_name(seurat_lst)
+  
+  D00_fun <- function(seurat_lst){
+    toRemove <- lapply(seurat_lst, function(x) {names(which(colSums(is.na(x@assays[[1]]@counts))>0))}) 
+    mapply(function(x,y) x[,!colnames(x) %in% y],seurat_lst,toRemove)
+  }
+  
+  
+  D00 <- D00_fun(seurat_lst)
+  Spatial_D00_fun <- function(D00){
+    
+    Spatial_D00 <- lapply(D00, function(x) as.data.frame(x@images[[1]]@coordinates[,c(5,4)]))
+    Spatial_D00 <- lapply(Spatial_D00, function(x) {colnames(x) <- paste0("Spatial_", 1:2)
+    x
+    })  
+    lapply(Spatial_D00, function(x) {x$Spatial_2 <- -(x$Spatial_2) 
+    x
+    })
+  }
+  
+  Spatial_D00 <- Spatial_D00_fun(D00)
+  
+  
+  Spatial_D00_all_fun <- function(Spatial_D00){
+    
+    tmp <- lapply(seq_along(Spatial_D00), function(i) {bind_rows(Spatial_D00[-i])})
+    
+    tmp <- lapply(tmp, function(x) {x$Spatial_1<- 0
+    x
+    })
+    tmp <- lapply(tmp, function(x) {x$Spatial_2<- 0
+    x
+    })
+    
+    tmp <- lapply(seq_along(Spatial_D00), function(i) {as.matrix(rbind(Spatial_D00[[i]],tmp[[i]]))
+      
+      
+    })
+    
+  }
+  
+  Spatial_D00_all <- Spatial_D00_all_fun(Spatial_D00) 
+  
+  temp_fun <- function(D00){
+    
+    temp <- lapply(D00,function(x) as.data.frame(x@assays[[1]]@counts))
+    temp <- lapply(temp, function(x)  {x$region <- rownames(x)
+    x
+    })  
+    lapply(temp, function(x) {rownames(x) <- NULL
+    x
+    })      
+    
+  }
+  
+  temp <- temp_fun(D00)                      
+  
+  
+  # merge seurat objects
+  combined_mat <- reduce(temp, full_join, by = "region");
+  
+  rownames(combined_mat) <- combined_mat$region
+  combined_mat$region<- NULL
+  # removd extra cells
+  extra_cells <- setdiff(colnames(combined_mat),rownames(Spatial_D00_all[[1]]))
+  combined_mat <- combined_mat[,which(!colnames(combined_mat)%in%extra_cells)]
+  combined_mat <- as.matrix(combined_mat)
+  
+  # clean columns of meta data per sample that attached sample's name before rbind
+  l <- D00
+  l <- lapply(l, function(x) { colnames(x@meta.data) <- gsub(paste0("_",Assays(x)),"",colnames(x@meta.data));x})
+  D00 <- l
+  
+  
+  # first get the list of meta data
+  list_of_metadata <- lapply(D00, function(x) x@meta.data)
+  # # rbind meta data per samples
+  meta.data <- do.call("rbind", list_of_metadata)
+  write.csv(meta.data,'req_meta_data.csv', row.names = T)
+  
+  combined <- CreateSeuratObject(
+    counts = combined_mat,
+    assay = "scATAC",
+    meta.data = meta.data
+  )
+  
+  combined@meta.data$Clusters <- factor(combined@meta.data$Clusters
+                                        ,levels = c(paste0("C",seq_along(unique(combined@meta.data$Clusters)))))
+  
+  Spatial_D00 <- list()
+  for (i in seq_along(samples)) {
+    Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined),]
+    combined[[samples[i]]] <- CreateDimReducObject(embeddings = Spatial_D00[[i]]
+                                                   , key = samples[i]
+                                                   , assay = DefaultAssay(combined))
+  }
+  
+  
+  # we need to run Variable Features
+  combined <- NormalizeData(combined, normalization.method = "LogNormalize", scale.factor = 10000)
+  combined <- FindVariableFeatures(combined, selection.method = "vst", nfeatures = 2000)
+  
+  
+  
+  combined[["UMAP"]] <- CreateDimReducObject(embeddings =  as.matrix(UMAPHarmony)
+                                             , key = "UMAP"
+                                             , assay = DefaultAssay(combined))
+  
+  return(combined)
+  
+}
+
+combined <- main_func(all)
+combined_m <- main_func(all_m)
+
+saveRDS(combined,"combined.rds",compress = FALSE)
+saveRDS(combined_m,"combined_m.rds",compress = FALSE)
+
+# =================================
+print('Shiny App starting ...')
+
+scConf1 = createConfig(combined)
+makeShinyFiles(combined, scConf1, gex.assay = "scATAC", gex.slot = "data",
+               gene.mapping = TRUE, shiny.prefix = "sc1",
+               default.gene1 = "Tiam1", default.gene2 = "Ccbe1",
+               default.dimred = c("UMAP_1", "UMAP_2"))
+
+
+
+
+scConf2 = createConfig(combined_m)
+makeShinyFiles(combined_m, scConf2, gex.assay = "scATAC", gex.slot = "counts",
+               gene.mapping = TRUE, shiny.prefix = "sc2",
+               default.gene1 = "RFX3-1018", default.gene2 = "NEUROG2-1580",
+               default.dimred = c("UMAP_1", "UMAP_2"))
+
+
+citation = list(
+  title   = paste0(project_name," Data Analysis")
+)
+makeShinyCodesMulti(
+  shiny.title = paste0(project_name,"_Lab Data Analysis"), 
+  shiny.footnotes = citation,
+  shiny.prefix = c("sc1", "sc2"),
+  
+  shiny.headers = c("Gene Accessibility", "Peak/Motifs"), 
+  shiny.dir = "./shinyApp"
+) 
+
+# edit some of the prepared data
+
+
+sc1def <- readRDS("/root/shinyApp/sc1def.rds")
+sc2def <- readRDS("/root/shinyApp/sc2def.rds")
+
+find_samples_name <- function(lst){
+  
+  sapply(seq_along(lst), function(i) unique(lst[[i]]@meta.data$Sample))
+}   
+samples <- find_samples_name(all)
+
+
+D00 <- list()
+for (i in seq_along(samples)) {
+  D00[[i]] <- all[[i]]
+  nal_cols <- which(colSums(is.na(D00[[i]]@assays[[1]]@counts))>0)
+  toRemove <- names(nal_cols)
+  D00[[i]] <- D00[[i]][,!colnames(D00[[i]]) %in% toRemove]
+}
+
+Spatial_D00 <- list()
+for (i in seq_along(samples)) {
+  Spatial_D00[[i]] <- as.data.frame(D00[[i]]@images[[1]]@coordinates[,c(5,4)])
+  colnames(Spatial_D00[[i]]) <- paste0("Spatial_", 1:2)
+  Spatial_D00[[i]]$Spatial_2 <- -(Spatial_D00[[i]]$Spatial_2)
+}
+
+l <- Spatial_D00
+xlim <- lapply(l, function(x) { xlim <- c(min(x[,1]),max(x[,1]));xlim})
+ylim <- lapply(l, function(y) { ylim <- c(min(y[,2]),max(y[,2]));ylim})
+
+
+sc1def$limits <- list()
+for (i in seq_along(samples)) {
+  sc1def[['limits']][[samples[i]]]<- c(
+    min(xlim[[i]]),max(xlim[[i]])
+    ,min(ylim[[i]]),max(ylim[[i]])
+  )}
+
+sc2def$limits <- list()
+for (i in seq_along(samples)) {
+  sc2def[['limits']][[samples[i]]]<- c(
+    min(xlim[[i]]),max(xlim[[i]])
+    ,min(ylim[[i]]),max(ylim[[i]])
+  )}
+
+sc1def$meta1<- "Clusters"
+
+sc1def$meta2<- "Sample"
+
+sc2def$meta1<- "Clusters"
+
+sc2def$meta2<- "Sample"
+
+
+sc1def$Clusters <- req_genes1
+
+sc1def$Sample <- req_genes3
+
+sc2def$Clusters <- req_motifs1
+
+sc2def$Sample <- req_motifs3
+
+
+sc1def$dimred[3] <- paste0(names(combined@reductions)[1],"_1")
+sc1def$dimred[4] <- paste0(names(combined@reductions)[1],"_2")
+sc1def$dimred[5] <- paste0(names(combined@reductions)[2],"_1")
+sc1def$dimred[6] <- paste0(names(combined@reductions)[2],"_2")
+
+
+sc2def$dimred[3] <- paste0(names(combined_m@reductions)[1],"_1")
+sc2def$dimred[4] <- paste0(names(combined_m@reductions)[1],"_2")
+sc2def$dimred[5] <- paste0(names(combined_m@reductions)[2],"_1")
+sc2def$dimred[6] <- paste0(names(combined_m@reductions)[2],"_2")
+
+
+treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
+
+if (length(unique(proj$Condition))>1) {
+for(i in seq_along(treatment)){
+  
+  sc1def[[paste0('meta',(2+i))]] <- treatment[i]
+  sc1def[[treatment[i]]] <- read.csv(find_func(tempdir, paste0('req_genes2_',i,'.csv')))$x
+  sc1def[[paste0(treatment[i],"_1")]] <- sort(unique(combined@meta.data[[treatment[i]]]))[1]
+  sc1def[[paste0(treatment[i],"_2")]] <- sort(unique(combined@meta.data[[treatment[i]]]))[2]
+  
+  
+  sc2def[[paste0('meta',(2+i))]] <- treatment[i]
+  sc2def[[treatment[i]]] <- read.csv(find_func(tempdir, paste0('req_motifs2_',i,'.csv')))$x
+  sc2def[[paste0(treatment[i],"_1")]] <- sort(unique(combined_m@meta.data[[treatment[i]]]))[1]
+  sc2def[[paste0(treatment[i],"_2")]] <- sort(unique(combined_m@meta.data[[treatment[i]]]))[2]
+  
+}
+}else{
+  
+  print('there is not enough conditions to add to sc1def.rds or sc2def.rds')
+}
+
+saveRDS(sc1def,"/root/shinyApp/sc1def.rds")
+saveRDS(sc2def,"/root/shinyApp/sc2def.rds")
+
+sc1conf <- readRDS("/root/shinyApp/sc1conf.rds")
+sc2conf <- readRDS("/root/shinyApp/sc2conf.rds")
+
+fav <- which(sc1conf$ID %in% c("Clusters","Sample", treatment))
+rest <- which(!sc1conf$ID %in% c("Clusters","Sample", treatment))
+sc1conf <- sc1conf[c(fav,rest),]
+
+
+fav <- which(sc2conf$ID %in% c("Clusters","Sample", treatment))
+rest <- which(!sc2conf$ID %in% c("Clusters","Sample", treatment))
+sc2conf <- sc2conf[c(fav,rest),]
+
+saveRDS(sc1conf,"/root/shinyApp/sc1conf.rds")
+saveRDS(sc2conf,"/root/shinyApp/sc2conf.rds")
+
+
+  
+  if (length(unique(proj$Sample)) <=1){
+    file.remove("/root/ui.R")
+    file.remove("/root/server.R")
+    file.remove("/root/ui_2.R")
+    file.remove("/root/server_2.R")
+    file.rename("/root/ui_3.R","/root/ui.R")
+    file.rename("/root/server_3.R","/root/server.R")
+    
+  } else if (length(unique(proj$Condition))<=1) {
+    
+    file.remove("/root/ui.R")
+    file.remove("/root/server.R")
+    file.remove("/root/ui_3.R")
+    file.remove("/root/server_3.R")
+    file.rename("/root/ui_2.R","/root/ui.R")
+    file.rename("/root/server_2.R","/root/server.R")
+    
+    
+  }else{
+    file.remove("/root/ui_2.R")
+    file.remove("/root/server_2.R")
+    file.remove("/root/ui_3.R")
+    file.remove("/root/server_3.R")
+    
+    
+    
+  }
+
+# copy everything in shiny app to the root
+
+rawPath <- "/root/shinyApp/"
+dataPath <- "/root/"
+
+dataFiles <- dir(rawPath, "*.rds$", ignore.case = TRUE, all.files = TRUE)
+file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
+
+dataFiles <- dir(rawPath, "*.h5$", ignore.case = TRUE, all.files = TRUE)
+file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
+
+  
+  
