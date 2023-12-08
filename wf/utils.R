@@ -107,34 +107,67 @@ plot_umap <- function(archrproj, name) {
   return(p)
 }
 
-scvolcano <- function(inpMarkers){
+sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
+  oupTheme = theme(
+    text = element_text(size = base_size, family = "Helvetica"), 
+    panel.background = element_rect(fill = "white", colour = NA), 
+    axis.line = element_line(colour = "black"), 
+    axis.ticks = element_line(colour = "black", size = base_size / 20), 
+    axis.title = element_text(face = "bold"), 
+    axis.text = element_text(size = base_size), 
+    axis.text.x = element_text(angle = Xang, hjust = XjusH), 
+    legend.position = "bottom", 
+    legend.key = element_rect(colour = NA, fill = NA) 
+  ) 
+  if(!XYval){ 
+    oupTheme = oupTheme + theme( 
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
+      axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
+  } 
+  return(oupTheme) 
+} 
+
+scvolcano <- function(inpMarkers, feature = "All"){
   
   # Prepare ggData
-  ggData = inpMarkers[cluster == input$sc1de1inp]
+  ggData <- inpMarkers[which(inpMarkers$cluster==feature),]
   minfdr = 0.09
-  minfdr1 = 10^-(1/6 *(-log10(min(inpMarkers[cluster == input$sc1de1inp]$p_val_adj))))
+  minfdr1 = 10^-(1/6 *(-log10(min(ggData$p_val_adj))))
   
-  minfdr2 = 10^-(2/3 *(-log10(min(inpMarkers[cluster == input$sc1de1inp]$p_val_adj))))
+  minfdr2 = 10^-(2/3 *(-log10(min(ggData$p_val_adj))))
   
   ggData$Significance = ifelse(ggData$p_val_adj < minfdr,
-                               # & abs(ggData$avg_log2FC) >= 0.58,
-                               ifelse(ggData$avg_log2FC > 0.0
-                                      ,sc1def$Condition1,sc1def$Condition2)
-                               ,'Not siginficant'
+                               ifelse(ggData$avg_log2FC > 0.0,
+                                      markerList@colData@rownames[[1]],
+                                      markerList@colData@rownames[[2]]
+                               ),
+                               'Not siginficant'
   )
-  ggData$Significance <- factor(ggData$Significance
-                                , levels = c(sc1def$Condition1,sc1def$Condition2,'Not siginficant'))
   
-  ggData[p_val_adj < 1e-300]$p_val_adj = 1e-300
+  ggData$Significance <- factor(
+    ggData$Significance,
+    levels = c(
+      markerList@colData@rownames[[1]],
+      markerList@colData@rownames[[2]],
+      'Not siginficant')
+  )
+  
+  
+  ggData[ggData$p_val_adj < 1e-300, "p_val_adj"] <- 1e-300
   ggData$log10fdr = -log10(ggData$p_val_adj)
   
   # Actual ggplot
-  ggOut =
+  ggOut <-
     ggplot(ggData, aes(avg_log2FC, log10fdr)) +
-    geom_point() + sctheme() + ylab("-log10(FDR)")+  geom_point(aes(color = Significance)) +
+    geom_point() +
+    sctheme() +
+    ylab("-log10(FDR)") +
+    geom_point(aes(color = Significance)) +
     scale_color_manual(values = c("#F8766D","#619CFF","gray")) +
-    geom_text_repel(data = subset(ggData, p_val_adj < minfdr1 ),aes(label = gene))
+    geom_text_repel(
+      data = subset(ggData, p_val_adj < minfdr1 ),
+      aes(label = gene)) +
+    ggtitle(paste("Marker genes:", feature)) +
+    theme(plot.title = element_text(hjust = 0.5, size = 20))
   return(ggOut)
 }
-
-
