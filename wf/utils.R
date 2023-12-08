@@ -1,5 +1,6 @@
 library(ArchR)
 library(ggplot2)
+library(ggrepel)
 library(harmony)
 library(patchwork)
 library(Seurat)
@@ -108,54 +109,54 @@ plot_umap <- function(archrproj, name) {
 }
 
 sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
-  oupTheme = theme(
-    text = element_text(size = base_size, family = "Helvetica"), 
-    panel.background = element_rect(fill = "white", colour = NA), 
-    axis.line = element_line(colour = "black"), 
-    axis.ticks = element_line(colour = "black", size = base_size / 20), 
-    axis.title = element_text(face = "bold"), 
-    axis.text = element_text(size = base_size), 
-    axis.text.x = element_text(angle = Xang, hjust = XjusH), 
-    legend.position = "bottom", 
-    legend.key = element_rect(colour = NA, fill = NA) 
-  ) 
-  if(!XYval){ 
-    oupTheme = oupTheme + theme( 
-      axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-      axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
-  } 
-  return(oupTheme) 
-} 
-
-scvolcano <- function(inpMarkers, feature = "All"){
-  
-  # Prepare ggData
-  ggData <- inpMarkers[which(inpMarkers$cluster==feature),]
-  minfdr = 0.09
-  minfdr1 = 10^-(1/6 *(-log10(min(ggData$p_val_adj))))
-  
-  minfdr2 = 10^-(2/3 *(-log10(min(ggData$p_val_adj))))
-  
-  ggData$Significance = ifelse(ggData$p_val_adj < minfdr,
-                               ifelse(ggData$avg_log2FC > 0.0,
-                                      markerList@colData@rownames[[1]],
-                                      markerList@colData@rownames[[2]]
-                               ),
-                               'Not siginficant'
+  oupTheme <- theme(
+    text = element_text(size = base_size, family = "Helvetica"),
+    panel.background = element_rect(fill = "white", colour = NA),
+    axis.line = element_line(colour = "black"),
+    axis.ticks = element_line(colour = "black", size = base_size / 20),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(size = base_size),
+    axis.text.x = element_text(angle = Xang, hjust = XjusH),
+    legend.position = "bottom",
+    legend.key = element_rect(colour = NA, fill = NA)
   )
-  
+  if(!XYval) {
+    oupTheme <- oupTheme + theme(
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  }
+  return(oupTheme)
+}
+
+scvolcano <- function(inpMarkers, feature = "All") {
+
+  # Prepare ggData
+  ggData <- inpMarkers[which(inpMarkers$cluster == feature), ]
+  minfdr <- 0.09
+  minfdr1 <- 10^-(1 / 6 * (-log10(min(ggData$p_val_adj))))
+
+  minfdr2 <- 10^-(2 / 3 * (-log10(min(ggData$p_val_adj))))
+
+  ggData$Significance <- ifelse(
+    ggData$p_val_adj < minfdr,
+    ifelse(
+      ggData$avg_log2FC > 0.0,
+      markerList@colData@rownames[[1]],
+      markerList@colData@rownames[[2]]),
+    "Not siginficant"
+  )
+
   ggData$Significance <- factor(
     ggData$Significance,
     levels = c(
       markerList@colData@rownames[[1]],
       markerList@colData@rownames[[2]],
-      'Not siginficant')
+      "Not siginficant")
   )
-  
-  
+
   ggData[ggData$p_val_adj < 1e-300, "p_val_adj"] <- 1e-300
-  ggData$log10fdr = -log10(ggData$p_val_adj)
-  
+  ggData$log10fdr <- -log10(ggData$p_val_adj)
+
   # Actual ggplot
   ggOut <-
     ggplot(ggData, aes(avg_log2FC, log10fdr)) +
@@ -163,9 +164,9 @@ scvolcano <- function(inpMarkers, feature = "All"){
     sctheme() +
     ylab("-log10(FDR)") +
     geom_point(aes(color = Significance)) +
-    scale_color_manual(values = c("#F8766D","#619CFF","gray")) +
+    scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
     geom_text_repel(
-      data = subset(ggData, p_val_adj < minfdr1 ),
+      data = subset(ggData, p_val_adj < minfdr1),
       aes(label = gene)) +
     ggtitle(paste("Marker genes:", feature)) +
     theme(plot.title = element_text(hjust = 0.5, size = 20))
