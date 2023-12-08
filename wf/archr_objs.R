@@ -771,6 +771,8 @@ saveArchRProject(
 )
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+######################### get marker peaks, save ##############################
+
 markersPeaks <- getMarkerFeatures(
   ArchRProj = proj,
   useMatrix = "PeakMatrix",
@@ -778,6 +780,29 @@ markersPeaks <- getMarkerFeatures(
   bias = c("TSSEnrichment", "log10(nFrags)"),
   k = 100,
   testMethod = "wilcoxon"
+)
+
+peak_marker_list <- getMarkers(markersPeaks, cutOff = "FDR <= 0.02")
+write.csv(
+  peak_marker_list,
+  file = "marker_peaks_per_cluster.csv",
+  row.names = FALSE
+)
+
+markersPeaks_sample <- getMarkerFeatures(
+  ArchRProj = proj,
+  useMatrix = "PeakMatrix",
+  groupBy = "Sample",
+  bias = c("TSSEnrichment", "log10(nFrags)"),
+  k = 100,
+  testMethod = "wilcoxon"
+)
+
+peak_marker_list_s <- getMarkers(markersPeaks_sample, cutOff = "FDR <= 0.02")
+write.csv(
+  peak_marker_list_s,
+  file = "marker_peaks_per_sample.csv",
+  row.names = FALSE
 )
 
 ######################### Plot marker peaks, motifs ###########################
@@ -1138,6 +1163,13 @@ if (length(unique(proj$Condition))>1){
     bias = c("TSSEnrichment", "log10(nFrags)"),
     k = 100,
     testMethod = "wilcoxon"
+  )
+
+  peak_marker_list_t <- getMarkers(markersPeaks, cutOff = "FDR <= 0.02")
+  write.csv(
+    peak_marker_list_t,
+    file = paste0("marker_peaks_per_treatment_", i, ".csv"),
+    row.names = FALSE
   )
   
   enrichMotifs <- peakAnnoEnrichment(
