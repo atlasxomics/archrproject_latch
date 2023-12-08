@@ -96,11 +96,7 @@ def archr_task(
     figures_dir = Path(f'/root/{out_dir}/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    _mv_cmd = [
-        ['mv'] +
-        figures +
-        [figures_dir.name]
-    ]
+    _mv_cmd = ['mv'] + figures + [figures_dir.name]
 
     subprocess.run(_mv_cmd)
 
