@@ -252,6 +252,7 @@ for (i in seq_along(metrics)) {
     spatial_qc_plots[[j]] <- plot
   }
   all_qc_plots[[i]] <- spatial_qc_plots
+}
 
 print('this is available seurat_objs')
 seurat_objs
