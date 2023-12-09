@@ -6,6 +6,7 @@ import glob
 import subprocess
 
 from enum import Enum
+from pathlib import Path
 from typing import List
 
 from latch import custom_task, workflow
@@ -93,6 +94,15 @@ def archr_task(
         R_files +
         [out_dir]
     )
+
+    subprocess.run(_mv_cmd)
+
+    # Move figures into subfolder
+    figures = [fig for fig in glob.glob('*.pdf') if fig != "Rplots.pdf"]
+    figures_dir = Path(f'/root/{out_dir}/figures')
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
+    _mv_cmd = ['mv'] + figures + [str(figures_dir)]
 
     subprocess.run(_mv_cmd)
 

@@ -2,6 +2,7 @@ library("ArchR")
 library("BSgenome")
 library("BSgenome.Hsapiens.UCSC.hg38")
 library("BSgenome.Mmusculus.UCSC.mm10")
+library("gridExtra")
 library("harmony")
 library("Seurat")
 library("GenomicRanges")
@@ -17,8 +18,10 @@ suppressPackageStartupMessages(require(tidyverse))
 suppressPackageStartupMessages(library("ComplexHeatmap"))
 suppressPackageStartupMessages(library("circlize"))
 suppressPackageStartupMessages(library(data.table))
-source("/root/getDeviation_ArchR.R")
+
 source("/root/makeShinyFiles.R")
+source("/root/getDeviation_ArchR.R")
+source("/root/wf/utils.R")
 
 find_func <- function(tempdir,pattern){
   
@@ -30,9 +33,8 @@ find_func <- function(tempdir,pattern){
     , recursive = TRUE
   )
 }
-  
-# ---------------------------------------------------------------------
 
+# globals ---------------------------------------------------------------------
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -55,50 +57,22 @@ for (run in runs) {
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
-build_atlas_seurat_object <- function(
-  run_id,
-  matrix,
-  metadata,
-  spatial_path) {
-  # Prepare and combine gene matrix, metadata, and image for seurat object
-  # for runs within a project.
-
-  image <- Read10X_Image(
-    image.dir = spatial_path,
-    filter.matrix = TRUE
-  )
-  metadata <- metadata[metadata$Sample == run_id, ]
-
-  matrix <- matrix[, c(grep(pattern = run_id, colnames(matrix)))]
-  matrix@Dimnames[[2]] <- metadata@rownames
-
-  object <- CreateSeuratObject(
-    counts = matrix,
-    assay  = "Spatial",
-    meta.data = as.data.frame(metadata)
-  )
-  image <- image[Cells(x = object)]
-  DefaultAssay(object = image) <- "Spatial"
-  object[["slice1"]] <- image
-  return(object)
-}
-
 # create archr project --------------------------------------------------------
 
 addArchRGenome(genome)
 addArchRThreads(threads = 50)
 
 arrow_files <- createArrowFiles(
-   inputFiles = inputs,
-   sampleNames = names(inputs),
-   minTSS = min_tss,
-   minFrags = min_frags,
-   maxFrags = 1e+07,
-   addTileMat = TRUE,
-   addGeneScoreMat = TRUE,
-   offsetPlus = 0,
-   offsetMinus = 0,
-   TileMatParams = list(tileSize = tile_size)
+  inputFiles = inputs,
+  sampleNames = names(inputs),
+  minTSS = min_tss,
+  minFrags = min_frags,
+  maxFrags = 1e+07,
+  addTileMat = TRUE,
+  addGeneScoreMat = TRUE,
+  offsetPlus = 0,
+  offsetMinus = 0,
+  TileMatParams = list(tileSize = tile_size)
 )
 
 proj <- ArchRProject(
@@ -147,7 +121,6 @@ if (length(runs) > 1) {
     groupBy = "Sample",
     force = TRUE
   )
-  
   name <- "Harmony"
 } else {
   name <- "IterativeLSI"
@@ -172,9 +145,22 @@ proj <- addUMAP(
   force = TRUE
 )
 
+umap_plots <- c()
+for (name in c("Clusters", "Condition", "Sample")) {
+  umap <- plot_umap(proj, name) # from utils
+  umap_plots[[name]] <- umap
+}
+
+pdf("umap_plots.pdf")
+grid.arrange(
+  umap_plots[["Clusters"]],
+  umap_plots[["Condition"]],
+  umap_plots[["Sample"]],
+  ncol = 2
+)
+dev.off()
+
 proj <- addImputeWeights(proj)
-
-
 
 conds <- strsplit(proj$Condition,split = "\\s|-")
 
@@ -194,20 +180,18 @@ treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(
 print('++++ what is the treatments in this project +++++++')
 treatment
 
-
-
-
 # create seurat objects -------------------------------------------------------
 
 # create metadata object for Seurat object
 metadata <- getCellColData(ArchRProj = proj)
 rownames(metadata) <- str_split_fixed(
-str_split_fixed(
-  row.names(metadata),
-  "#",
-  2)[, 2],
-"-",
-2)[, 1]
+  str_split_fixed(
+    row.names(metadata),
+    "#",
+    2)[, 2],
+  "-",
+  2
+)[, 1]
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
 # create gene matrix for Seurat object
@@ -221,6 +205,8 @@ matrix <- imputeMatrix(
 )
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
+
+print("+++++++++++creating seurat objs++++++++++++++")
 
 seurat_objs <- c()
 for (run in runs) {
@@ -236,6 +222,37 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
+print("+++++++++++creating spatial plots++++++++++++++")
+
+run_ids <- unique(proj$Sample)
+spatial_cluster_plots <- list()
+for (i in seq_along(run_ids)){
+  plot <- plot_spatial(seurat_objs[[i]], run_ids[i])
+  spatial_cluster_plots[[i]] <- plot
+}
+
+pdf("spatial_plots.pdf")
+wrap_plots(spatial_cluster_plots, guides = "collect") &
+  theme(
+    legend.position = "bottom",
+    text = element_text(size = 12),
+    plot.title = element_text(size = 10)
+  )
+dev.off()
+
+print("+++++++++++creating qc plots++++++++++++++")
+
+# feature plot from utils
+metrics <- c("TSSEnrichment", "nFrags", "log10_nFrags")
+all_qc_plots <- list()
+for (i in seq_along(metrics)) {
+  spatial_qc_plots <- list()
+  for (j in seq_along(run_ids)) {
+    plot <- plot_feature(seurat_objs[[j]], metrics[i], run_ids[j])
+    spatial_qc_plots[[j]] <- plot
+  }
+  all_qc_plots[[i]] <- spatial_qc_plots
+
 print('this is available seurat_objs')
 seurat_objs
 
@@ -246,8 +263,17 @@ for (i in seq_along(seurat_objs)){
   all[[i]] <- RenameCells(all[[i]], new.names = paste0(unique(all[[i]]@meta.data$Sample),"#",colnames(all[[i]]),"-1"))
 }
 
+pdf("qc_plots.pdf")
+for (i in seq_along(metrics)) {
+  grid.arrange(
+    grobs = all_qc_plots[[i]],
+    ncol = 2
+  )
+}
+dev.off()
 
 ############-------------Identifying Marker Genes------------###################
+# per cluster
 
 markersGS <- getMarkerFeatures(
   ArchRProj = proj, 
@@ -261,24 +287,46 @@ markersGS <- getMarkerFeatures(
 saveRDS(markersGS,"markersGS_clusters.rds")
 
 for (rd in names(proj@reducedDims)){
-  if (rd=="Harmony"){
-    proj <- addImputeWeights(proj,reducedDims = "Harmony")
-    
+  if (rd == "Harmony") {
+    proj <- addImputeWeights(proj, reducedDims = "Harmony")
   } else {
     proj <- addImputeWeights(proj)
-    
   }
 }
 # save for shiny
 
 heatmapGS <- plotMarkerHeatmap(
-  seMarker = markersGS, 
-  cutOff = "FDR <= 0.05 & Log2FC >= 0.20", plotLog2FC = TRUE,
-  #   labelMarkers = seleceted_markers,
-  transpose = F,  returnMatrix = TRUE
+  seMarker = markersGS,
+  cutOff = "FDR <= 0.05 & Log2FC >= 0.20",
+  plotLog2FC = TRUE,
+  transpose = FALSE,
+  returnMatrix = TRUE
 )
 
-write.csv(heatmapGS,"genes_per_cluster_hm.csv")
+write.csv(heatmapGS, "genes_per_cluster_hm.csv")
+
+######################### Plot marker genes ###################################
+
+heatmaps <- list()
+
+# recompute for heatmap plot
+gene_cutoff <- "FDR <= 0.05 & Log2FC >= 0.2"
+heatmap_gs_plotting <- plotMarkerHeatmap(
+  seMarker = markersGS,
+  cutOff = gene_cutoff,
+  transpose = TRUE
+)
+# save for plotting with peaks and motifs
+gene_hm <- ComplexHeatmap::draw(
+  heatmap_gs_plotting,
+  heatmap_legend_side = "bot",
+  annotation_legend_side = "bot",
+  column_title = paste0("Marker genes (", gene_cutoff, ")"),
+  column_title_gp = gpar(fontsize = 12)
+)
+heatmaps[[1]] <- gene_hm
+
+###############################################################################
 
 # per sample
 
@@ -523,19 +571,25 @@ if (length(unique(proj$Condition))>1){
     write.table(de,paste0("inpMarkers_",j,".txt"), sep = '\t', quote = F, row.names = F)
     
     print(paste0("writing inpMarkers_",j,".txt is done!"))
-    
+
+    features <- unique(de$cluster)
+    volcano_plots <- list()
+    for (i in seq_along(features)) {
+      volcano_plots[[i]] <- scvolcano(de, features[[i]])
+    }
+
+    pdf("volcano_plots.pdf")
+    for (plot in volcano_plots) {
+      print(plot)
+    }
+    dev.off()
+
   }
   
 } else {
   
   de <- "there is not enough conditions to be compared with!"  
 }   
-
-
-
-
-
-
 
 
 tempdir <- "/root"
@@ -716,19 +770,61 @@ saveArchRProject(
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 markersPeaks <- getMarkerFeatures(
-  ArchRProj = proj, 
-  useMatrix = "PeakMatrix", 
+  ArchRProj = proj,
+  useMatrix = "PeakMatrix",
   groupBy = "Clusters",
   bias = c("TSSEnrichment", "log10(nFrags)"),
   k = 100,
   testMethod = "wilcoxon"
 )
+
+######################### Plot marker peaks, motifs ###########################
+
+peak_cutoff <- "FDR <= 0.05 & Log2FC >= 1"
+heatmap_peaks <- plotMarkerHeatmap(
+  seMarker = markersPeaks,
+  cutOff = peak_cutoff,
+  transpose = TRUE
+)
+
+peak_hm <- ComplexHeatmap::draw(
+  heatmap_peaks,
+  heatmap_legend_side = "bot",
+  annotation_legend_side = "bot",
+  column_title = paste0("Marker peaks (", peak_cutoff, ")"),
+  column_title_gp = gpar(fontsize = 12)
+)
+
+heatmaps[[2]] <- peak_hm
+
+motifs_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 enrichMotifs <- peakAnnoEnrichment(
   seMarker = markersPeaks,
   ArchRProj = proj,
   peakAnnotation = "Motif",
-  cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+  cutOff = motifs_cutoff
 )
+
+heatmapEM <- plotEnrichHeatmap(enrichMotifs, transpose = TRUE)
+
+heatmap_motifs <- ComplexHeatmap::draw(
+  heatmapEM,
+  heatmap_legend_side = "bottom",
+  column_title = paste0("Marker motifs (", motifs_cutoff),
+  column_title_gp = gpar(fontsize = 12)
+)
+
+heatmaps[[3]] <- heatmap_motifs
+
+print("+++++++++++creating heatmap plots++++++++++++++")
+
+pdf("heatmaps_all.pdf")
+for (i in seq_along(heatmaps)) {
+  print(heatmaps[[i]])
+}
+dev.off()
+
+###############################################################################
 
 motif_lst <- unique(rownames(enrichMotifs))
 split_string <- strsplit(motif_lst, split = "\\(")

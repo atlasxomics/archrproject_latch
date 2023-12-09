@@ -6,4 +6,5 @@
 wf/testing.R
 **/*SeuratObj*
 wf/tidy_tutorial.R
-wf/volcano_plots.pdf
+wf/*.csv
+wf/*.pdf
