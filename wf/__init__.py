@@ -385,7 +385,7 @@ LaunchPlan(
             Run(
                 'default',
                 LatchFile(
-                    'latch:///atac_outs/demo/outs/demo_fragments.tsv.gz'
+                    'latch:///chromap_outputs/demo/chromap_output/fragments.tsv.gz'
                 ),
                 'demo',
                 LatchDir('latch:///spatials/demo/spatial'),
