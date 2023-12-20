@@ -98,15 +98,15 @@ COPY server_3.R /root/server_3.R
 COPY ui_3.R /root/ui_3.R
 COPY www /root/www
 
+RUN apt-get update -y
+RUN apt-get install -y libmagick++-dev
+RUN apt-get install -y libgdal-dev
 #RUN R -e "BiocManager::install('org.Mm.eg.db', ask = FALSE)"
 #RUN R -e "BiocManager::install('org.Hs.eg.db', ask = FALSE)"
 #RUN R -e "install.packages(c('devtools'), repos = 'http://cran.us.r-project.org')"
 #                           'remotes','GGally','network','sna','ggraph','pheatmap','scico',
 #RUN R -e "devtools::install_github('briatte/ggnet')"
-#RUN apt-get update -y && \
-#    apt-get install -y \
-#        libmagick++-dev \
-#        libgdal-dev
+
 
 #RUN R -e "remotes::install_github('jbergenstrahle/STUtility')"
 
