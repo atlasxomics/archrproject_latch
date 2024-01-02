@@ -1603,7 +1603,7 @@ samples <- find_samples_name(all)
 D00 <- list()
 for (i in seq_along(samples)) {
   D00[[i]] <- all[[i]]
-  nal_cols <- which(colSums(is.na(D00[[i]]@assays[[1]]@counts))>0)
+  nal_cols <- which(colSums(is.na(D00[[i]]@assays[[1]]@layers[["counts"]]))>0)
   toRemove <- names(nal_cols)
   D00[[i]] <- D00[[i]][,!colnames(D00[[i]]) %in% toRemove]
 }

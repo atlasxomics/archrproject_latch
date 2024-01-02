@@ -20,3 +20,5 @@ wf/tidy_tutorial.R
 wf/*.csv
 wf/*.pdf
 wf/spatial
+wf/shinyApp
+wf/combined*.rds
