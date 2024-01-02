@@ -1409,131 +1409,152 @@ saveRDS(ProbMatrices,"seqlogo.rds")
 
 ######creating combimed.rds files ########
 
-main_func <- function(seurat_lst){
-  find_samples_name <- function(seurat_lst){
-    
-    sapply(seq_along(seurat_lst), function(i) unique(seurat_lst[[i]]@meta.data$Sample))
-    
-    
+main_func <- function(seurat_lst, umap_embedding) {
+  
+  find_samples_name <- function(seurat_lst) {
+    # Extract list of sample names from list of SeuratObjs.
+    sapply(seq_along(seurat_lst), function(i) {
+      unique(seurat_lst[[i]]@meta.data$Sample)
+    })
   }
   
   samples <- find_samples_name(seurat_lst)
   
-  D00_fun <- function(seurat_lst){
-    toRemove <- lapply(seurat_lst, function(x) {names(which(colSums(is.na(x@assays[[1]]@counts))>0))}) 
-    mapply(function(x,y) x[,!colnames(x) %in% y],seurat_lst,toRemove)
+  D00_fun <- function(seurat_lst) {
+    # Remove samples without "counts" from list of SeuratObjs
+    toRemove <- lapply(seurat_lst, function(x) {
+      names(which(colSums(is.na(x@assays[[1]]@layers[["counts"]])) > 0))
+      }) 
+    mapply(function(x, y) x[, !colnames(x) %in% y], seurat_lst, toRemove)
   }
   
-  
   D00 <- D00_fun(seurat_lst)
+  
   Spatial_D00_fun <- function(D00){
     
-    Spatial_D00 <- lapply(D00, function(x) as.data.frame(x@images[[1]]@coordinates[,c(5,4)]))
-    Spatial_D00 <- lapply(Spatial_D00, function(x) {colnames(x) <- paste0("Spatial_", 1:2)
-    x
+    Spatial_D00 <- lapply(D00, function(x) {
+      as.data.frame(x@images[[1]]@coordinates[,c(5,4)])
+    })
+    Spatial_D00 <- lapply(Spatial_D00, function(x) {
+      colnames(x) <- paste0("Spatial_", 1:2)
+      x
     })  
-    lapply(Spatial_D00, function(x) {x$Spatial_2 <- -(x$Spatial_2) 
-    x
+    lapply(Spatial_D00, function(x) {
+      x$Spatial_2 <- -(x$Spatial_2) 
+      x
     })
   }
   
   Spatial_D00 <- Spatial_D00_fun(D00)
   
   
-  Spatial_D00_all_fun <- function(Spatial_D00){
+  Spatial_D00_all_fun <- function(Spatial_D00) {
     
-    tmp <- lapply(seq_along(Spatial_D00), function(i) {bind_rows(Spatial_D00[-i])})
-    
-    tmp <- lapply(tmp, function(x) {x$Spatial_1<- 0
-    x
+    tmp <- lapply(seq_along(Spatial_D00), function(i) {
+      bind_rows(Spatial_D00[-i])
     })
-    tmp <- lapply(tmp, function(x) {x$Spatial_2<- 0
-    x
+    tmp <- lapply(tmp, function(x) {
+      x$Spatial_1<- 0
+      x
     })
-    
-    tmp <- lapply(seq_along(Spatial_D00), function(i) {as.matrix(rbind(Spatial_D00[[i]],tmp[[i]]))
-      
-      
+    tmp <- lapply(tmp, function(x) {
+      x$Spatial_2<- 0
+      x
     })
-    
+    tmp <- lapply(seq_along(Spatial_D00), function(i) {
+      as.matrix(rbind(Spatial_D00[[i]], tmp[[i]]))
+    })
   }
   
-  Spatial_D00_all <- Spatial_D00_all_fun(Spatial_D00) 
+  Spatial_D00_all <- Spatial_D00_all_fun(Spatial_D00)
   
   temp_fun <- function(D00){
-    
-    temp <- lapply(D00,function(x) as.data.frame(x@assays[[1]]@counts))
-    temp <- lapply(temp, function(x)  {x$region <- rownames(x)
-    x
+    # Convert list of SeuratObjs to list of Assay counts as dataframes.
+    temp <- lapply(D00, function(x) {
+      df <- as.data.frame(x@assays[[1]]@layers[["counts"]])
+      colnames(df) <- rownames(x@assays[[1]]@cells)
+      return(df)
+    })
+    temp <- lapply(temp, function(x) {
+      x$region <- rownames(x)
+      x
     })  
-    lapply(temp, function(x) {rownames(x) <- NULL
-    x
-    })      
-    
   }
   
-  temp <- temp_fun(D00)                      
-  
+  temp <- temp_fun(D00)
   
   # merge seurat objects
-  combined_mat <- purrr::reduce(temp, full_join, by = "region");
+  combined_mat <- purrr::reduce(temp, full_join, by = "region")
   
   rownames(combined_mat) <- combined_mat$region
   combined_mat$region<- NULL
-  # removd extra cells
-  extra_cells <- setdiff(colnames(combined_mat),rownames(Spatial_D00_all[[1]]))
-  combined_mat <- combined_mat[,which(!colnames(combined_mat)%in%extra_cells)]
+  
+  # remove extra cells
+  extra_cells <- setdiff(colnames(combined_mat), rownames(Spatial_D00_all[[1]]))
+  combined_mat <- combined_mat[, which(!colnames(combined_mat) %in% extra_cells)]
   combined_mat <- as.matrix(combined_mat)
   
-  # clean columns of meta data per sample that attached sample's name before rbind
+  # clean columns of metadata per sample that attached sample's name before rbind
   l <- D00
-  l <- lapply(l, function(x) { colnames(x@meta.data) <- gsub(paste0("_",Assays(x)),"",colnames(x@meta.data));x})
+  l <- lapply(l, function(x) {
+    colnames(x@meta.data) <- gsub(paste0("_", Assays(x)), "", colnames(x@meta.data))
+    x
+  })
   D00 <- l
   
-  
   # first get the list of meta data
-  list_of_metadata <- lapply(D00, function(x) x@meta.data)
+  list_of_metadata <- lapply(D00, function(x) {
+    x@meta.data
+  })
+  
   # # rbind meta data per samples
   meta.data <- do.call("rbind", list_of_metadata)
-  write.csv(meta.data,'req_meta_data.csv', row.names = T)
+  write.csv(meta.data, "req_meta_data.csv", row.names = TRUE)
   
   combined <- CreateSeuratObject(
-    counts = combined_mat,
+    counts = as.data.frame(combined_mat),
     assay = "scATAC",
     meta.data = meta.data
   )
   
-  combined@meta.data$Clusters <- factor(combined@meta.data$Clusters
-                                        ,levels = c(paste0("C",seq_along(unique(combined@meta.data$Clusters)))))
+  combined@meta.data$Clusters <- factor(
+    combined@meta.data$Clusters,
+    levels = c(paste0("C", seq_along(unique(combined@meta.data$Clusters))))
+  )
   
   Spatial_D00 <- list()
   for (i in seq_along(samples)) {
-    Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined),]
-    combined[[samples[i]]] <- CreateDimReducObject(embeddings = Spatial_D00[[i]]
-                                                   , key = samples[i]
-                                                   , assay = DefaultAssay(combined))
-  }
+    Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined), ]
+    combined[[samples[i]]] <- CreateDimReducObject(
+                                embeddings = Spatial_D00[[i]],
+                                key = samples[i],
+                                assay = DefaultAssay(combined)
+                              )
+    }
   
   
   # we need to run Variable Features
-  combined <- NormalizeData(combined, normalization.method = "LogNormalize", scale.factor = 10000)
-  combined <- FindVariableFeatures(combined, selection.method = "vst", nfeatures = 2000)
+  combined <- NormalizeData(
+    combined, normalization.method = "LogNormalize", scale.factor = 10000
+  )
+  combined <- FindVariableFeatures(
+    combined, selection.method = "vst", nfeatures = 2000
+  )
   
-  
-  
-  combined[["UMAP"]] <- CreateDimReducObject(embeddings =  as.matrix(UMAPHarmony)
-                                             , key = "UMAP"
-                                             , assay = DefaultAssay(combined))
+  combined[["UMAP"]] <- CreateDimReducObject(
+                          embeddings =  as.matrix(umap_embedding),
+                          key = "UMAP",
+                          assay = DefaultAssay(combined)
+                        )
   
   return(combined)
-  
 }
 
 combined <- main_func(all)
 combined_m <- main_func(all_m)
 
-saveRDS(combined,"combined.rds",compress = FALSE)
-saveRDS(combined_m,"combined_m.rds",compress = FALSE)
+saveRDS(combined, "combined.rds", compress = FALSE)
+saveRDS(combined_m, "combined_m.rds", compress = FALSE)
 
 # =================================
 print('Shiny App starting ...')
