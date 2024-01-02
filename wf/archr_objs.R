@@ -1550,8 +1550,8 @@ main_func <- function(seurat_lst, umap_embedding) {
   return(combined)
 }
 
-combined <- main_func(all)
-combined_m <- main_func(all_m)
+combined <- main_func(all, UMAPHarmony)
+combined_m <- main_func(all_m, UMAPHarmony)
 
 saveRDS(combined, "combined.rds", compress = FALSE)
 saveRDS(combined_m, "combined_m.rds", compress = FALSE)
