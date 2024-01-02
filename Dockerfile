@@ -1,4 +1,4 @@
-FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base:dd8f-main
+FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base:5303-main
 RUN apt-get update -y
 RUN apt-get install -y gdebi-core 
 RUN apt install -y aptitude
@@ -54,7 +54,7 @@ RUN echo "TZ=$( cat /etc/timezone )" >> /etc/R/Renviron.site
 RUN apt-get install -y r-cran-devtools libcairo2-dev
 
 # Install packages
-RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'Seurat','shiny', 'shinyhelper', 'data.table', 'Matrix', 'DT', 'magrittr','ggplot2','ggrepel','hdf5r','ggdendro','gridExtra', 'ggseqlogo', 'circlize','tidyverse','qdap'))"
+RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'shiny', 'shinyhelper', 'data.table', 'Matrix', 'DT', 'magrittr','ggplot2','ggrepel','hdf5r','ggdendro','gridExtra', 'ggseqlogo', 'circlize','tidyverse','qdap'))"
 RUN R -e "devtools::install_github('immunogenomics/harmony')"
 RUN R -e "devtools::install_github('GreenleafLab/ArchR', ref='master', repos = BiocManager::repositories())"
 RUN R -e "devtools::install_github('GreenleafLab/chromVARmotifs')"
@@ -101,15 +101,7 @@ COPY www /root/www
 RUN apt-get update -y
 RUN apt-get install -y libmagick++-dev
 RUN apt-get install -y libgdal-dev
-#RUN R -e "BiocManager::install('org.Mm.eg.db', ask = FALSE)"
-#RUN R -e "BiocManager::install('org.Hs.eg.db', ask = FALSE)"
-#RUN R -e "install.packages(c('devtools'), repos = 'http://cran.us.r-project.org')"
-#                           'remotes','GGally','network','sna','ggraph','pheatmap','scico',
-#RUN R -e "devtools::install_github('briatte/ggnet')"
-
-
-#RUN R -e "remotes::install_github('jbergenstrahle/STUtility')"
-
+RUN R -e "install.packages(c('Seurat'), dependencies = TRUE, repos = 'http://cran.us.r-project.org')"
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
