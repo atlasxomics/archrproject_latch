@@ -4,6 +4,7 @@ library("BSgenome.Hsapiens.UCSC.hg38")
 library("BSgenome.Mmusculus.UCSC.mm10")
 library("gridExtra")
 library("harmony")
+library("purrr")
 library("Seurat")
 library("GenomicRanges")
 library("dplyr")                                    # Load dplyr package
@@ -232,12 +233,7 @@ for (i in seq_along(run_ids)){
 }
 
 pdf("spatial_plots.pdf")
-wrap_plots(spatial_cluster_plots, guides = "collect") &
-  theme(
-    legend.position = "bottom",
-    text = element_text(size = 12),
-    plot.title = element_text(size = 10)
-  )
+CombinePlots(spatial_cluster_plots, legend = "bottom")
 dev.off()
 
 print("+++++++++++creating qc plots++++++++++++++")
@@ -980,110 +976,110 @@ for (i in seq_along(seurat_objs)){
 
 # peak calling with MACS2 for Sample -------------------------------------------
 if (length(unique(proj$Sample))>1){
-  
-proj <- addGroupCoverages(
-  ArchRProj = proj,
-  groupBy = "Sample",
-  maxCells = 1500,
-  force = TRUE
-)
-# get genome size
-species <- getGenome(ArchRProj = proj)
-if (species == "BSgenome.Hsapiens.UCSC.hg38"){
-  genome_size <- 3.3e+09
-} else if (species == "BSgenome.Mmusculus.UCSC.mm10") {
-  genome_size = 3.0e+09
-}
-pathToMacs2 <- findMacs2()
-proj <- addReproduciblePeakSet(
-  ArchRProj = proj,
-  groupBy = "Sample",
-  pathToMacs2 = pathToMacs2,
-  genomeSize = genome_size,
-  maxPeaks = 300000,
-  force = TRUE 
-)
-proj <- addPeakMatrix(proj, force = TRUE)
-
-    proj <- addMotifAnnotations(ArchRProj = proj
-                                , motifSet = "cisbp"
-                                , name = "Motif"
-                                , force = TRUE
-                                )
-
-    # save ArchR object
-    saveArchRProject(
-      ArchRProj = proj,
-      outputDirectory = paste0(project_name, "_ArchRProject")
-    )
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     
-markersPeaks <- getMarkerFeatures(
-  ArchRProj = proj, 
-  useMatrix = "PeakMatrix", 
-  groupBy = "Sample",
-  bias = c("TSSEnrichment", "log10(nFrags)"),
-  k = 100,
-  testMethod = "wilcoxon"
-)
-enrichMotifs <- peakAnnoEnrichment(
-  seMarker = markersPeaks,
-  ArchRProj = proj,
-  peakAnnotation = "Motif",
-  cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
-)
+  proj <- addGroupCoverages(
+    ArchRProj = proj,
+    groupBy = "Sample",
+    maxCells = 1500,
+    force = TRUE
+  )
+  # get genome size
+  species <- getGenome(ArchRProj = proj)
+  if (species == "BSgenome.Hsapiens.UCSC.hg38"){
+    genome_size <- 3.3e+09
+  } else if (species == "BSgenome.Mmusculus.UCSC.mm10") {
+    genome_size = 3.0e+09
+  }
+  pathToMacs2 <- findMacs2()
+  proj <- addReproduciblePeakSet(
+    ArchRProj = proj,
+    groupBy = "Sample",
+    pathToMacs2 = pathToMacs2,
+    genomeSize = genome_size,
+    maxPeaks = 300000,
+    force = TRUE 
+  )
+  proj <- addPeakMatrix(proj, force = TRUE)
 
-motif_lst <- unique(rownames(enrichMotifs))
-split_string <- strsplit(motif_lst, split = "\\(")
-fun1 <- function(list, nth){
-  sapply(list, `[` , 1)
-}
-req_motifs3 <- gsub("_","-",fun1(split_string))
-req_motifs3 <- gsub(" ","",req_motifs3)
+      proj <- addMotifAnnotations(ArchRProj = proj
+                                  , motifSet = "cisbp"
+                                  , name = "Motif"
+                                  , force = TRUE
+                                  )
 
-rownames(enrichMotifs) <- req_motifs3
-saveRDS(enrichMotifs,"enrichMotifs_sample.rds")
+      # save ArchR object
+      saveArchRProject(
+        ArchRProj = proj,
+        outputDirectory = paste0(project_name, "_ArchRProject")
+      )
+  # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      
+  markersPeaks <- getMarkerFeatures(
+    ArchRProj = proj, 
+    useMatrix = "PeakMatrix", 
+    groupBy = "Sample",
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    k = 100,
+    testMethod = "wilcoxon"
+  )
+  enrichMotifs <- peakAnnoEnrichment(
+    seMarker = markersPeaks,
+    ArchRProj = proj,
+    peakAnnotation = "Motif",
+    cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+  )
 
-# cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
+  motif_lst <- unique(rownames(enrichMotifs))
+  split_string <- strsplit(motif_lst, split = "\\(")
+  fun1 <- function(list, nth){
+    sapply(list, `[` , 1)
+  }
+  req_motifs3 <- gsub("_","-",fun1(split_string))
+  req_motifs3 <- gsub(" ","",req_motifs3)
 
-heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 50, transpose = F,returnMatrix = TRUE, cutOff= 2)
+  rownames(enrichMotifs) <- req_motifs3
+  saveRDS(enrichMotifs,"enrichMotifs_sample.rds")
 
-motif_lst <- unique(rownames(heatmapEM))
-split_string <- strsplit(motif_lst, split = "\\(")
-fun1 <- function(list, nth){
-  sapply(list, `[` , 1)
-}
-req_motifs3 <- gsub("_","-",fun1(split_string))
-req_motifs3 <- gsub(" ","",req_motifs3)
+  # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
 
-rownames(heatmapEM) <- req_motifs3
-write.csv(heatmapEM,"motif_per_sample_hm.csv")
+  heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 50, transpose = F,returnMatrix = TRUE, cutOff= 2)
 
+  motif_lst <- unique(rownames(heatmapEM))
+  split_string <- strsplit(motif_lst, split = "\\(")
+  fun1 <- function(list, nth){
+    sapply(list, `[` , 1)
+  }
+  req_motifs3 <- gsub("_","-",fun1(split_string))
+  req_motifs3 <- gsub(" ","",req_motifs3)
 
-nSamples = length(unique(proj$Sample))
-
-df = list()
-tempdir <- "/root"
-motifs_per_sample_hm <- find_func(tempdir,"motif_per_sample_hm.csv")
-hm_per_sample <- read.csv(motifs_per_sample_hm)
+  rownames(heatmapEM) <- req_motifs3
+  write.csv(heatmapEM,"motif_per_sample_hm.csv")
 
 
-for (i in seq_along(1:nSamples)){
-  df[[i]] <- hm_per_sample[,c(1,i+1)]
-  
-  #select top 5 values by group
-  
-  df[[i]] <- df[[i]][order(df[[i]][,2], decreasing = T),][1:10,1]
-  
-}
-final <- do.call(rbind, df)
-req_motifs3 <- unlist(df)
+  nSamples = length(unique(proj$Sample))
 
-req_motifs3<- req_motifs3[!duplicated(req_motifs3)]
+  df = list()
+  tempdir <- "/root"
+  motifs_per_sample_hm <- find_func(tempdir,"motif_per_sample_hm.csv")
+  hm_per_sample <- read.csv(motifs_per_sample_hm)
 
-req_motifs3 <- na.omit(req_motifs3)
 
-write.csv(req_motifs3,"req_motifs3.csv")
+  for (i in seq_along(1:nSamples)){
+    df[[i]] <- hm_per_sample[,c(1,i+1)]
+    
+    #select top 5 values by group
+    
+    df[[i]] <- df[[i]][order(df[[i]][,2], decreasing = T),][1:10,1]
+    
+  }
+  final <- do.call(rbind, df)
+  req_motifs3 <- unlist(df)
+
+  req_motifs3<- req_motifs3[!duplicated(req_motifs3)]
+
+  req_motifs3 <- na.omit(req_motifs3)
+
+  write.csv(req_motifs3,"req_motifs3.csv")
 
 } else {
   enrichMotifs <- "there is not enough samples to be compared with!"  
@@ -1480,7 +1476,7 @@ main_func <- function(seurat_lst){
   
   
   # merge seurat objects
-  combined_mat <- reduce(temp, full_join, by = "region");
+  combined_mat <- purrr::reduce(temp, full_join, by = "region");
   
   rownames(combined_mat) <- combined_mat$region
   combined_mat$region<- NULL
