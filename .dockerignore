@@ -11,4 +11,4 @@ wf/*.csv
 wf/*.pdf
 wf/spatial
 wf/shinyApp
-wf/shinyApp
+wf/combined*rds
