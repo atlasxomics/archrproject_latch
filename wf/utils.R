@@ -32,7 +32,7 @@ build_atlas_seurat_object <- function(
   matrix@Dimnames[[2]] <- metadata@rownames
 
   object <- CreateSeuratObject(
-    counts = matrix,
+    counts = as.data.frame(matrix),
     assay  = "Spatial",
     meta.data = as.data.frame(metadata)
   )
