@@ -15,10 +15,10 @@ find_func <- function(tempdir, pattern) {
 }
 
 build_atlas_seurat_object <- function(
-  run_id,
-  matrix,
-  metadata,
-  spatial_path) {
+    run_id,
+    matrix,
+    metadata,
+    spatial_path) {
   # Prepare and combine gene matrix, metadata, and image for seurat object
   # for runs within a project.
 
@@ -32,7 +32,7 @@ build_atlas_seurat_object <- function(
   matrix@Dimnames[[2]] <- metadata@rownames
 
   object <- CreateSeuratObject(
-    counts = matrix,
+    counts = as.data.frame(matrix),
     assay  = "Spatial",
     meta.data = as.data.frame(metadata)
   )
@@ -50,12 +50,12 @@ plot_feature <- function(seurat_obj, feature, name) {
     features = feature,
     alpha = c(0.2, 1),
     pt.size.factor = 1) +
-      ggtitle(name) +
-      theme(
-        legend.position = "right",
-        plot.title = element_text(size = 15, hjust = 0.5),
-        text = element_text(size = 10)
-      )
+    ggtitle(name) +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(size = 15, hjust = 0.5),
+      text = element_text(size = 10)
+    )
 }
 
 plot_spatial <- function(seurat_object, name) {
@@ -72,12 +72,12 @@ plot_spatial <- function(seurat_object, name) {
     crop = FALSE,
     cols = colors,
     stroke = 0) +
-      ggtitle(name) +
-      theme(
-        plot.title = element_text(size= 15),
-        text = element_text(size = 10),
-        legend.position = "bottom"
-      )
+    ggtitle(name) +
+    theme(
+      plot.title = element_text(size= 15),
+      text = element_text(size = 10),
+      legend.position = "bottom"
+    )
 }
 
 plot_geneset <- function(seurat_obj, marker_genes, name, title) {
@@ -93,8 +93,8 @@ plot_geneset <- function(seurat_obj, marker_genes, name, title) {
     object = seurat_obj,
     pt = 1,
     features = paste0(name, 1)) +
-      ggtitle(title) +
-      theme(plot.title = element_text(hjust = 0.5)
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5)
     )
 }
 
@@ -118,7 +118,8 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
     axis.text = element_text(size = base_size),
     axis.text.x = element_text(angle = Xang, hjust = XjusH),
     legend.position = "bottom",
-    legend.key = element_rect(colour = NA, fill = NA)
+    legend.key = element_rect(colour = NA, fill = NA),
+    
   )
   if(!XYval) {
     oupTheme <- oupTheme + theme(
@@ -169,6 +170,10 @@ scvolcano <- function(inpMarkers, feature = "All") {
       data = subset(ggData, p_val_adj < minfdr1),
       aes(label = gene)) +
     ggtitle(paste("Marker genes:", feature)) +
-    theme(plot.title = element_text(hjust = 0.5, size = 20))
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 20),
+      legend.text = element_text(size = 15),
+      legend.title = element_text(size = 18)
+    )
   return(ggOut)
 }

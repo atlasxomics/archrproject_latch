@@ -1,4 +1,4 @@
-FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base:dd8f-main
+FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base:5303-main
 RUN apt-get update -y
 RUN apt-get install -y gdebi-core 
 RUN apt install -y aptitude
@@ -54,7 +54,7 @@ RUN echo "TZ=$( cat /etc/timezone )" >> /etc/R/Renviron.site
 RUN apt-get install -y r-cran-devtools libcairo2-dev
 
 # Install packages
-RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'Seurat','shiny', 'shinyhelper', 'data.table', 'Matrix', 'DT', 'magrittr','ggplot2','ggrepel','hdf5r','ggdendro','gridExtra', 'ggseqlogo', 'circlize','tidyverse','qdap'))"
+RUN R -e "install.packages(c('Cairo', 'BiocManager', 'Matrix', 'shiny', 'shinyhelper', 'data.table', 'Matrix', 'DT', 'magrittr','ggplot2','ggrepel','hdf5r','ggdendro','gridExtra', 'ggseqlogo', 'circlize','tidyverse','qdap'))"
 RUN R -e "devtools::install_github('immunogenomics/harmony')"
 RUN R -e "devtools::install_github('GreenleafLab/ArchR', ref='master', repos = BiocManager::repositories())"
 RUN R -e "devtools::install_github('GreenleafLab/chromVARmotifs')"
@@ -89,6 +89,19 @@ RUN python3 -m pip install numpy
 RUN python3 -m pip install macs2==2.2.6
 
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
+COPY makeShinyFiles.R /root/makeShinyFiles.R
+COPY server.R /root/server.R
+COPY ui.R /root/ui.R
+COPY server_2.R /root/server_2.R
+COPY ui_2.R /root/ui_2.R
+COPY server_3.R /root/server_3.R
+COPY ui_3.R /root/ui_3.R
+COPY www /root/www
+
+RUN apt-get update -y
+RUN apt-get install -y libmagick++-dev
+RUN apt-get install -y libgdal-dev
+RUN R -e "install.packages(c('Seurat'), dependencies = TRUE, repos = 'http://cran.us.r-project.org')"
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
