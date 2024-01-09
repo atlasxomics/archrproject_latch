@@ -1458,6 +1458,18 @@ if (length(unique(proj$Condition))>1){
   write.table(de,paste0("inpMarkers_motif_",j,".txt"), sep = '\t', quote = F, row.names = F)
   print(paste0("writing inpMarkers_motif_",j,".txt is done!"))
   }
+
+  features_m <- unique(de$cluster)
+  volcano_plots_m <- list()
+  for (i in seq_along(features_m)) {
+    volcano_plots_m[[i]] <- scvolcano(de, features_m[[i]])
+  }
+
+  pdf("volcano_plots_motifs.pdf")
+  for (plot in volcano_plots_m) {
+    print(plot)
+  }
+  dev.off()
   
 } else {
   
