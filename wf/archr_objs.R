@@ -49,12 +49,17 @@ lsi_resolution <- as.numeric(args[7])
 lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
 umap_mindist <- as.numeric(args[10])
+num_threads <- as.integer(args[11])
+print(num_threads)
 
-runs <- strsplit(args[11:length(args)], ",")
+runs <- strsplit(args[12:length(args)], ",")
+runs
+
 inputs <- c()
 for (run in runs) {
   inputs[run[1]] <- run[2]
 }
+inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
@@ -135,6 +140,40 @@ proj <- addClusters(
   resolution = c(clustering_resolution),
   force = TRUE
 )
+
+######check how many cells per clusters are
+cluster_df <- as.data.frame(table(proj$Clusters))
+resolution = c(clustering_resolution)
+
+addclust <- function(x) {
+  while (min(cluster_df$Freq) <= 20) {
+    print(paste0('with resolution equal to ',resolution ))
+    cluster_df <- as.data.frame(table(x$Clusters))
+    print(cluster_df)
+    # Update the value in each step
+    
+    resolution <- resolution - 0.1
+    print(paste0('changing the resolution to ',resolution )) 
+    
+    x <- addClusters(
+      input = x,
+      reducedDims = name,
+      method = "Seurat",
+      name = "Clusters",
+      resolution = resolution ,
+      force = TRUE
+    )   
+    cluster_df <- as.data.frame(table(x$Clusters))
+    print(cluster_df)
+  }
+  return(x)
+}
+
+proj_2 <- addclust(proj)
+table(proj_2$Clusters)
+
+proj <- proj_2 
+##################
 
 proj <- addUMAP(
   ArchRProj = proj,
@@ -268,6 +307,17 @@ for (i in seq_along(metrics)) {
   )
 }
 dev.off()
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# save ArchR object
+saveArchRProject(
+  ArchRProj = proj,
+  outputDirectory = paste0(project_name, "_ArchRProject")
+)
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
 
 ############-------------Identifying Marker Genes------------###################
 # per cluster
@@ -715,8 +765,11 @@ saveArchRProject(
 )
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+# since sometimes we get outofMemory error we decrease number of threads here:
+addArchRThreads(threads = num_threads)
 
-# peak calling with MACS2 for clusters-----------------------------------------------------
+# peak calling with MACS2 for clusters------------------------------------------
+
 
 proj <- addGroupCoverages(
   ArchRProj = proj,
@@ -777,7 +830,7 @@ markersPeaks <- getMarkerFeatures(
 
 ######################### Plot marker peaks, motifs ###########################
 
-peak_cutoff <- "FDR <= 0.05 & Log2FC >= 1"
+peak_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_peaks <- plotMarkerHeatmap(
   seMarker = markersPeaks,
   cutOff = peak_cutoff,
@@ -975,8 +1028,8 @@ for (i in seq_along(seurat_objs)){
 
 
 # peak calling with MACS2 for Sample -------------------------------------------
-if (length(unique(proj$Sample))>1){
-    
+if (length(unique(proj$Sample)) > 1) {
+
   proj <- addGroupCoverages(
     ArchRProj = proj,
     groupBy = "Sample",
@@ -1081,136 +1134,136 @@ if (length(unique(proj$Sample))>1){
 
   write.csv(req_motifs3,"req_motifs3.csv")
 
-} else {
-  enrichMotifs <- "there is not enough samples to be compared with!"  
-  heatmapEM <- "there is not enough samples to be compared with!"  
-  req_motifs3 <- "there is not enough samples to be compared with!"  
-  
-}
-
-# peak calling with MACS2 for treatment ---------------------------------------
-
-if (length(unique(proj$Condition))>1){
-  for (i in seq_along(treatment)){
-  
-  proj <- addGroupCoverages(
-    ArchRProj = proj,
-    groupBy = treatment[i],
-    maxCells = 1500,
-    force = TRUE
-  )
-  # get genome size
-  species <- getGenome(ArchRProj = proj)
-  if (species == "BSgenome.Hsapiens.UCSC.hg38"){
-    genome_size <- 3.3e+09
-  } else if (species == "BSgenome.Mmusculus.UCSC.mm10") {
-    genome_size = 3.0e+09
-  }
-  pathToMacs2 <- findMacs2()
-  proj <- addReproduciblePeakSet(
-    ArchRProj = proj,
-    groupBy = treatment[i],
-    pathToMacs2 = pathToMacs2,
-    genomeSize = genome_size,
-    maxPeaks = 300000,
-    force = TRUE 
-  )
-  proj <- addPeakMatrix(proj, force = TRUE)
-  
-  proj <- addMotifAnnotations(ArchRProj = proj
-                              , motifSet = "cisbp"
-                              , name = "Motif"
-                              , force = TRUE
-  )
-  
-
-  # save ArchR object
-  saveArchRProject(
-    ArchRProj = proj,
-    outputDirectory = paste0(project_name, "_ArchRProject")
-  )
-  
-  }
-
-  # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-  for (i in seq_along(treatment)){
-    
-    markersPeaks <- getMarkerFeatures(
-    ArchRProj = proj, 
-    useMatrix = "PeakMatrix", 
-    groupBy = treatment[i],
-    bias = c("TSSEnrichment", "log10(nFrags)"),
-    k = 100,
-    testMethod = "wilcoxon"
-  )
-  
-  enrichMotifs <- peakAnnoEnrichment(
-    seMarker = markersPeaks,
-    ArchRProj = proj,
-    peakAnnotation = "Motif",
-    cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
-  )
-  
-  motif_lst <- unique(rownames(enrichMotifs))
-  split_string <- strsplit(motif_lst, split = "\\(")
-  fun1 <- function(list, nth){
-    sapply(list, `[` , 1)
-  }
-  req_motifs2 <- gsub("_","-",fun1(split_string))
-  req_motifs2 <- gsub(" ","",req_motifs2)
-  
-  rownames(enrichMotifs) <- req_motifs2
-  saveRDS(enrichMotifs,paste0("enrichMotifs_treatment_",i,".rds"))
-  
-  # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
-  
-  heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 50, transpose = F,returnMatrix = TRUE, cutOff= 2)
-  
-  motif_lst <- unique(rownames(heatmapEM))
-  split_string <- strsplit(motif_lst, split = "\\(")
-  fun1 <- function(list, nth){
-    sapply(list, `[` , 1)
-  }
-  req_motifs2 <- gsub("_","-",fun1(split_string))
-  req_motifs2 <- gsub(" ","",req_motifs2)
-  
-  rownames(heatmapEM) <- req_motifs2
-  write.csv(heatmapEM,paste0("motif_per_treatment_",i,"_hm.csv"))
-  
-  }
-  
-  
-  
-  nConds = 2
-  
-  df = list()
-  
-  tempdir <- "/root"
-  
-  motifs_per_cond_hm <- find_func(tempdir,"motif_per_treatment_*")
-  
-  for (j in seq_along(motifs_per_cond_hm)){
-  hm_per_cond <- read.csv(motifs_per_cond_hm[j])
-  
-  
-  for (i in seq_along(1:nConds)){
-    df[[i]] <- hm_per_cond[,c(1,i+1)]
-    
-    #select top 5 values by group
-    
-    df[[i]] <- df[[i]][order(df[[i]][,2], decreasing = T),][1:5,1]
+  } else {
+    enrichMotifs <- "there is not enough samples to be compared with!"  
+    heatmapEM <- "there is not enough samples to be compared with!"  
+    req_motifs3 <- "there is not enough samples to be compared with!"  
     
   }
-  final <- do.call(rbind, df)
-  req_motifs2 <- unlist(df)
-  
-  req_motifs2 <- req_motifs2[!duplicated(req_motifs2)]
-  
-  req_motifs2 <- na.omit(req_motifs2)
-  
-  write.csv(req_motifs2,paste0("req_motifs2_",j,".csv"))
+
+  # peak calling with MACS2 for treatment ---------------------------------------
+
+  if (length(unique(proj$Condition))>1){
+    for (i in seq_along(treatment)){
+    
+    proj <- addGroupCoverages(
+      ArchRProj = proj,
+      groupBy = treatment[i],
+      maxCells = 1500,
+      force = TRUE
+    )
+    # get genome size
+    species <- getGenome(ArchRProj = proj)
+    if (species == "BSgenome.Hsapiens.UCSC.hg38"){
+      genome_size <- 3.3e+09
+    } else if (species == "BSgenome.Mmusculus.UCSC.mm10") {
+      genome_size = 3.0e+09
+    }
+    pathToMacs2 <- findMacs2()
+    proj <- addReproduciblePeakSet(
+      ArchRProj = proj,
+      groupBy = treatment[i],
+      pathToMacs2 = pathToMacs2,
+      genomeSize = genome_size,
+      maxPeaks = 300000,
+      force = TRUE 
+    )
+    proj <- addPeakMatrix(proj, force = TRUE)
+    
+    proj <- addMotifAnnotations(ArchRProj = proj
+                                , motifSet = "cisbp"
+                                , name = "Motif"
+                                , force = TRUE
+    )
+    
+
+    # save ArchR object
+    saveArchRProject(
+      ArchRProj = proj,
+      outputDirectory = paste0(project_name, "_ArchRProject")
+    )
+    
+    }
+
+    # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    for (i in seq_along(treatment)){
+      
+      markersPeaks <- getMarkerFeatures(
+      ArchRProj = proj, 
+      useMatrix = "PeakMatrix", 
+      groupBy = treatment[i],
+      bias = c("TSSEnrichment", "log10(nFrags)"),
+      k = 100,
+      testMethod = "wilcoxon"
+    )
+    
+    enrichMotifs <- peakAnnoEnrichment(
+      seMarker = markersPeaks,
+      ArchRProj = proj,
+      peakAnnotation = "Motif",
+      cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+    )
+    
+    motif_lst <- unique(rownames(enrichMotifs))
+    split_string <- strsplit(motif_lst, split = "\\(")
+    fun1 <- function(list, nth){
+      sapply(list, `[` , 1)
+    }
+    req_motifs2 <- gsub("_","-",fun1(split_string))
+    req_motifs2 <- gsub(" ","",req_motifs2)
+    
+    rownames(enrichMotifs) <- req_motifs2
+    saveRDS(enrichMotifs,paste0("enrichMotifs_treatment_",i,".rds"))
+    
+    # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
+    
+    heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 50, transpose = F,returnMatrix = TRUE, cutOff= 2)
+    
+    motif_lst <- unique(rownames(heatmapEM))
+    split_string <- strsplit(motif_lst, split = "\\(")
+    fun1 <- function(list, nth){
+      sapply(list, `[` , 1)
+    }
+    req_motifs2 <- gsub("_","-",fun1(split_string))
+    req_motifs2 <- gsub(" ","",req_motifs2)
+    
+    rownames(heatmapEM) <- req_motifs2
+    write.csv(heatmapEM,paste0("motif_per_treatment_",i,"_hm.csv"))
+    
+    }
+    
+    
+    
+    nConds = 2
+    
+    df = list()
+    
+    tempdir <- "/root"
+    
+    motifs_per_cond_hm <- find_func(tempdir,"motif_per_treatment_*")
+    
+    for (j in seq_along(motifs_per_cond_hm)){
+    hm_per_cond <- read.csv(motifs_per_cond_hm[j])
+    
+    
+    for (i in seq_along(1:nConds)){
+      df[[i]] <- hm_per_cond[,c(1,i+1)]
+      
+      #select top 5 values by group
+      
+      df[[i]] <- df[[i]][order(df[[i]][,2], decreasing = T),][1:5,1]
+      
+    }
+    final <- do.call(rbind, df)
+    req_motifs2 <- unlist(df)
+    
+    req_motifs2 <- req_motifs2[!duplicated(req_motifs2)]
+    
+    req_motifs2 <- na.omit(req_motifs2)
+    
+    write.csv(req_motifs2,paste0("req_motifs2_",j,".csv"))
   }
-  
+    
   
 } else {
   enrichMotifs <- "there is not enough conditions to be compared with!"  
@@ -1219,9 +1272,6 @@ if (length(unique(proj$Condition))>1){
   
   
 }
-
-
-
 
 # Volcano plots for motifs -----------------------------------------------------
 if (length(unique(proj$Condition))>1){

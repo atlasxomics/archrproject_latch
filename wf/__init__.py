@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from latch import custom_task, workflow
+from latch import large_task, custom_task, small_task, workflow
 from latch.resources.launch_plan import LaunchPlan
 from latch.types import (
     LatchAuthor,
@@ -29,6 +29,7 @@ class Genome(Enum):
 
 
 @custom_task(cpu=62, memory=384, storage_gib=500)
+#@large_task(retries=0)
 def archr_task(
     runs: List[Run],
     project_name: str,
@@ -40,7 +41,8 @@ def archr_task(
     lsi_resolution: float,
     lsi_varfeatures: int,
     clustering_resolution: float,
-    umap_mindist: float
+    umap_mindist: float,
+    num_threads: int
 ) -> LatchDir:
 
     _archr_cmd = [
@@ -56,6 +58,7 @@ def archr_task(
         f'{lsi_varfeatures}',
         f'{clustering_resolution}',
         f'{umap_mindist}',
+        f'{num_threads}',
     ]
 
     runs = [
@@ -200,6 +203,13 @@ metadata = LatchMetadata(
             batch_table_column=True,
             hidden=True
         ),
+        'num_threads': LatchParameter(
+            display_name='number of threads',
+            description='This is for peak calling step with MACS2. If you get OOMKilled Error \
+                        set it to 1!',
+            batch_table_column=True,
+            hidden=True
+        ),
         'run_table_id': LatchParameter(
             display_name='Registry Table ID',
             description='The runs will be updated in Registry with its \
@@ -229,6 +239,7 @@ def archrproject_workflow(
     lsi_varfeatures: int = 25000,
     clustering_resolution: float = 1.0,
     umap_mindist: float = 0.0,
+    num_threads: int = 50,
     run_table_id: str = "761",
     project_table_id: str = "779"
 ) -> LatchDir:
@@ -364,7 +375,8 @@ def archrproject_workflow(
         lsi_resolution=lsi_resolution,
         lsi_varfeatures=lsi_varfeatures,
         clustering_resolution=clustering_resolution,
-        umap_mindist=umap_mindist
+        umap_mindist=umap_mindist,
+        num_threads=num_threads
     )
 
     upload_to_registry(
