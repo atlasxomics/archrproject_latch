@@ -855,7 +855,12 @@ enrichMotifs <- peakAnnoEnrichment(
   cutOff = motifs_cutoff
 )
 
-heatmapEM <- plotEnrichHeatmap(enrichMotifs, transpose = TRUE)
+heatmapEM <- plotEnrichHeatmap(
+  enrichMotifs,
+  transpose = TRUE,
+  n = 50,
+  cutOff = 2
+)
 
 heatmap_motifs <- ComplexHeatmap::draw(
   heatmapEM,
