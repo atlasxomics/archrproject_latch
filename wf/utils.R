@@ -129,14 +129,12 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
   return(oupTheme)
 }
 
-scvolcano <- function(inpMarkers, feature = "All") {
+scvolcano <- function(inpMarkers, markerList, feature = "All") {
 
   # Prepare ggData
   ggData <- inpMarkers[which(inpMarkers$cluster == feature), ]
   minfdr <- 0.09
   minfdr1 <- 10^-(1 / 6 * (-log10(min(ggData$p_val_adj))))
-
-  minfdr2 <- 10^-(2 / 3 * (-log10(min(ggData$p_val_adj))))
 
   ggData$Significance <- ifelse(
     ggData$p_val_adj < minfdr,

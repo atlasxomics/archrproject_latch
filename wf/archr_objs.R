@@ -633,17 +633,21 @@ if (length(unique(proj$Condition))>1){
                                               'Not siginficant')
     
     de <- markersGS_merged_df
-    
-    print(paste0("inpMarkers_motif_",j,".txt is writing!"))
-    
-    write.table(de,paste0("inpMarkers_",j,".txt"), sep = '\t', quote = F, row.names = F)
-    
-    print(paste0("writing inpMarkers_",j,".txt is done!"))
+
+    print(paste0("volcanoMarkers_genes_", j, ".txt is writing!"))
+    write.table(
+      de,
+      paste0("volcanoMarkers_genes_", j, ".txt"),
+      sep = '\t',
+      quote = FALSE,
+      row.names = FALSE
+    )
+    print(paste0("writing volcanoMarkers_genes_", j, ".txt is done!"))
 
     features <- unique(de$cluster)
     volcano_plots <- list()
     for (i in seq_along(features)) {
-      volcano_plots[[i]] <- scvolcano(de, features[[i]])
+      volcano_plots[[i]] <- scvolcano(de, markerList, features[[i]])
     }
 
     pdf(paste0("volcano_plots_", j, ".pdf"))
@@ -651,9 +655,8 @@ if (length(unique(proj$Condition))>1){
       print(plot)
     }
     dev.off()
-
   }
-  
+
 } else {
   
   de <- "there is not enough conditions to be compared with!"  
@@ -1454,15 +1457,21 @@ if (length(unique(proj$Condition))>1){
                                                 'Not siginficant')
   
   de <- markersMotifs_merged_df
-  print(paste0("inpMarkers_motif_",j,".txt is writing!"))
-  write.table(de,paste0("inpMarkers_motif_",j,".txt"), sep = '\t', quote = F, row.names = F)
-  print(paste0("writing inpMarkers_motif_",j,".txt is done!"))
+  print(paste0("volcanoMarkers_motifs_", j, ".txt is writing!"))
+  write.table(
+    de,
+    paste0("volcanoMarkers_motifs_",j, ".txt"),
+    sep = '\t',
+    quote = FALSE,
+    row.names = FALSE
+  )
+  print(paste0("writing volcanoMarkers_motifs_", j, ".txt is done!"))
   }
 
   features_m <- unique(de$cluster)
   volcano_plots_m <- list()
   for (i in seq_along(features_m)) {
-    volcano_plots_m[[i]] <- scvolcano(de, features_m[[i]])
+    volcano_plots_m[[i]] <- scvolcano(de, markersMotifs, features_m[[i]])
   }
 
   pdf("volcano_plots_motifs.pdf")
