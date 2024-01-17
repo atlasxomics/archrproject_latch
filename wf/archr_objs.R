@@ -904,7 +904,12 @@ enrichMotifs <- peakAnnoEnrichment(
   cutOff = motifs_cutoff
 )
 
-heatmapEM <- plotEnrichHeatmap(enrichMotifs, transpose = TRUE)
+heatmapEM <- plotEnrichHeatmap(
+  enrichMotifs,
+  transpose = TRUE,
+  n = 50,
+  cutOff = 2
+)
 
 heatmap_motifs <- ComplexHeatmap::draw(
   heatmapEM,
@@ -1540,7 +1545,7 @@ main_func <- function(seurat_lst, umap_embedding) {
   D00_fun <- function(seurat_lst) {
     # Remove samples without "counts" from list of SeuratObjs
     toRemove <- lapply(seurat_lst, function(x) {
-      names(which(colSums(is.na(x@assays[[1]]@layers[["counts"]])) > 0))
+      names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
       }) 
     mapply(function(x, y) x[, !colnames(x) %in% y], seurat_lst, toRemove)
   }
@@ -1588,9 +1593,9 @@ main_func <- function(seurat_lst, umap_embedding) {
   temp_fun <- function(D00){
     # Convert list of SeuratObjs to list of Assay counts as dataframes.
     temp <- lapply(D00, function(x) {
-      df <- as.data.frame(x@assays[[1]]@layers[["counts"]])
-      colnames(df) <- rownames(x@assays[[1]]@cells)
-      return(df)
+      df <- as.data.frame(x@assays[[1]]@counts)
+      colnames(df) <- Cells(x)
+      return(df)a
     })
     temp <- lapply(temp, function(x) {
       x$region <- rownames(x)
@@ -1720,7 +1725,7 @@ samples <- find_samples_name(all)
 D00 <- list()
 for (i in seq_along(samples)) {
   D00[[i]] <- all[[i]]
-  nal_cols <- which(colSums(is.na(D00[[i]]@assays[[1]]@layers[["counts"]]))>0)
+  nal_cols <- which(colSums(is.na(D00[[i]]@assays[[1]]@counts))>0)
   toRemove <- names(nal_cols)
   D00[[i]] <- D00[[i]][,!colnames(D00[[i]]) %in% toRemove]
 }
