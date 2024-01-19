@@ -865,7 +865,7 @@ write.csv(
 peak_data_c <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
 total_peaks_c <- merge(peak_data_c, peak_marker_list_c, by = c("start", "end"))
 write.csv(
-  total_peaks_s, file = "complete_peak_list_cluster.csv", row.names = FALSE
+  total_peaks_c, file = "complete_peak_list_cluster.csv", row.names = FALSE
 )
 
 # samples
