@@ -924,11 +924,11 @@ if (length(unique(proj$Condition)) > 1) {
   }
 }
 
-######################### Plot marker peaks, motifs ###########################
+######################### Plot clust marker peaks, motifs ###########################
 
 peak_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_peaks <- plotMarkerHeatmap(
-  seMarker = markersPeaks,
+  seMarker = markers_peaks_c,
   cutOff = peak_cutoff,
   transpose = TRUE
 )
@@ -945,7 +945,7 @@ heatmaps[[2]] <- peak_hm
 
 motifs_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 enrichMotifs <- peakAnnoEnrichment(
-  seMarker = markersPeaks,
+  seMarker = markers_peaks_c,
   ArchRProj = proj,
   peakAnnotation = "Motif",
   cutOff = motifs_cutoff
