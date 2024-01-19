@@ -845,7 +845,8 @@ saveArchRProject(
 
 ######################### get marker peaks, save ##############################
 
-markersPeaks <- getMarkerFeatures(
+# clusters
+markers_peaks_c <- getMarkerFeatures(
   ArchRProj = proj,
   useMatrix = "PeakMatrix",
   groupBy = "Clusters",
@@ -854,14 +855,21 @@ markersPeaks <- getMarkerFeatures(
   testMethod = "wilcoxon"
 )
 
-peak_marker_list <- getMarkers(markersPeaks, cutOff = "FDR <= 0.02")
+peak_marker_list_c <- getMarkers(markers_peaks_c, cutOff = "FDR <= 0.02")
 write.csv(
-  peak_marker_list,
+  peak_marker_list_c,
   file = "marker_peaks_per_cluster.csv",
   row.names = FALSE
 )
 
-markersPeaks_sample <- getMarkerFeatures(
+peak_data_c <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+total_peaks_c <- merge(peak_data_c, peak_marker_list_c, by = c("start", "end"))
+write.csv(
+  total_peaks_s, file = "complete_peak_list_cluster.csv", row.names = FALSE
+)
+
+# samples
+markers_peaks_s <- getMarkerFeatures(
   ArchRProj = proj,
   useMatrix = "PeakMatrix",
   groupBy = "Sample",
@@ -870,12 +878,51 @@ markersPeaks_sample <- getMarkerFeatures(
   testMethod = "wilcoxon"
 )
 
-peak_marker_list_s <- getMarkers(markersPeaks_sample, cutOff = "FDR <= 0.02")
+peak_marker_list_s <- getMarkers(markers_peaks_s, cutOff = "FDR <= 0.02")
 write.csv(
   peak_marker_list_s,
   file = "marker_peaks_per_sample.csv",
   row.names = FALSE
 )
+
+peak_data_s <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+total_peaks_s <- merge(peak_data_s, peak_marker_list_s, by = c("start", "end"))
+write.csv(
+  total_peaks_s, file = "complete_peak_list_sample.csv", row.names = FALSE
+)
+
+# treatment
+if (length(unique(proj$Condition)) > 1) {
+  for (i in seq_along(treatment)) {
+
+    marker_peaks_t <- getMarkerFeatures(
+      ArchRProj = proj,
+      useMatrix = "PeakMatrix",
+      groupBy = treatment[i],
+      bias = c("TSSEnrichment", "log10(nFrags)"),
+      k = 100,
+      testMethod = "wilcoxon"
+    )
+
+    peak_marker_list_t <- getMarkers(marker_peaks_t, cutOff = "FDR <= 0.02")
+    write.csv(
+      peak_marker_list_t,
+      file = paste0("marker_peaks_per_treatment-", i, ".csv"),
+      row.names = FALSE
+    )
+
+    peak_data_t <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+    total_peaks_t <- merge(
+      peak_data_t, peak_marker_list_t, by = c("start", "end")
+    )
+    write.csv(
+      total_peaks_t,
+      file = paste0("complete_peak_list_treatmet-", i, ".csv"),
+      row.names = FALSE
+    )
+
+  }
+}
 
 ######################### Plot marker peaks, motifs ###########################
 
@@ -1595,7 +1642,7 @@ main_func <- function(seurat_lst, umap_embedding) {
     temp <- lapply(D00, function(x) {
       df <- as.data.frame(x@assays[[1]]@counts)
       colnames(df) <- Cells(x)
-      return(df)a
+      return(df)
     })
     temp <- lapply(temp, function(x) {
       x$region <- rownames(x)
