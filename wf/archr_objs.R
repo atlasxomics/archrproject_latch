@@ -1512,7 +1512,7 @@ if (length(unique(proj$Condition))>1){
   print(paste0("volcanoMarkers_motifs_", j, ".txt is writing!"))
   write.table(
     de,
-    paste0("volcanoMarkers_motifs_",j, ".txt"),
+    paste0("volcanoMarkers_motifs_", j, ".txt"),
     sep = '\t',
     quote = FALSE,
     row.names = FALSE

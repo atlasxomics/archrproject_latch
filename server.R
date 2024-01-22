@@ -1365,9 +1365,9 @@ shinyServer(function(input, output, session) {
     idx = unlist(strsplit(grp,"_"))[2]
   
   
-      inpMarkers = fread(paste0("inpMarkers_",idx,".txt"))
+      inpMarkers = fread(paste0("volcanoMarkers_genes_", idx, ".txt"))
 
-      print(paste0("reading inpMarkers_",idx,".txt")) 
+      print(paste0("reading volcanoMarkers_genes_", idx, ".txt")) 
   
       ggData = inpMarkers[cluster == input$sc1de1inp]
       if(nrow(ggData)==0){
@@ -2078,9 +2078,9 @@ output$sc1c2oup.png <- downloadHandler(
     idx = unlist(strsplit(grp,"_"))[2]
     
     
-    print(paste0("reading inpMarkers_motif_",idx,".txt")) 
+    print(paste0("reading volcanoMarkers_motifs_", idx, ".txt")) 
   
-      inpMarkers_m = fread(paste0("inpMarkers_motif_",idx,".txt"))
+      inpMarkers_m = fread(paste0("volcanoMarkers_motifs_", idx, ".txt"))
     
       # Prepare ggData
       ggData = inpMarkers_m[cluster == input$sc2de1inp]
