@@ -951,6 +951,9 @@ enrichMotifs <- peakAnnoEnrichment(
   cutOff = motifs_cutoff
 )
 
+motifs_df_c <- data.frame(enrichMotifs@assays@data)
+write.csv(motifs_df_c, file = "enrichedMotifs_cluster.csv")
+
 heatmapEM <- plotEnrichHeatmap(
   enrichMotifs,
   transpose = TRUE,
@@ -1183,6 +1186,9 @@ if (length(unique(proj$Sample)) > 1) {
     cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
   )
 
+  motifs_df_s <- data.frame(enrichMotifs@assays@data)
+  write.csv(motifs_df_s, file = "enrichedMotifs_sample.csv")
+
   motif_lst <- unique(rownames(enrichMotifs))
   split_string <- strsplit(motif_lst, split = "\\(")
   fun1 <- function(list, nth){
@@ -1192,7 +1198,8 @@ if (length(unique(proj$Sample)) > 1) {
   req_motifs3 <- gsub(" ","",req_motifs3)
 
   rownames(enrichMotifs) <- req_motifs3
-  saveRDS(enrichMotifs,"enrichMotifs_sample.rds")
+
+  saveRDS(enrichMotifs, "enrichMotifs_sample.rds")
 
   # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
 
@@ -1304,6 +1311,11 @@ if (length(unique(proj$Sample)) > 1) {
       peakAnnotation = "Motif",
       cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
     )
+
+    motifs_df_t <- data.frame(enrichMotifs@assays@data)
+    write.csv(
+      motifs_df_t, file = paste0("enrichedMotifs_treatment_", i, ".csv")
+    )
     
     motif_lst <- unique(rownames(enrichMotifs))
     split_string <- strsplit(motif_lst, split = "\\(")
@@ -1314,7 +1326,7 @@ if (length(unique(proj$Sample)) > 1) {
     req_motifs2 <- gsub(" ","",req_motifs2)
     
     rownames(enrichMotifs) <- req_motifs2
-    saveRDS(enrichMotifs,paste0("enrichMotifs_treatment_",i,".rds"))
+    saveRDS(enrichMotifs, paste0("enrichMotifs_treatment_", i, ".rds"))
     
     # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
     
