@@ -63,6 +63,24 @@ inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
+# save input metrics in csv
+metrics <- as.list(args[1:11])
+names(metrics) <- c(
+  "project_name",
+  "genome",
+  "tile_size",
+  "minimum_tss",
+  "minimum_fragments",
+  "lsi_iterations",
+  "lsi_resolution",
+  "lsi_varFeatures",
+  "clustering_resolution",
+  "umap_minimum_distance",
+  "number_threads"
+)
+write.csv(metrics, file = "metadata.csv", row.names = FALSE)
+
+
 # create archr project --------------------------------------------------------
 
 addArchRGenome(genome)
@@ -101,6 +119,11 @@ for (run in runs) {
 }
 
 proj <- proj[proj$cellNames %in% all_ontissue]
+
+saveArchRProject(
+  ArchRProj = proj,
+  outputDirectory = paste0(project_name, "_ArchRProject")
+)
 
 # dimension reduction and clustering ------------------------------------------
 
@@ -333,6 +356,13 @@ markersGS <- getMarkerFeatures(
 
 saveRDS(markersGS,"markersGS_clusters.rds")
 
+marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+write.csv(
+  marker_list,
+  file = "marker_genes_per_cluster.csv",
+  row.names = FALSE
+)
+
 for (rd in names(proj@reducedDims)){
   if (rd == "Harmony") {
     proj <- addImputeWeights(proj, reducedDims = "Harmony")
@@ -392,6 +422,13 @@ markersGS <- getMarkerFeatures(
 # save for shiny app
 saveRDS(markersGS,"markersGS_sample.rds")
 
+marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+write.csv(
+  marker_list,
+  file = "marker_genes_per_sample.csv",
+  row.names = FALSE
+)
+
 
 for (rd in names(proj@reducedDims)){
   if (rd=="Harmony"){
@@ -438,6 +475,13 @@ for (i in seq_along(treatment)){
   )
   # save for shiny app
   saveRDS(markersGS,paste0("markersGS_treatment_",i,".rds"))
+
+  marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+  write.csv(
+    marker_list,
+    file = paste0("marker_genes_per_treatment_", i, ".csv"),
+    row.names = FALSE
+  )
   
   
   for (rd in names(proj@reducedDims)){
@@ -612,27 +656,30 @@ if (length(unique(proj$Condition))>1){
                                               'Not siginficant')
     
     de <- markersGS_merged_df
-    
-    print(paste0("inpMarkers_motif_",j,".txt is writing!"))
-    
-    write.table(de,paste0("inpMarkers_",j,".txt"), sep = '\t', quote = F, row.names = F)
-    
-    print(paste0("writing inpMarkers_",j,".txt is done!"))
+
+    print(paste0("volcanoMarkers_genes_", j, ".txt is writing!"))
+    write.table(
+      de,
+      paste0("volcanoMarkers_genes_", j, ".txt"),
+      sep = '\t',
+      quote = FALSE,
+      row.names = FALSE
+    )
+    print(paste0("writing volcanoMarkers_genes_", j, ".txt is done!"))
 
     features <- unique(de$cluster)
     volcano_plots <- list()
     for (i in seq_along(features)) {
-      volcano_plots[[i]] <- scvolcano(de, features[[i]])
+      volcano_plots[[i]] <- scvolcano(de, markerList, features[[i]])
     }
 
-    pdf("volcano_plots.pdf")
+    pdf(paste0("volcano_plots_", j, ".pdf"))
     for (plot in volcano_plots) {
       print(plot)
     }
     dev.off()
-
   }
-  
+
 } else {
   
   de <- "there is not enough conditions to be compared with!"  
@@ -770,7 +817,6 @@ addArchRThreads(threads = num_threads)
 
 # peak calling with MACS2 for clusters------------------------------------------
 
-
 proj <- addGroupCoverages(
   ArchRProj = proj,
   groupBy = "Clusters",
@@ -797,8 +843,39 @@ proj <- addReproduciblePeakSet(
 )
 proj <- addPeakMatrix(proj, force = TRUE)
 
-# Motif enrichment (Deviation)
+# save run data in medians.csv
+metadata <- getCellColData(ArchRProj = proj)
+tss <- aggregate(
+  metadata@listData$TSSEnrichment,
+  by = list(metadata@listData$Sample),
+  FUN = median
+)
+nfrags <- aggregate(
+  metadata@listData$nFrags,
+  by = list(metadata@listData$Sample),
+  FUN = median
+)
+conditions <- aggregate(
+  metadata@listData$Condition,
+  by = list(metadata@listData$Sample),
+  FUN = max
+)
+frip <- aggregate(
+  metadata@listData$FRIP,
+  by = list(metadata@listData$Sample),
+  FUN = median
+)
+frip$x <- round(frip$x, 4)
+list_dfs <- list(tss, nfrags, frip, conditions)
+merged_df <- Reduce(
+  function(x, y) merge(x, y, by = "Group.1", all = TRUE), list_dfs
+)
+names(merged_df) <- c(
+  "run_id", "median_TSS", "median_fragments", "median_FRIP", "condition"
+)
+write.csv(merged_df, file = "medians.csv", row.names = FALSE)
 
+# Motif enrichment (Deviation)
 
 if("Motif" %ni% names(proj@peakAnnotation)){
   if (
@@ -819,7 +896,10 @@ saveArchRProject(
 )
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-markersPeaks <- getMarkerFeatures(
+######################### get marker peaks, save ##############################
+
+# clusters
+markers_peaks_c <- getMarkerFeatures(
   ArchRProj = proj,
   useMatrix = "PeakMatrix",
   groupBy = "Clusters",
@@ -828,11 +908,80 @@ markersPeaks <- getMarkerFeatures(
   testMethod = "wilcoxon"
 )
 
-######################### Plot marker peaks, motifs ###########################
+peak_marker_list_c <- getMarkers(markers_peaks_c, cutOff = "FDR <= 0.02")
+write.csv(
+  peak_marker_list_c,
+  file = "marker_peaks_per_cluster.csv",
+  row.names = FALSE
+)
+
+peak_data_c <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+total_peaks_c <- merge(peak_data_c, peak_marker_list_c, by = c("start", "end"))
+write.csv(
+  total_peaks_c, file = "complete_peak_list_cluster.csv", row.names = FALSE
+)
+
+# samples
+markers_peaks_s <- getMarkerFeatures(
+  ArchRProj = proj,
+  useMatrix = "PeakMatrix",
+  groupBy = "Sample",
+  bias = c("TSSEnrichment", "log10(nFrags)"),
+  k = 100,
+  testMethod = "wilcoxon"
+)
+
+peak_marker_list_s <- getMarkers(markers_peaks_s, cutOff = "FDR <= 0.02")
+write.csv(
+  peak_marker_list_s,
+  file = "marker_peaks_per_sample.csv",
+  row.names = FALSE
+)
+
+peak_data_s <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+total_peaks_s <- merge(peak_data_s, peak_marker_list_s, by = c("start", "end"))
+write.csv(
+  total_peaks_s, file = "complete_peak_list_sample.csv", row.names = FALSE
+)
+
+# treatment
+if (length(unique(proj$Condition)) > 1) {
+  for (i in seq_along(treatment)) {
+
+    marker_peaks_t <- getMarkerFeatures(
+      ArchRProj = proj,
+      useMatrix = "PeakMatrix",
+      groupBy = treatment[i],
+      bias = c("TSSEnrichment", "log10(nFrags)"),
+      k = 100,
+      testMethod = "wilcoxon"
+    )
+
+    peak_marker_list_t <- getMarkers(marker_peaks_t, cutOff = "FDR <= 0.02")
+    write.csv(
+      peak_marker_list_t,
+      file = paste0("marker_peaks_per_treatment-", i, ".csv"),
+      row.names = FALSE
+    )
+
+    peak_data_t <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+    total_peaks_t <- merge(
+      peak_data_t, peak_marker_list_t, by = c("start", "end")
+    )
+    write.csv(
+      total_peaks_t,
+      file = paste0("complete_peak_list_treatmet-", i, ".csv"),
+      row.names = FALSE
+    )
+
+  }
+}
+
+######################### Plot clust marker peaks, motifs ###########################
 
 peak_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_peaks <- plotMarkerHeatmap(
-  seMarker = markersPeaks,
+  seMarker = markers_peaks_c,
   cutOff = peak_cutoff,
   transpose = TRUE
 )
@@ -849,11 +998,14 @@ heatmaps[[2]] <- peak_hm
 
 motifs_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 enrichMotifs <- peakAnnoEnrichment(
-  seMarker = markersPeaks,
+  seMarker = markers_peaks_c,
   ArchRProj = proj,
   peakAnnotation = "Motif",
   cutOff = motifs_cutoff
 )
+
+motifs_df_c <- data.frame(enrichMotifs@assays@data)
+write.csv(motifs_df_c, file = "enrichedMotifs_cluster.csv")
 
 heatmapEM <- plotEnrichHeatmap(
   enrichMotifs,
@@ -1087,6 +1239,9 @@ if (length(unique(proj$Sample)) > 1) {
     cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
   )
 
+  motifs_df_s <- data.frame(enrichMotifs@assays@data)
+  write.csv(motifs_df_s, file = "enrichedMotifs_sample.csv")
+
   motif_lst <- unique(rownames(enrichMotifs))
   split_string <- strsplit(motif_lst, split = "\\(")
   fun1 <- function(list, nth){
@@ -1096,7 +1251,8 @@ if (length(unique(proj$Sample)) > 1) {
   req_motifs3 <- gsub(" ","",req_motifs3)
 
   rownames(enrichMotifs) <- req_motifs3
-  saveRDS(enrichMotifs,"enrichMotifs_sample.rds")
+
+  saveRDS(enrichMotifs, "enrichMotifs_sample.rds")
 
   # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
 
@@ -1208,6 +1364,11 @@ if (length(unique(proj$Sample)) > 1) {
       peakAnnotation = "Motif",
       cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
     )
+
+    motifs_df_t <- data.frame(enrichMotifs@assays@data)
+    write.csv(
+      motifs_df_t, file = paste0("enrichedMotifs_treatment_", i, ".csv")
+    )
     
     motif_lst <- unique(rownames(enrichMotifs))
     split_string <- strsplit(motif_lst, split = "\\(")
@@ -1218,7 +1379,7 @@ if (length(unique(proj$Sample)) > 1) {
     req_motifs2 <- gsub(" ","",req_motifs2)
     
     rownames(enrichMotifs) <- req_motifs2
-    saveRDS(enrichMotifs,paste0("enrichMotifs_treatment_",i,".rds"))
+    saveRDS(enrichMotifs, paste0("enrichMotifs_treatment_", i, ".rds"))
     
     # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
     
@@ -1413,10 +1574,28 @@ if (length(unique(proj$Condition))>1){
                                                 'Not siginficant')
   
   de <- markersMotifs_merged_df
-  print(paste0("inpMarkers_motif_",j,".txt is writing!"))
-  write.table(de,paste0("inpMarkers_motif_",j,".txt"), sep = '\t', quote = F, row.names = F)
-  print(paste0("writing inpMarkers_motif_",j,".txt is done!"))
+  print(paste0("volcanoMarkers_motifs_", j, ".txt is writing!"))
+  write.table(
+    de,
+    paste0("volcanoMarkers_motifs_", j, ".txt"),
+    sep = '\t',
+    quote = FALSE,
+    row.names = FALSE
+  )
+  print(paste0("writing volcanoMarkers_motifs_", j, ".txt is done!"))
   }
+
+  features_m <- unique(de$cluster)
+  volcano_plots_m <- list()
+  for (i in seq_along(features_m)) {
+    volcano_plots_m[[i]] <- scvolcano(de, markersMotifs, features_m[[i]])
+  }
+
+  pdf("volcano_plots_motifs.pdf")
+  for (plot in volcano_plots_m) {
+    print(plot)
+  }
+  dev.off()
   
 } else {
   
