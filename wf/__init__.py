@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from latch import large_task, custom_task, small_task, workflow
+from latch import custom_task, workflow
 from latch.resources.launch_plan import LaunchPlan
 from latch.types import (
     LatchAuthor,
@@ -29,7 +29,6 @@ class Genome(Enum):
 
 
 @custom_task(cpu=62, memory=384, storage_gib=500)
-#@large_task(retries=0)
 def archr_task(
     runs: List[Run],
     project_name: str,

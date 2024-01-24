@@ -63,6 +63,24 @@ inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
+# save input metrics in csv
+metrics <- as.list(args[1:11])
+names(metrics) <- c(
+  "project_name",
+  "genome",
+  "tile_size",
+  "minimum_tss",
+  "minimum_fragments",
+  "lsi_iterations",
+  "lsi_resolution",
+  "lsi_varFeatures",
+  "clustering_resolution",
+  "umap_minimum_distance",
+  "number_threads"
+)
+write.csv(metrics, file = "metadata.csv", row.names = FALSE)
+
+
 # create archr project --------------------------------------------------------
 
 addArchRGenome(genome)
@@ -101,6 +119,11 @@ for (run in runs) {
 }
 
 proj <- proj[proj$cellNames %in% all_ontissue]
+
+saveArchRProject(
+  ArchRProj = proj,
+  outputDirectory = paste0(project_name, "_ArchRProject")
+)
 
 # dimension reduction and clustering ------------------------------------------
 
@@ -794,7 +817,6 @@ addArchRThreads(threads = num_threads)
 
 # peak calling with MACS2 for clusters------------------------------------------
 
-
 proj <- addGroupCoverages(
   ArchRProj = proj,
   groupBy = "Clusters",
@@ -821,8 +843,39 @@ proj <- addReproduciblePeakSet(
 )
 proj <- addPeakMatrix(proj, force = TRUE)
 
-# Motif enrichment (Deviation)
+# save run data in medians.csv
+metadata <- getCellColData(ArchRProj = proj)
+tss <- aggregate(
+  metadata@listData$TSSEnrichment,
+  by = list(metadata@listData$Sample),
+  FUN = median
+)
+nfrags <- aggregate(
+  metadata@listData$nFrags,
+  by = list(metadata@listData$Sample),
+  FUN = median
+)
+conditions <- aggregate(
+  metadata@listData$Condition,
+  by = list(metadata@listData$Sample),
+  FUN = max
+)
+frip <- aggregate(
+  metadata@listData$FRIP,
+  by = list(metadata@listData$Sample),
+  FUN = median
+)
+frip$x <- round(frip$x, 4)
+list_dfs <- list(tss, nfrags, frip, conditions)
+merged_df <- Reduce(
+  function(x, y) merge(x, y, by = "Group.1", all = TRUE), list_dfs
+)
+names(merged_df) <- c(
+  "run_id", "median_TSS", "median_fragments", "median_FRIP", "condition"
+)
+write.csv(merged_df, file = "medians.csv", row.names = FALSE)
 
+# Motif enrichment (Deviation)
 
 if("Motif" %ni% names(proj@peakAnnotation)){
   if (
