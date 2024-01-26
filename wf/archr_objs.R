@@ -294,8 +294,14 @@ for (i in seq_along(run_ids)){
   spatial_cluster_plots[[i]] <- plot
 }
 
+spatial_lists <- split(
+  spatial_cluster_plots, ceiling(seq_along(spatial_cluster_plots) / 4)
+)
+
 pdf("spatial_plots.pdf")
-CombinePlots(spatial_cluster_plots, legend = "bottom")
+for (i in seq_along(spatial_lists)) {
+  print(CombinePlots(spatial_lists[[i]], legend = "bottom"))
+}
 dev.off()
 
 print("+++++++++++creating qc plots++++++++++++++")
@@ -324,13 +330,15 @@ for (i in seq_along(seurat_objs)){
 
 pdf("qc_plots.pdf")
 for (i in seq_along(metrics)) {
-  grid.arrange(
-    grobs = all_qc_plots[[i]],
-    ncol = 2
-  )
+  lists <- split(all_qc_plots[[i]], ceiling(seq_along(all_qc_plots[[i]]) / 6))
+  for (list in lists) {
+    grid.arrange(
+      grobs = list,
+      ncol = 2
+    )
+  }
 }
 dev.off()
-
 
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # save ArchR object
