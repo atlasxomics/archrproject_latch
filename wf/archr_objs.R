@@ -208,40 +208,46 @@ proj <- addUMAP(
   force = TRUE
 )
 
+proj <- addImputeWeights(proj)
+
+conds <- strsplit(proj$Condition, split = "\\s|-")
+
+fun1 <- function(lst,n) {
+  sapply(lst, `[`, n)}
+
+for (i in seq_along(conds[[1]])) {
+  proj <- addCellColData(
+    proj,
+    data = fun1(conds, i),
+    name = paste0('condition_', i),
+    cells = proj$cellNames,
+    force = TRUE
+  )
+}
+treatment <- names(getCellColData(proj))[
+  grep("condition_", names(getCellColData(proj)))
+]
+
+print("++++ what is the treatments in this project +++++++")
+treatment
+
 umap_plots <- c()
-for (name in c("Clusters", "Condition", "Sample")) {
+for (name in c("Clusters", "Sample")) {
   umap <- plot_umap(proj, name) # from utils
   umap_plots[[name]] <- umap
 }
 
+for (i in seq_along(treatment)) {
+  umap <- plot_umap(proj, treatment[i]) # from utils
+  umap_plots[[treatment[i]]] <- umap
+}
+
 pdf("umap_plots.pdf")
 grid.arrange(
-  umap_plots[["Clusters"]],
-  umap_plots[["Condition"]],
-  umap_plots[["Sample"]],
+  grobs = umap_plots,
   ncol = 2
 )
 dev.off()
-
-proj <- addImputeWeights(proj)
-
-conds <- strsplit(proj$Condition,split = "\\s|-")
-
-fun1 <- function(lst,n){
-  sapply(lst, `[`, n)}
-
-for (i in seq_along(conds[[1]])){
-  proj <- addCellColData(proj
-                         ,data = fun1(conds,i)
-                         ,name = paste0('condition_',i)
-                         , cells = proj$cellNames
-                         ,force = TRUE)
-}
-treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
-
-
-print('++++ what is the treatments in this project +++++++')
-treatment
 
 # create seurat objects -------------------------------------------------------
 
@@ -448,8 +454,6 @@ for (rd in names(proj@reducedDims)){
   }
 }
 
-
-  
   # save for shiny
   
   heatmapGS <- plotMarkerHeatmap(
@@ -470,65 +474,57 @@ for (rd in names(proj@reducedDims)){
 # per treatment
 
 ######---------------------Identifying Marker Genes----------------------#######
-if (length(unique(proj$Condition))>1){
-  
-for (i in seq_along(treatment)){
-  
-  markersGS <- getMarkerFeatures(
-    ArchRProj = proj, 
-    useMatrix = "GeneScoreMatrix", 
-    groupBy = treatment[i],
-    bias = c("TSSEnrichment", "log10(nFrags)"),
-    testMethod = "ttest",#"wilcoxon"
-  )
-  # save for shiny app
-  saveRDS(markersGS,paste0("markersGS_condition_",i,".rds"))
+if (length(unique(proj$Condition)) > 1) {
 
-  marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
-  write.csv(
-    marker_list,
-    file = paste0("marker_genes_per_condition_", i, ".csv"),
-    row.names = FALSE
-  )
-  
-  
-  for (rd in names(proj@reducedDims)){
-    if (rd=="Harmony"){
-      proj <- addImputeWeights(proj,reducedDims = "Harmony")
-      
-    } else {
-      proj <- addImputeWeights(proj)
-      
-    }
-  }
-  
-  
-  # save for shiny
-  
- 
-    
-    heatmapGS <- plotMarkerHeatmap(
-      seMarker = markersGS, 
-      cutOff = "FDR <= 0.05 & Log2FC >= 0.20", 
-      plotLog2FC = TRUE,
-      transpose = F,  
-      returnMatrix = TRUE
+  for (i in seq_along(treatment)) {
+
+    markersGS <- getMarkerFeatures(
+      ArchRProj = proj, 
+      useMatrix = "GeneScoreMatrix", 
+      groupBy = treatment[i],
+      bias = c("TSSEnrichment", "log10(nFrags)"),
+      testMethod = "ttest",#"wilcoxon"
     )
-    write.csv(heatmapGS,paste0("genes_per_condition_",i,"_hm.csv")  )
+    # save for shiny app
+    saveRDS(markersGS, paste0("markersGS_condition_",i,".rds"))
+
+    marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+    write.csv(
+      marker_list,
+      file = paste0("marker_genes_per_condition_", i, ".csv"),
+      row.names = FALSE
+    )
+
+    for (rd in names(proj@reducedDims)){
+      if (rd=="Harmony"){
+        proj <- addImputeWeights(proj,reducedDims = "Harmony")
+
+      } else {
+        proj <- addImputeWeights(proj)
+
+      }
+    }
+
+    # save for shiny
+
+      heatmapGS <- plotMarkerHeatmap(
+        seMarker = markersGS, 
+        cutOff = "FDR <= 0.05 & Log2FC >= 0.20", 
+        plotLog2FC = TRUE,
+        transpose = F,  
+        returnMatrix = TRUE
+      )
+      write.csv(heatmapGS, paste0("genes_per_condition_",i,"_hm.csv")  )
+  }
+
+} else {
+    
+  heatmapGS <- "there is not enough Conditions to be compared with!"
 }
-    
-  } else {
-    
-    heatmapGS <- "there is not enough Conditions to be compared with!"  
-  }   
-  
-  
-                    
 
 # Volcano plots for genes
-# Volcano plots for genes
-if (length(unique(proj$Condition))>1){
-  for (j in seq_along(treatment)){
+if (length(unique(proj$Condition))>1) {
+  for (j in seq_along(treatment)) {
     
     ncells <- length(proj$cellNames)
     
@@ -1448,7 +1444,7 @@ if (length(unique(proj$Sample)) > 1) {
 }
 
 # Volcano plots for motifs -----------------------------------------------------
-if (length(unique(proj$Condition))>1){
+if (length(unique(proj$Condition))>1) {
   for (j in seq_along(treatment)){
   
   ncells <- length(proj$cellNames)
@@ -1505,16 +1501,11 @@ if (length(unique(proj$Condition))>1){
   }
   names(markersMotifs_C) <- req_clusters
   
-  
   dev_score <- getDeviation_ArchR(ArchRProj = proj, name = motifs
                                   , imputeWeights = getImputeWeights(proj))
   
-  # which(rowSums(is.na(dev_score))>0)
-  # any(rowSums((dev_score))==0)
-  
   empty_motif_idx <- which(rowSums((dev_score))==0)
   empty_motif <- rownames(dev_score)[empty_motif_idx] 
-  
   
   markersMotifs_df1 <- assay(markersMotifs, "MeanDiff")
   markersMotifs_df2 <- assay(markersMotifs, "Pval")
@@ -1526,7 +1517,6 @@ if (length(unique(proj$Condition))>1){
   # # we only want to see results of one set , say just sham
   markersMotifs_df <- markersMotifs_df[,c(1,3,5,7,8)]
   colnames(markersMotifs_df) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
-  
   
   # percluster
   
@@ -1551,7 +1541,6 @@ if (length(unique(proj$Condition))>1){
     markersMotifs_df_C[[i]] <- markersMotifs_df_C[[i]][,c(1,3,5,7,8)]
     colnames(markersMotifs_df_C[[i]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
   }
-  
   
   names(markersMotifs_df_C) <- req_clusters
   
@@ -1599,7 +1588,7 @@ if (length(unique(proj$Condition))>1){
     volcano_plots_m[[i]] <- scvolcano(de, markersMotifs, features_m[[i]])
   }
 
-  pdf("volcano_plots_motifs.pdf")
+  pdf(paste0("volcano_plots_motifs_", j, ".pdf"))
   for (plot in volcano_plots_m) {
     print(plot)
   }
