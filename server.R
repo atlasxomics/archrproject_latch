@@ -53,8 +53,8 @@ treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(
 seMarker_treatment<-list()
 seEnrich_treatment <- list()
 for (i in seq_along(treatment)){
-  seMarker_treatment[i] <-  readRDS(paste0("markersGS_treatment_",i,".rds"))
-  seEnrich_treatment[i] <-  readRDS(paste0("enrichMotifs_treatment_",i,".rds"))
+  seMarker_treatment[i] <-  readRDS(paste0("markersGS_condition_",i,".rds"))
+  seEnrich_treatment[i] <-  readRDS(paste0("enrichMotifs_condition_",i,".rds"))
 }
 
 combined <- readRDS('combined.rds')

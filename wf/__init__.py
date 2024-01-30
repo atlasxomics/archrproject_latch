@@ -330,18 +330,18 @@ def archrproject_workflow(
     * UMAPHarmony.csv
     * enrichMotifs_clusters.rds
     * enrichMotifs_sample.rds
-    * enrichMotifs_treatment.rds
+    * enrichMotifs_condition.rds
     * genes_per_cluster_hm.csv
     * genes_per_sample_hm.csv
-    * genes_per_treatment_hm.csv
+    * genes_per_condition_hm.csv
     * inpMarkers.txt
     * inpMarkers_motif.txt
     * markersGS_clusters.rds
     * markersGS_sample.rds
-    * markersGS_treatment.rds
+    * markersGS_condition.rds
     * motif_per_cluster_hm.csv
     * motif_per_sample_hm.csv
-    * motif_per_treatment_hm.csv
+    * motif_per_condition_hm.csv
     * req_genes1.csv
     * req_genes2.csv
     * req_genes3.csv

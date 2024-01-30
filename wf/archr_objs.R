@@ -482,12 +482,12 @@ for (i in seq_along(treatment)){
     testMethod = "ttest",#"wilcoxon"
   )
   # save for shiny app
-  saveRDS(markersGS,paste0("markersGS_treatment_",i,".rds"))
+  saveRDS(markersGS,paste0("markersGS_condition_",i,".rds"))
 
   marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
   write.csv(
     marker_list,
-    file = paste0("marker_genes_per_treatment_", i, ".csv"),
+    file = paste0("marker_genes_per_condition_", i, ".csv"),
     row.names = FALSE
   )
   
@@ -514,7 +514,7 @@ for (i in seq_along(treatment)){
       transpose = F,  
       returnMatrix = TRUE
     )
-    write.csv(heatmapGS,paste0("genes_per_treatment_",i,"_hm.csv")  )
+    write.csv(heatmapGS,paste0("genes_per_condition_",i,"_hm.csv")  )
 }
     
   } else {
@@ -773,7 +773,7 @@ if (length(unique(proj$Sample))>1){
 # per treatment
 
 if (length(unique(proj$Condition))>1){
-  genes_per_cond_hm <- find_func(tempdir,"genes_per_treatment_*")
+  genes_per_cond_hm <- find_func(tempdir,"genes_per_condition_*")
   
   for (j in seq_along(genes_per_cond_hm)){
     hm_per_cond <- read.csv(genes_per_cond_hm[j])
@@ -968,7 +968,7 @@ if (length(unique(proj$Condition)) > 1) {
     peak_marker_list_t <- getMarkers(marker_peaks_t, cutOff = "FDR <= 0.02")
     write.csv(
       peak_marker_list_t,
-      file = paste0("marker_peaks_per_treatment-", i, ".csv"),
+      file = paste0("marker_peaks_per_condition-", i, ".csv"),
       row.names = FALSE
     )
 
@@ -978,7 +978,7 @@ if (length(unique(proj$Condition)) > 1) {
     )
     write.csv(
       total_peaks_t,
-      file = paste0("complete_peak_list_treatmet-", i, ".csv"),
+      file = paste0("complete_peak_list_condition-", i, ".csv"),
       row.names = FALSE
     )
 
@@ -1375,7 +1375,7 @@ if (length(unique(proj$Sample)) > 1) {
 
     motifs_df_t <- data.frame(enrichMotifs@assays@data)
     write.csv(
-      motifs_df_t, file = paste0("enrichedMotifs_treatment_", i, ".csv")
+      motifs_df_t, file = paste0("enrichedMotifs_condition_", i, ".csv")
     )
     
     motif_lst <- unique(rownames(enrichMotifs))
@@ -1387,7 +1387,7 @@ if (length(unique(proj$Sample)) > 1) {
     req_motifs2 <- gsub(" ","",req_motifs2)
     
     rownames(enrichMotifs) <- req_motifs2
-    saveRDS(enrichMotifs, paste0("enrichMotifs_treatment_", i, ".rds"))
+    saveRDS(enrichMotifs, paste0("enrichMotifs_condition_", i, ".rds"))
     
     # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
     
@@ -1402,7 +1402,7 @@ if (length(unique(proj$Sample)) > 1) {
     req_motifs2 <- gsub(" ","",req_motifs2)
     
     rownames(heatmapEM) <- req_motifs2
-    write.csv(heatmapEM,paste0("motif_per_treatment_",i,"_hm.csv"))
+    write.csv(heatmapEM,paste0("motif_per_condition_",i,"_hm.csv"))
     
     }
     
@@ -1414,7 +1414,7 @@ if (length(unique(proj$Sample)) > 1) {
     
     tempdir <- "/root"
     
-    motifs_per_cond_hm <- find_func(tempdir,"motif_per_treatment_*")
+    motifs_per_cond_hm <- find_func(tempdir,"motif_per_condition_*")
     
     for (j in seq_along(motifs_per_cond_hm)){
     hm_per_cond <- read.csv(motifs_per_cond_hm[j])
