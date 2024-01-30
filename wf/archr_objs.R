@@ -289,8 +289,6 @@ print("+++++++++++creating spatial plots++++++++++++++")
 
 spatial_cluster_plots <- list()
 for (i in seq_along(seurat_objs)) {
-  print(seurat_objs[[i]])
-  print(unique(seurat_objs[[i]]$Sample))
   plot <- plot_spatial(seurat_objs[[i]], unique(seurat_objs[[i]]$Sample))
   spatial_cluster_plots[[i]] <- plot
 }
@@ -312,8 +310,10 @@ metrics <- c("TSSEnrichment", "nFrags", "log10_nFrags")
 all_qc_plots <- list()
 for (i in seq_along(metrics)) {
   spatial_qc_plots <- list()
-  for (j in seq_along(run_ids)) {
-    plot <- plot_feature(seurat_objs[[j]], metrics[i], run_ids[j])
+  for (j in seq_along(seurat_objs)) {
+    plot <- plot_feature(
+      seurat_objs[[j]], metrics[i], unique(seurat_objs[[j]]$Sample)
+    )
     spatial_qc_plots[[j]] <- plot
   }
   all_qc_plots[[i]] <- spatial_qc_plots
