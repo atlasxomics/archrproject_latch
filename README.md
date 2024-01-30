@@ -90,13 +90,13 @@ Outputs from **create ArchRProject** are loaded into latch.bio [Data module](htt
   * [SummarizedExperiment](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html) object where rows are marker motifs per cluster and columns are the clusters. Pvalues, FDR and other informations per clusters can be found in the assays of this object.  
 * enrichMotifs_sample.rds
   * Same as enrichMotifs_clusters.rds but per sample. 
-* enrichMotifs_treatment.rds
+* enrichMotifs_condition.rds
   * Same as enrichMotifs_clusters.rds but per condition. 
 * genes_per_cluster_hm.csv
   * The general matrix data for gene accessibility heatmap of clusters.
 * genes_per_sample_hm.csv
   * The general matrix data for gene accessibility heatmap of samples.
-* genes_per_treatment_hm.csv
+* genes_per_condition_hm.csv
   * The general matrix data for gene accessibility heatmap of conditions.
 * inpMarkers.txt
   * A table with columns avg_log2FC, p_val,	p_val_adj,	gene, cluster, Significance that is used for volcano plots of genes per group.
@@ -106,13 +106,13 @@ Outputs from **create ArchRProject** are loaded into latch.bio [Data module](htt
   * [SummarizedExperiment](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html) object where rows are marker genes per cluster and columns are the clusters. Pvalues, FDR and other informations per clusters can be found in the assays of this object.  
 * markersGS_sample.rds
   * Same as markersGS_clusters.rds but per sample. 
-* markersGS_treatment.rds
+* markersGS_condition.rds
   * Same as markersGS_clusters.rds but per condition.
 * motif_per_cluster_hm.csv
   * The general matrix data for motif enrichment heatmap of clusters.
 * motif_per_sample_hm.csv
   * The general matrix data for motif enrichment heatmap of samples.  
-* motif_per_treatment_hm.csv
+* motif_per_condition_hm.csv
   * The general matrix data for motif enrichment heatmap of conditions.
 * req_genes1.csv
   * List of the genes used as default in heatmap of clusters. 

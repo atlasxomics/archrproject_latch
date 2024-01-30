@@ -660,7 +660,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
     nClust <- ncol(mat)
     # 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -714,7 +714,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       ggData1 = data.frame(X = rownames(ggData1), ggData1)
       nSample <- ncol(mat) 
       
-      req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+      req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
         'X'
         , 'Clusters'
         ,treatment
@@ -770,7 +770,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
     nTreatment <- ncol(mat)
 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1079,7 +1079,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     nClust <- ncol(mat)
     # 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1133,7 +1133,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     nSample <- ncol(mat) 
     
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1185,7 +1185,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     nTreatment <- ncol(mat)
     
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment

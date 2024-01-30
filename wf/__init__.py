@@ -80,8 +80,6 @@ def archr_task(
     project_dirs = glob.glob(f'{project_name}_*')
     www = glob.glob('www')
     seurat_objs = glob.glob('*.rds')
-    gene_lists = glob.glob('*.csv')
-    volcanos = glob.glob('*.txt')
     h5_files = glob.glob('*.h5')
     R_files = glob.glob('*.R')
 
@@ -90,8 +88,6 @@ def archr_task(
         project_dirs +
         www +
         seurat_objs +
-        gene_lists +
-        volcanos +
         h5_files +
         R_files +
         [out_dir]
@@ -99,14 +95,24 @@ def archr_task(
 
     subprocess.run(_mv_cmd)
 
+    csv_tables = glob.glob('*.csv')
+    volcanos = glob.glob('*.txt')
+
+    tables_dir = Path(f'/root/{out_dir}/tables')
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    _mv_tables_cmd = ['mv'] + csv_tables + volcanos + [str(tables_dir)]
+
+    subprocess.run(_mv_tables_cmd)
+
     # Move figures into subfolder
-    figures = [fig for fig in glob.glob('*.pdf') if fig != "Rplots.pdf"]
+    figures = [fig for fig in glob.glob('*.pdf') if fig != 'Rplots.pdf']
     figures_dir = Path(f'/root/{out_dir}/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    _mv_cmd = ['mv'] + figures + [str(figures_dir)]
+    _mv_figures_cmd = ['mv'] + figures + [str(figures_dir)]
 
-    subprocess.run(_mv_cmd)
+    subprocess.run(_mv_figures_cmd)
 
     return LatchDir(
         f'/root/{out_dir}',
