@@ -13,7 +13,6 @@ library("readr")
 library("qdap")
 library("ShinyCell")
 library("seqLogo")
-require("ggseqlogo")
 library("chromVARmotifs")
 suppressPackageStartupMessages(require(tidyverse))
 suppressPackageStartupMessages(library("ComplexHeatmap"))
@@ -38,6 +37,7 @@ find_func <- function(tempdir,pattern){
 # globals ---------------------------------------------------------------------
 
 args <- commandArgs(trailingOnly = TRUE)
+print(args)
 
 project_name <- args[1]
 genome <- args[2]
@@ -287,10 +287,11 @@ for (run in runs) {
 
 print("+++++++++++creating spatial plots++++++++++++++")
 
-run_ids <- unique(proj$Sample)
 spatial_cluster_plots <- list()
-for (i in seq_along(run_ids)){
-  plot <- plot_spatial(seurat_objs[[i]], run_ids[i])
+for (i in seq_along(seurat_objs)) {
+  print(seurat_objs[[i]])
+  print(unique(seurat_objs[[i]]$Sample))
+  plot <- plot_spatial(seurat_objs[[i]], unique(seurat_objs[[i]]$Sample))
   spatial_cluster_plots[[i]] <- plot
 }
 
@@ -354,12 +355,12 @@ saveArchRProject(
 # per cluster
 
 markersGS <- getMarkerFeatures(
-  ArchRProj = proj, 
+  ArchRProj = proj,
   useMatrix = "GeneScoreMatrix",
   groupBy = "Clusters",
   bias = c("TSSEnrichment", "log10(nFrags)"),
   testMethod = "ttest",#"wilcoxon"
-  
+
 )
 
 saveRDS(markersGS,"markersGS_clusters.rds")
