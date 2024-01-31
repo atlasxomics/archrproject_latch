@@ -210,8 +210,8 @@ metadata = LatchMetadata(
         ),
         'num_threads': LatchParameter(
             display_name='number of threads',
-            description='This is for peak calling step with MACS2. If you get OOMKilled Error \
-                        set it to 1!',
+            description='This is for peak calling step with MACS2. If you get \
+                        OOMKilled Error set it to 1!',
             batch_table_column=True,
             hidden=True
         ),
@@ -366,7 +366,8 @@ def archrproject_workflow(
 
     ## Support
     Questions? Comments?  Contact support@atlasxomics.com or post in
-    AtlasXomics [Discord](https://discord.com/channels/1004748539827597413/1005222888384770108).
+    AtlasXomics
+    [Discord](https://discord.com/channels/1004748539827597413/1005222888384770108).
 
     '''
     archr_project = archr_task(
