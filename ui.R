@@ -743,7 +743,7 @@ tabPanel(
         sidebarPanel(
 
         selectInput("sc1d1grp", "Group by:",
-                    choices = sc1conf[grp == TRUE]$UI[1:4],
+                    choices = sc1conf[grp == TRUE]$UI[sc1conf[grp == TRUE]$UI != "Condition"],
                     selected = sc1conf[grp == TRUE]$UI[3]) %>%
           helper(type = "inline", size = "m", fade = TRUE,
                  title = "Cell information to group cells by",
