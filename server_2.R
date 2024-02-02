@@ -52,16 +52,8 @@ seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
 
 # for conditions
 treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
-# seMarker_treatment<-list()
-# seEnrich_treatment <- list()
-# for (i in seq_along(treatment)){
-#   seMarker_treatment[i] <-  readRDS(paste0("markersGS_treatment_",i,".rds"))
-#   seEnrich_treatment[i] <-  readRDS(paste0("enrichMotifs_treatment_",i,".rds"))
-# }
 
 combined <- readRDS('combined.rds')
-# combined_m <- readRDS('combined_m.rds')
-
 
 ### Useful stuff 
 # Colour palette 
@@ -670,7 +662,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
     nClust <- ncol(mat)
     # 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -724,7 +716,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       ggData1 = data.frame(X = rownames(ggData1), ggData1)
       nSample <- ncol(mat) 
       
-      req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+      req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
         'X'
         , 'Clusters'
         ,treatment
@@ -780,7 +772,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
     nTreatment <- ncol(mat)
 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1089,7 +1081,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     nClust <- ncol(mat)
     # 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1143,7 +1135,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     nSample <- ncol(mat) 
     
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1195,7 +1187,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     nTreatment <- ncol(mat)
     
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment

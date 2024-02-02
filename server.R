@@ -53,8 +53,8 @@ treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(
 seMarker_treatment<-list()
 seEnrich_treatment <- list()
 for (i in seq_along(treatment)){
-  seMarker_treatment[i] <-  readRDS(paste0("markersGS_treatment_",i,".rds"))
-  seEnrich_treatment[i] <-  readRDS(paste0("enrichMotifs_treatment_",i,".rds"))
+  seMarker_treatment[i] <-  readRDS(paste0("markersGS_condition_",i,".rds"))
+  seEnrich_treatment[i] <-  readRDS(paste0("enrichMotifs_condition_",i,".rds"))
 }
 
 combined <- readRDS('combined.rds')
@@ -668,7 +668,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
     nClust <- ncol(mat)
     # 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -722,7 +722,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       ggData1 = data.frame(X = rownames(ggData1), ggData1)
       nSample <- ncol(mat) 
       
-      req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+      req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
         'X'
         , 'Clusters'
         ,treatment
@@ -778,7 +778,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
     nTreatment <- ncol(mat)
 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1087,7 +1087,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     nClust <- ncol(mat)
     # 
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1141,7 +1141,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     nSample <- ncol(mat) 
     
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1193,7 +1193,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     nTreatment <- ncol(mat)
     
-    req_meta_data <- read.csv("./req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1365,9 +1365,9 @@ shinyServer(function(input, output, session) {
     idx = unlist(strsplit(grp,"_"))[2]
   
   
-      inpMarkers = fread(paste0("volcanoMarkers_genes_", idx, ".txt"))
+      inpMarkers = fread(paste0("./tables/volcanoMarkers_genes_", idx, ".txt"))
 
-      print(paste0("reading volcanoMarkers_genes_", idx, ".txt")) 
+      print(paste0("reading tables/volcanoMarkers_genes_", idx, ".txt")) 
   
       ggData = inpMarkers[cluster == input$sc1de1inp]
       if(nrow(ggData)==0){
@@ -2078,9 +2078,9 @@ output$sc1c2oup.png <- downloadHandler(
     idx = unlist(strsplit(grp,"_"))[2]
     
     
-    print(paste0("reading volcanoMarkers_motifs_", idx, ".txt")) 
+    print(paste0("reading tables/volcanoMarkers_motifs_", idx, ".txt")) 
   
-      inpMarkers_m = fread(paste0("volcanoMarkers_motifs_", idx, ".txt"))
+      inpMarkers_m = fread(paste0("./tables/volcanoMarkers_motifs_", idx, ".txt"))
     
       # Prepare ggData
       ggData = inpMarkers_m[cluster == input$sc2de1inp]

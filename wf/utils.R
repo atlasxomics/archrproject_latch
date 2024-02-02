@@ -168,7 +168,7 @@ scvolcano <- function(inpMarkers, markerList, feature = "All") {
     geom_text_repel(
       data = subset(ggData, p_val_adj < minfdr1),
       aes(label = gene)) +
-    ggtitle(paste("Marker genes:", feature)) +
+    ggtitle(paste("Markers:", feature)) +
     theme(
       plot.title = element_text(hjust = 0.5, size = 20),
       legend.text = element_text(size = 15),
