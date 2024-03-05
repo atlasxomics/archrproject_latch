@@ -903,6 +903,8 @@ saveArchRProject(
 
 ######################### get marker peaks, save ##############################
 
+peak_data <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
+
 # clusters
 markers_peaks_c <- getMarkerFeatures(
   ArchRProj = proj,
@@ -913,15 +915,18 @@ markers_peaks_c <- getMarkerFeatures(
   testMethod = "wilcoxon"
 )
 
-peak_marker_list_c <- getMarkers(markers_peaks_c, cutOff = "FDR <= 0.02")
+peak_marker_list_c <- getMarkers(
+  markers_peaks_c, cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+
+
+)
 write.csv(
   peak_marker_list_c,
   file = "marker_peaks_per_cluster.csv",
   row.names = FALSE
 )
 
-peak_data_c <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
-total_peaks_c <- merge(peak_data_c, peak_marker_list_c, by = c("start", "end"))
+total_peaks_c <- merge(peak_data, peak_marker_list_c, by = c("start", "end"))
 write.csv(
   total_peaks_c, file = "complete_peak_list_cluster.csv", row.names = FALSE
 )
@@ -936,15 +941,18 @@ markers_peaks_s <- getMarkerFeatures(
   testMethod = "wilcoxon"
 )
 
-peak_marker_list_s <- getMarkers(markers_peaks_s, cutOff = "FDR <= 0.02")
+peak_marker_list_s <- getMarkers(
+  markers_peaks_s, cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+
+)
+
 write.csv(
   peak_marker_list_s,
   file = "marker_peaks_per_sample.csv",
   row.names = FALSE
 )
 
-peak_data_s <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
-total_peaks_s <- merge(peak_data_s, peak_marker_list_s, by = c("start", "end"))
+total_peaks_s <- merge(peak_data, peak_marker_list_s, by = c("start", "end"))
 write.csv(
   total_peaks_s, file = "complete_peak_list_sample.csv", row.names = FALSE
 )
@@ -962,16 +970,17 @@ if (length(unique(proj$Condition)) > 1) {
       testMethod = "wilcoxon"
     )
 
-    peak_marker_list_t <- getMarkers(marker_peaks_t, cutOff = "FDR <= 0.02")
+    peak_marker_list_t <- getMarkers(
+      marker_peaks_t, cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+    )
     write.csv(
       peak_marker_list_t,
       file = paste0("marker_peaks_per_condition-", i, ".csv"),
       row.names = FALSE
     )
 
-    peak_data_t <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
     total_peaks_t <- merge(
-      peak_data_t, peak_marker_list_t, by = c("start", "end")
+      peak_data, peak_marker_list_t, by = c("start", "end")
     )
     write.csv(
       total_peaks_t,
