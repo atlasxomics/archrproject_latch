@@ -389,7 +389,7 @@ for (rd in names(proj@reducedDims)){
 
 heatmapGS <- plotMarkerHeatmap(
   seMarker = markersGS,
-  cutOff = "FDR <= 0.05 & Log2FC >= 0.20",
+  cutOff = "Pval <= 0.05 & Log2FC >= 0.10",
   plotLog2FC = TRUE,
   transpose = FALSE,
   returnMatrix = TRUE
@@ -402,7 +402,7 @@ write.csv(heatmapGS, "genes_per_cluster_hm.csv")
 heatmaps <- list()
 
 # recompute for heatmap plot
-gene_cutoff <- "FDR <= 0.05 & Log2FC >= 0.2"
+gene_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_gs_plotting <- plotMarkerHeatmap(
   seMarker = markersGS,
   cutOff = gene_cutoff,
@@ -456,17 +456,18 @@ for (rd in names(proj@reducedDims)){
 }
 
   # save for shiny
-  
+
   heatmapGS <- plotMarkerHeatmap(
-    seMarker = markersGS, 
-    cutOff = "FDR <= 0.05 & Log2FC >= 0.20", plotLog2FC = TRUE,
-    #   labelMarkers = seleceted_markers,
-    transpose = F,  returnMatrix = TRUE
+    seMarker = markersGS,
+    cutOff = "Pval <= 0.05 & Log2FC >= 0.10",
+    plotLog2FC = TRUE,
+    transpose = FALSE,
+    returnMatrix = TRUE
   )
-  write.csv(heatmapGS,"genes_per_sample_hm.csv")
-  
+  write.csv(heatmapGS, "genes_per_sample_hm.csv")
+
 } else {
-  
+
   heatmapGS <- "there is not enough samples to be compared with!"  
 }   
 
@@ -509,13 +510,13 @@ if (length(unique(proj$Condition)) > 1) {
     # save for shiny
 
       heatmapGS <- plotMarkerHeatmap(
-        seMarker = markersGS, 
-        cutOff = "FDR <= 0.05 & Log2FC >= 0.20", 
+        seMarker = markersGS,
+        cutOff = "Pval <= 0.05 & Log2FC >= 0.10",
         plotLog2FC = TRUE,
-        transpose = F,  
+        transpose = FALSE,
         returnMatrix = TRUE
       )
-      write.csv(heatmapGS, paste0("genes_per_condition_",i,"_hm.csv")  )
+      write.csv(heatmapGS, paste0("genes_per_condition_", i, "_hm.csv"))
   }
 
 } else {
