@@ -594,13 +594,21 @@ if (length(unique(proj$Condition))>1) {
     markerList_df1 <- assay(markerList, "Log2FC")
     markerList_df2 <- assay(markerList, "Pval")
     markerList_df3 <- assay(markerList, "FDR")
-    markerList_df <- cbind(markerList_df1,markerList_df2,markerList_df3)
-    markerList_df$genes<- rowData(markerList)$name
-    markerList_df$cluster <- rep("All",length(rownames(markerList_df)))
     
-    # # we only want to see results of one set , say just sham
-    markerList_df <- markerList_df[,c(1,3,5,7,8)]
-    colnames(markerList_df) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+    conditions <- sort(unique(proj@cellColData[treatment[j]][,1]))
+    markerList_df <- list()
+    
+    for (conds in conditions){
+      markerList_df[[conds]] <- DataFrame(
+        markerList_df1[,conds]
+        ,markerList_df2[,conds]
+        ,markerList_df3[,conds]
+      )
+      markerList_df[[conds]] <- as.data.frame(markerList_df[[conds]])
+      markerList_df[[conds]]$genes<- rowData(markerList)$name
+      markerList_df[[conds]]$cluster <- rep("All",length(rownames(markerList_df[[conds]])))
+      colnames(markerList_df[[conds]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+    }
     
     # percluster
     
@@ -619,77 +627,86 @@ if (length(unique(proj$Condition))>1) {
       markerList_df2_C[[i]] <- assay(markerList_C[[i]], "Pval")
       markerList_df3_C[[i]] <- assay(markerList_C[[i]], "FDR")
       
-      markerList_df_C[[i]] <- cbind(markerList_df1_C[[i]]
-                                    ,markerList_df2_C[[i]]
-                                    ,markerList_df3_C[[i]])
+      conditions <- sort(unique(proj@cellColData[treatment[j]][,1]))
+      markerList_df_C[[i]] <- list()
+      for (conds in conditions){
+        
+        
+        markerList_df_C[[i]][[conds]] <- DataFrame(
+          markerList_df1_C[[i]][,conds]
+          ,markerList_df2_C[[i]][,conds]
+          ,markerList_df3_C[[i]][,conds]
+        )
+        
+        markerList_df_C[[i]][[conds]] <- as.data.frame(markerList_df_C[[i]][[conds]])
+        markerList_df_C[[i]][[conds]]$genes<- rowData(markerList_C[[i]])$name
+        markerList_df_C[[i]][[conds]]$cluster <- rep(cluster,dim(markerList_df_C[[i]][[conds]])[1])
+        
+        colnames(markerList_df_C[[i]][[conds]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+      }
       
-      markerList_df_C[[i]]$genes<- rowData(markerList_C[[i]])$name
-      markerList_df_C[[i]]$cluster <- rep(cluster,length(rownames(markerList_df_C[[i]])))
-      
-      # # we only want to see results of one set , say just sham
-      markerList_df_C[[i]] <- markerList_df_C[[i]][,c(1,3,5,7,8)]
-      colnames(markerList_df_C[[i]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
     }
     
-    
     names(markerList_df_C) <- req_clusters
-    
-    markersGS_merged_df <- do.call("rbind", markerList_df_C)
+    markersGS_merged_df <- do.call(Map, c(f = rbind, markerList_df_C))
     
     # also data frame for all clusters together needs to be added
     
-    markersGS_merged_df <- rbind(markerList_df,markersGS_merged_df)
-    
-    # remove empty genes
-    markersGS_merged_df <- markersGS_merged_df[which(!markersGS_merged_df$gene%in%empty_gene),]
-    
-    # remove na values
-    markersGS_merged_df <- na.omit(markersGS_merged_df)
-    
-    # remove FDR equal to 0
-    markersGS_merged_df <- markersGS_merged_df[which(!markersGS_merged_df$p_val_adj== 0),]
-    
-    
-    
-    # make logfc limiation between 1 and -1
-    
-    markersGS_merged_df <- markersGS_merged_df[which(abs(markersGS_merged_df$avg_log2FC)< 1.2),]
-    
-    markersGS_merged_df$Significance = ifelse(markersGS_merged_df$p_val < 10^-2 , 
-                                              #                                           abs(markersGS_merged_df$avg_log2FC) >= 0.58, 
-                                              ifelse(markersGS_merged_df$avg_log2FC> 0.0 
-                                                     ,colnames(markerList)[1],colnames(markerList)[2]),
-                                              'Not siginficant')
-    
-    de <- markersGS_merged_df
-
-    print(paste0("volcanoMarkers_genes_", j, ".txt is writing!"))
-    write.table(
-      de,
-      paste0("volcanoMarkers_genes_", j, ".txt"),
-      sep = '\t',
-      quote = FALSE,
-      row.names = FALSE
-    )
-    print(paste0("writing volcanoMarkers_genes_", j, ".txt is done!"))
-
-    features <- unique(de$cluster)
-    volcano_plots <- list()
-    for (i in seq_along(features)) {
-      volcano_plots[[i]] <- scvolcano(de, markerList, features[[i]])
-    }
-
-    pdf(paste0("volcano_plots_", j, ".pdf"))
-    for (plot in volcano_plots) {
-      print(plot)
-    }
-    dev.off()
-  }
-
+    for (conds in conditions){
+      others = paste(colnames(markerList)[conds!=(colnames(markerList))], collapse = '|')
+      
+      markersGS_merged_df[[conds]] <- rbind(markerList_df[[conds]],markersGS_merged_df[[conds]])
+      
+      # remove empty genes
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(!markersGS_merged_df[[conds]]$gene%in%empty_gene),]
+      
+      # remove na values
+      markersGS_merged_df[[conds]] <- na.omit(markersGS_merged_df[[conds]])
+      
+      # remove FDR equal to 0
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(!markersGS_merged_df[[conds]]$p_val_adj== 0),]
+      
+      
+      # make logfc limiation between 1 and -1
+      
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(abs(markersGS_merged_df[[conds]]$avg_log2FC)< 1.2),]
+      
+      markersGS_merged_df[[conds]]$Significance = ifelse(markersGS_merged_df[[conds]]$p_val < 10^-2 , 
+                                                         # abs(markersGS_merged_df$avg_log2FC) >= 0.58, 
+                                                         ifelse(markersGS_merged_df[[conds]]$avg_log2FC > 0.0 
+                                                                ,conds
+                                                                ,others)
+                                                         ,'Not siginficant')
+      de <- list()
+      de[[conds]] <- markersGS_merged_df[[conds]]
+      
+      write.table(de[[conds]],paste0("volcanoMarkers_genes_"
+                                     ,j
+                                     ,"_"
+                                     ,conds
+                                     ,".txt")
+                  , sep = '\t', quote = F, row.names = F)
+      
+      print(paste0("writing volcanoMarkers_genes_",j,"_",conds,".txt is done!"))
+      
+      features <- unique(de[[conds]]$cluster)
+      volcano_plots <- list()
+      for (i in seq_along(features)) {
+        volcano_plots[[i]] <- scvolcano(de[[conds]], conds, others, features[[i]])
+      }
+      
+      pdf(paste0("volcano_plots_",conds,".pdf"))
+      for (plot in volcano_plots) {
+        print(plot)
+      }
+      dev.off()
+    } }
+  
 } else {
   
   de <- "there is not enough conditions to be compared with!"  
 }   
+
 
 
 tempdir <- "/root"
@@ -1457,7 +1474,7 @@ if (length(unique(proj$Sample)) > 1) {
 # Volcano plots for motifs -----------------------------------------------------
 if (length(unique(proj$Condition)) > 1) {
   for (j in seq_along(treatment)) {
-  
+    
     ncells <- length(proj$cellNames)
     
     # all clusters together
@@ -1521,14 +1538,21 @@ if (length(unique(proj$Condition)) > 1) {
     markersMotifs_df1 <- assay(markersMotifs, "MeanDiff")
     markersMotifs_df2 <- assay(markersMotifs, "Pval")
     markersMotifs_df3 <- assay(markersMotifs, "FDR")
-    markersMotifs_df <- cbind(markersMotifs_df1,markersMotifs_df2,markersMotifs_df3)
-    markersMotifs_df$genes<- rowData(markersMotifs)$name
-    markersMotifs_df$cluster <- rep("All",length(rownames(markersMotifs_df)))
     
-    # # we only want to see results of one set , say just sham
-    markersMotifs_df <- markersMotifs_df[,c(1,3,5,7,8)]
-    colnames(markersMotifs_df) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+    conditions <- sort(unique(proj@cellColData[treatment[j]][,1]))
+    markersMotifs_df <- list()
     
+    for (conds in conditions){
+      
+      markersMotifs_df[[conds]] <- DataFrame(
+        markersMotifs_df1[[conds]]
+        ,markersMotifs_df2[[conds]]
+        ,markersMotifs_df3[[conds]])
+      markersMotifs_df[[conds]] <- as.data.frame(markersMotifs_df[[conds]])
+      markersMotifs_df[[conds]]$genes<- rowData(markersMotifs)$name
+      markersMotifs_df[[conds]]$cluster <- rep("All",length(rownames(markersMotifs_df[[conds]])))
+      colnames(markersMotifs_df[[conds]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+    }
     # percluster
     
     markersMotifs_df1_C <- list()
@@ -1544,76 +1568,77 @@ if (length(unique(proj$Condition)) > 1) {
       markersMotifs_df1_C[[i]] <- assay(markersMotifs_C[[i]], "MeanDiff")
       markersMotifs_df2_C[[i]] <- assay(markersMotifs_C[[i]], "Pval")
       markersMotifs_df3_C[[i]] <- assay(markersMotifs_C[[i]], "FDR")
-      markersMotifs_df_C[[i]] <- cbind(markersMotifs_df1_C[[i]],markersMotifs_df2_C[[i]],markersMotifs_df3_C[[i]])
-      markersMotifs_df_C[[i]]$genes<- rowData(markersMotifs_C[[i]])$name
-      markersMotifs_df_C[[i]]$cluster <- rep(cluster,length(rownames(markersMotifs_df_C[[i]])))
       
-      # # we only want to see results of one set , say just sham
-      markersMotifs_df_C[[i]] <- markersMotifs_df_C[[i]][,c(1,3,5,7,8)]
-      colnames(markersMotifs_df_C[[i]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+      conditions <- sort(unique(proj@cellColData[treatment[j]][,1]))
+      markersMotifs_df_C[[i]] <- list()
+      for (conds in conditions){
+        
+        markersMotifs_df_C[[i]][[conds]] <- DataFrame(
+          markersMotifs_df1_C[[i]][,conds]
+          ,markersMotifs_df2_C[[i]][,conds]
+          ,markersMotifs_df3_C[[i]][,conds])
+        markersMotifs_df_C[[i]][[conds]] <- as.data.frame(markersMotifs_df_C[[i]][[conds]])    
+        markersMotifs_df_C[[i]][[conds]]$genes<- rowData(markersMotifs_C[[i]])$name
+        markersMotifs_df_C[[i]][[conds]]$cluster <- rep(cluster,dim(markersMotifs_df_C[[i]][[conds]])[1])
+        colnames(markersMotifs_df_C[[i]][[conds]]) <- c("avg_log2FC","p_val","p_val_adj","gene","cluster")
+      }
     }
-    
     names(markersMotifs_df_C) <- req_clusters
-    
-    #### merge all data frames
-    
-    markersMotifs_merged_df <- do.call("rbind", markersMotifs_df_C)
+    markersMotifs_merged_df <- do.call(Map, c(f = rbind, markersMotifs_df_C))
     
     # also data frame for all clusters together needs to be added
-    
-    markersMotifs_merged_df <- rbind(markersMotifs_df,markersMotifs_merged_df)
-
-    # remove empty genes
-    markersMotifs_merged_df <- markersMotifs_merged_df[which(!markersMotifs_merged_df$gene%in%empty_motif),]
-    
-    # remove na values
-    markersMotifs_merged_df <- na.omit(markersMotifs_merged_df)
-    
-    # remove FDR equal to 0
-    markersMotifs_merged_df <- markersMotifs_merged_df[which(!markersMotifs_merged_df$p_val_adj== 0),]
-    
-    # make logfc limiation between 1 and -1
-    
-    markersMotifs_merged_df <- markersMotifs_merged_df[which(abs(markersMotifs_merged_df$avg_log2FC)< 1.2),]
-    
-    markersMotifs_merged_df$Significance <- ifelse(
-      markersMotifs_merged_df$p_val_adj < 10^-1,
-      ifelse(
-        markersMotifs_merged_df$avg_log2FC > 0.0,
-        colnames(markersMotifs)[1],
-        colnames(markersMotifs)[2]
-      ),
-      'Not siginficant'
-    )
-    
-    de <- markersMotifs_merged_df
-    print(paste0("volcanoMarkers_motifs_", j, ".txt is writing!"))
-    write.table(
-      de,
-      paste0("volcanoMarkers_motifs_", j, ".txt"),
-      sep = '\t',
-      quote = FALSE,
-      row.names = FALSE
-    )
-    print(paste0("writing volcanoMarkers_motifs_", j, ".txt is done!"))
-
-    features_m <- unique(de$cluster)
-    volcano_plots_m <- list()
-    for (i in seq_along(features_m)) {
-      volcano_plots_m[[i]] <- scvolcano(de, markersMotifs, features_m[[i]])
-    }
-
-    pdf(paste0("volcano_plots_motifs_", j, ".pdf"))
-    for (plot in volcano_plots_m) {
-      print(plot)
-    }
-    dev.off()
-  }
+    for (conds in conditions){
+      others = paste(colnames(markersMotifs)[conds!=(colnames(markersMotifs))], collapse = '|')
+      
+      markersMotifs_merged_df[[conds]] <- rbind(markersMotifs_df[[conds]],markersMotifs_merged_df[[conds]])
+      
+      # remove empty genes
+      markersMotifs_merged_df[[conds]] <- markersMotifs_merged_df[[conds]][which(!markersMotifs_merged_df[[conds]]$gene%in%empty_motif),]
+      
+      # remove na values
+      markersMotifs_merged_df[[conds]] <- na.omit(markersMotifs_merged_df[[conds]])
+      
+      # remove FDR equal to 0
+      markersMotifs_merged_df[[conds]] <- markersMotifs_merged_df[[conds]][which(!markersMotifs_merged_df[[conds]]$p_val_adj== 0),]
+      
+      # make logfc limiation between 1 and -1
+      
+      markersMotifs_merged_df[[conds]] <- markersMotifs_merged_df[[conds]][which(abs(markersMotifs_merged_df[[conds]]$avg_log2FC)< 1.2),]
+      
+      markersMotifs_merged_df[[conds]]$Significance <- ifelse(markersMotifs_merged_df[[conds]]$p_val < 10^-2,
+                                                              ifelse(markersMotifs_merged_df[[conds]]$avg_log2FC > 0.0,
+                                                                     conds,
+                                                                     others),
+                                                              'Not siginficant')
+      de <- list()
+      de[[conds]] <- markersMotifs_merged_df[[conds]]
+      
+      write.table(
+        de[[conds]],
+        paste0("volcanoMarkers_motifs_", j, "_", conds ,".txt"),
+        sep = '\t',
+        quote = FALSE,
+        row.names = FALSE
+      )
+      print(paste0("writing volcanoMarkers_motifs_", j, "_", conds, ".txt is done!"))
+      
+      features_m <- unique(de[[conds]]$cluster)
+      volcano_plots_m <- list()
+      for (i in seq_along(features_m)) {
+        volcano_plots_m[[i]] <- scvolcano(de[[conds]],  conds, others, features_m[[i]])
+      }
+      
+      pdf(paste0("volcano_plots_motifs_", j,"_",conds, ".pdf"))
+      for (plot in volcano_plots_m) {
+        print(plot)
+      }
+      dev.off()
+    }}
 } else {
   de <- "there is not enough conditions to be compared with!"  
-}   
+}  
 
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # save ArchR object
 saveArchRProject(
   ArchRProj = proj,

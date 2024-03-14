@@ -130,7 +130,7 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
   return(oupTheme)
 }
 
-scvolcano <- function(inpMarkers, markerList, feature = "All") {
+scvolcano <- function(inpMarkers, condition1,condition2, feature = "All") {
 
   # Prepare ggData
   ggData <- inpMarkers[which(inpMarkers$cluster == feature), ]
@@ -141,16 +141,16 @@ scvolcano <- function(inpMarkers, markerList, feature = "All") {
     ggData$p_val_adj < minfdr,
     ifelse(
       ggData$avg_log2FC > 0.0,
-      markerList@colData@rownames[[1]],
-      markerList@colData@rownames[[2]]),
+      condition1,
+      condition2),
     "Not siginficant"
   )
 
   ggData$Significance <- factor(
     ggData$Significance,
     levels = c(
-      markerList@colData@rownames[[1]],
-      markerList@colData@rownames[[2]],
+      condition1,
+      condition2,
       "Not siginficant")
   )
 
