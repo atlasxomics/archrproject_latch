@@ -1435,13 +1435,18 @@ shinyServer(function(input, output, session) {
     lapply(datalist,volcplot)   
        }
   
+  # output$sc1de1oup <- renderPlot({
+  #    
+  #  i<- grep(input$sc1de1subgrp,sort(unique(proj@cellColData[input$sc1de1grp][,1])))
+  #  scvolcano(input$sc1de1grp)[[i]]
+  # 
+  #   # , height = 450, width = 750
+  #   })
+  
   output$sc1de1oup <- renderPlot({
-     
-   i<- grep(input$sc1de1subgrp,sort(unique(proj@cellColData[input$sc1de1grp][,1])))
-   scvolcano(input$sc1de1grp)[[i]]
- 
-    # , height = 450, width = 750
-    })
+    scvolcano(input$sc1de1grp)
+    
+  }, height = 450, width = 750)
 
   
   
@@ -2419,15 +2424,19 @@ shinyServer(function(input, output, session) {
     lapply(datalist_m,volcplot_m)   
   }
   
-  output$sc2de1oup <- renderPlot({
-    
-    i<- grep(input$sc2de1subgrp,sort(unique(proj@cellColData[input$sc2de1grp][,1])))
-    scvolcano_m(input$sc2de1grp)[[i]]
+  # output$sc2de1oup <- renderPlot({
+  #   
+  #   i<- grep(input$sc2de1subgrp,sort(unique(proj@cellColData[input$sc2de1grp][,1])))
+  #   scvolcano_m(input$sc2de1grp)[[i]]
     
     
     # , height = 450, width = 750
-  })
+  # })
   
+  output$sc2de1oup <- renderPlot({
+    scvolcano_m(input$sc2de1grp)
+    
+  }, height = 450, width = 750)
   
   
   output$sc2de1oup.ui <- renderUI({
