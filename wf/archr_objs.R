@@ -1973,11 +1973,13 @@ saveRDS(sc2conf,"/root/shinyApp/sc2conf.rds")
 
 
   
-  if (length(unique(proj$Sample)) <=1){
+  if (length(unique(proj$Sample)) ==1){
     file.remove("/root/ui.R")
     file.remove("/root/server.R")
     file.remove("/root/ui_2.R")
     file.remove("/root/server_2.R")
+    file.remove("/root/ui_4.R")
+    file.remove("/root/server_4.R")
     file.rename("/root/ui_3.R","/root/ui.R")
     file.rename("/root/server_3.R","/root/server.R")
     
@@ -1987,16 +1989,36 @@ saveRDS(sc2conf,"/root/shinyApp/sc2conf.rds")
     file.remove("/root/server.R")
     file.remove("/root/ui_3.R")
     file.remove("/root/server_3.R")
+    file.remove("/root/ui_4.R")
+    file.remove("/root/server_4.R")
     file.rename("/root/ui_2.R","/root/ui.R")
     file.rename("/root/server_2.R","/root/server.R")
     
+  } else if (
     
+          length(unique(proj$Condition))>1 & length(unique(proj$condition_1))>2 |
+          length(unique(proj$Condition))>1 & length(unique(proj$condition_2))>2
+             
+             ) {
+    
+    file.remove("/root/ui.R")
+    file.remove("/root/server.R")
+    file.remove("/root/ui_2.R")
+    file.remove("/root/server_2.R")
+    file.remove("/root/ui_3.R")
+    file.remove("/root/server_3.R")
+    file.rename("/root/ui_4.R","/root/ui.R")
+    file.rename("/root/server_4.R","/root/server.R")
+    
+    
+        
   }else{
     file.remove("/root/ui_2.R")
     file.remove("/root/server_2.R")
     file.remove("/root/ui_3.R")
     file.remove("/root/server_3.R")
-    
+    file.remove("/root/ui_4.R")
+    file.remove("/root/server_4.R")
     
     
   }
