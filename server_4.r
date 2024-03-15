@@ -62,23 +62,21 @@ combined <- readRDS('combined.rds')
 # combined_m <- readRDS('combined_m.rds')
 
 
-### Useful stuff
-# Colour palette
-cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84",
-               "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"),
-             c("#4575B4","#74ADD1","#ABD9E9","#E0F3F8","#FFFFBF",
-               "#FEE090","#FDAE61","#F46D43","#D73027")[c(1,1:9,9)],
-             c("#FDE725","#AADC32","#5DC863","#27AD81","#21908C",
+### Useful stuff 
+# Colour palette 
+cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84", 
+               "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"), 
+             c("#4575B4","#74ADD1","#ABD9E9","#E0F3F8","#FFFFBF", 
+               "#FEE090","#FDAE61","#F46D43","#D73027")[c(1,1:9,9)], 
+             c("#FDE725","#AADC32","#5DC863","#27AD81","#21908C", 
                "#2C728E","#3B528B","#472D7B","#440154"),
              c("#E6E7E8","#3A97FF","#8816A7","black"),
-             c('#352A86','#343DAE','#0262E0','#1389D2','#2DB7A3',
-                '#A5BE6A','#F8BA43','#F6DA23','#F8FA0D')
-)
-names(cList) = c(
-  "White-Red", "Blue-Yellow-Red", "Yellow-Green-Purple","comet","blueYellow"
-)
+             c('#352A86','#343DAE','#0262E0','#1389D2','#2DB7A3','#A5BE6A','#F8BA43','#F6DA23','#F8FA0D')
+             
+) 
+names(cList) = c("White-Red", "Blue-Yellow-Red", "Yellow-Green-Purple","comet","blueYellow") 
 
-# Panel sizes
+# Panel sizes 
 pList = c("400px", "600px", "800px") 
 names(pList) = c("Small", "Medium", "Large") 
 pList2 = c("500px", "700px", "900px") 
@@ -90,13 +88,13 @@ names(sList) = c("Small", "Medium", "Large")
 lList = c(5,6,7) 
 names(lList) = c("Small", "Medium", "Large") 
 
-# Function to extract legend
+# Function to extract legend 
 g_legend <- function(a.gplot){  
   tmp <- ggplot_gtable(ggplot_build(a.gplot))  
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")  
-  legend <- tmp$grobs[[leg]]
+  legend <- tmp$grobs[[leg]]  
   legend 
-}
+}  
 
 # Plot theme 
 sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){ 
@@ -121,8 +119,8 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){
 
 ### Common plotting functions 
 # Plot cell information on dimred 
-scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
-                     inpsiz, inpcol, inpord, inpfsz, inpasp, inptxt, inplab) {
+scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2,inpsub3, 
+                     inpsiz, inpcol, inpord, inpfsz, inpasp, inptxt, inplab){ 
   if(is.null(inpsub1)){inpsub1 = inpConf$UI[1]} 
   # Prepare ggData 
   inpdrY = paste0(substring(inpdrX, 1, nchar(inpdrX)-1),2)
@@ -147,13 +145,15 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
   } 
   
   # Do factoring if required 
-  if(!is.na(inpConf[UI == inp1]$fCL)){
+  if(!is.na(inpConf[UI == inp1]$fCL)){ 
+    # ggCol = strsplit(inpConf[UI == inp1]$fCL, "\\|")[[1]] 
     ggCol <- inpsub3
     names(ggCol) = levels(ggData$val) 
     ggLvl = levels(ggData$val)[levels(ggData$val) %in% unique(ggData$val)] 
     ggData$val = factor(ggData$val, levels = ggLvl) 
     ggCol = ggCol[ggLvl] 
-  }
+  } 
+  
   # Actual ggplot 
   ggOut = ggplot(ggData, aes(X, Y, color = val)) 
   if(bgCells){ 
@@ -644,8 +644,8 @@ Creat_matrix <-  function(seMarker){
 
 
 scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt, 
-                       inpsub1, inpsub2, inpH5, inpGene, inpScl,
-                       inpRow, inpCol, inpcols, inpfsz, save = FALSE) { 
+                       inpsub1, inpsub2, inpH5, inpGene, inpScl, inpRow, inpCol, 
+                       inpcols, inpfsz, save = FALSE){ 
   if(is.null(inpsub1)){inpsub1 = inpConf$UI[1]} 
   # Identify genes that are in our dataset 
   geneList = scGeneList(inp, inpGene) 
@@ -691,18 +691,27 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
+    # 
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
     
+    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
+    
     
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
     
-    h5data <- as.data.frame(do.call("rbind", out))  
+    out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
+    # 
+    # 
+    h5data <- as.data.frame(do.call("rbind", out))
+    #  
+    
+    
     
   } else if (inpGrp=="Sample") {
+    
     
     seMarker <- seMarker_sample 
     
@@ -1427,9 +1436,14 @@ shinyServer(function(input, output, session) {
        }
   
   output$sc1de1oup <- renderPlot({
-    scvolcano(input$sc1de1grp)
-    
-  }, height = 450, width = 750)
+     
+   i<- grep(input$sc1de1subgrp,sort(unique(proj@cellColData[input$sc1de1grp][,1])))
+   scvolcano(input$sc1de1grp)[[i]]
+ 
+    # , height = 450, width = 750
+    })
+
+  
   
   output$sc1de1oup.ui <- renderUI({
     plotOutput("sc1de1oup", height = pList[input$sc1a1psz])
@@ -1487,6 +1501,9 @@ shinyServer(function(input, output, session) {
       
          }
                })
+  
+  
+  
   
   output$sc1a1sub3.ui <- renderUI({
     
@@ -2402,19 +2419,15 @@ shinyServer(function(input, output, session) {
     lapply(datalist_m,volcplot_m)   
   }
   
-  # output$sc2de1oup <- renderPlot({
-  #   
-  #   i<- grep(input$sc2de1subgrp,sort(unique(proj@cellColData[input$sc2de1grp][,1])))
-  #   scvolcano_m(input$sc2de1grp)[[i]]
+  output$sc2de1oup <- renderPlot({
+    
+    i<- grep(input$sc2de1subgrp,sort(unique(proj@cellColData[input$sc2de1grp][,1])))
+    scvolcano_m(input$sc2de1grp)[[i]]
     
     
     # , height = 450, width = 750
-  # })
+  })
   
-  output$sc2de1oup <- renderPlot({
-    scvolcano_m(input$sc2de1grp)
-    
-  }, height = 450, width = 750)
   
   
   output$sc2de1oup.ui <- renderUI({

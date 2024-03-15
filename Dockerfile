@@ -102,6 +102,8 @@ RUN apt-get update -y
 RUN apt-get install -y libmagick++-dev
 RUN apt-get install -y libgdal-dev
 RUN R -e "install.packages(c('Seurat'), dependencies = TRUE, repos = 'http://cran.us.r-project.org')"
+COPY server_4.R /root/server_4.R
+COPY ui_4.R /root/ui_4.R
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works

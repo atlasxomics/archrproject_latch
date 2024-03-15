@@ -713,8 +713,8 @@ shinyUI(fluidPage(
             br(),
             selectInput("sc1de1grp", "Group Name", choices=NULL),
             br(),
-            # selectInput("sc1de1subgrp", "Condition", choices=NULL),
-            # br(),
+            selectInput("sc1de1subgrp", "Condition", choices=NULL),
+            br(),
             
             # fluidRow( column(6,
             downloadButton("sc1de1oup.pdf", "Download PDF"),
@@ -1126,9 +1126,9 @@ shinyUI(fluidPage(
             
             br(),
             
-            # selectInput("sc2de1subgrp", "Condition", choices=NULL),
-            # 
-            # br(),
+            selectInput("sc2de1subgrp", "Condition", choices=NULL),
+            
+            br(),
             
             # fluidRow( column(6,
             downloadButton("sc2de1oup.pdf", "Download PDF"),
