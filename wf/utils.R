@@ -130,7 +130,7 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
   return(oupTheme)
 }
 
-scvolcano <- function(inpMarkers, condition1,condition2, feature = "All") {
+scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
 
   # Prepare ggData
   ggData <- inpMarkers[which(inpMarkers$cluster == feature), ]
