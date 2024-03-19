@@ -1,32 +1,28 @@
-library(shiny) 
-library(shinyhelper) 
-library(data.table) 
-library(Matrix) 
-library(DT) 
-library(magrittr) 
+library(shiny)
+library(shinyhelper)
+library(data.table)
+library(Matrix)
+library(DT)
+library(magrittr)
 library(plotly)
 library(shinydashboard)
 library(colourpicker)
 library(tidyverse)
 
 
-sc1conf = readRDS("sc1conf.rds")
-sc1def  = readRDS("sc1def.rds")
-sc2conf = readRDS("sc2conf.rds")
-sc2def  = readRDS("sc2def.rds")
+sc1conf <- readRDS("sc1conf.rds")
+sc1def  <- readRDS("sc1def.rds")
+sc2conf <- readRDS("sc2conf.rds")
+sc2def  <- readRDS("sc2def.rds")
 
 
-### Start server code 
-shinyUI(fluidPage(  
-  ### HTML formatting of error messages 
+### Start server code
+shinyUI(fluidPage(
+  ### HTML formatting of error messages
   tags$head(tags$style(HTML(".shiny-output-error-validation {color: red; font-weight: bold;}"))), 
   list(tags$style(HTML(".navbar-default .navbar-nav { font-weight: bold; font-size: 16px; background-color:#D3D3D3; }"))), 
-  
-  
-  ### Page title 
-  # titlePanel("Data Analysis"),  
-  
-  
+
+
   navbarPage( 
     img(src='AtlasXomicslogo.png', height = '30px', width = '200px'),
     NULL,   
