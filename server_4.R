@@ -119,7 +119,7 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){
 
 ### Common plotting functions 
 # Plot cell information on dimred 
-scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2,inpsub3, 
+scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3, 
                      inpsiz, inpcol, inpord, inpfsz, inpasp, inptxt, inplab){ 
   if(is.null(inpsub1)){inpsub1 = inpConf$UI[1]} 
   # Prepare ggData 
@@ -511,7 +511,7 @@ scVioBox <- function(inpConf, inpMeta, inp1, inp2,
 } 
 
 # Plot proportion plot 
-scProp <- function(inpConf, inpMeta, inp1, inp2, inpsub1, inpsub2,inpsub3, 
+scProp <- function(inpConf, inpMeta, inp1, inp2, inpsub1, inpsub2, inpsub3, 
                    inptyp, inpflp, inpfsz){ 
   if(is.null(inpsub1)){inpsub1 = inpConf$UI[1]} 
   # Prepare ggData 

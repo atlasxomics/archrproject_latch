@@ -7,6 +7,9 @@ library(Matrix)
 library(DT) 
 library(magrittr) 
 library(plotly)
+library(shinydashboard)
+library(colourpicker)
+library(tidyverse)
 
 sc1conf = readRDS("sc1conf.rds")
 sc1def  = readRDS("sc1def.rds")
@@ -84,7 +87,9 @@ navbarPage(
                                         selected = sc1def$grp1), 
                             uiOutput("sc1a1sub1.ui"), 
                             actionButton("sc1a1sub1all", "Select all groups", class = "btn btn-primary"), 
-                            actionButton("sc1a1sub1non", "Deselect all groups", class = "btn btn-primary") 
+                            actionButton("sc1a1sub1non", "Deselect all groups", class = "btn btn-primary"),
+                            br(),br(),
+                            uiOutput("sc1a1sub3.ui") 
                           ) , br(), br(),
                           downloadButton("sc1a1oup1.pdf", "Download PDF", style = "width:123px;font-size: 13px;"), 
                           downloadButton("sc1a1oup1.png", "Download PNG", style = "width:123px;font-size: 13px;"), br(), 
@@ -591,7 +596,7 @@ navbarPage(
                     choices = c("violin", "boxplot"), 
                     selected = "violin", inline = TRUE), 
        checkboxInput("sc1c1pts", "Show data points", value = FALSE), 
-       actionButton("sc1c1togL", "Toggle to subset cells"), 
+       actionButton("sc1c1togL", "Toggle to subset cells/ Update Color"), 
        conditionalPanel( 
          condition = "input.sc1c1togL % 2 == 1", 
          selectInput("sc1c1sub1", "Cell information to subset:", 
@@ -660,7 +665,7 @@ tabPanel(
                    choices = c("Proportion", "CellNumbers"), 
                    selected = "Proportion", inline = TRUE), 
       checkboxInput("sc1c2flp", "Flip X/Y", value = FALSE), 
-      actionButton("sc1c2togL", "Toggle to subset cells"), 
+      actionButton("sc1c2togL", "Toggle to subset cells/ Update Color"), 
       conditionalPanel( 
         condition = "input.sc1c2togL % 2 == 1", 
         selectInput("sc1c2sub1", "Cell information to subset:", 
