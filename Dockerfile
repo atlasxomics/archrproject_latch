@@ -91,17 +91,9 @@ COPY ui_4.R /root/ui_4.R
 
 COPY www /root/www
 
-# # STOP HERE:
-# # The following lines are needed to ensure your build environement works
-# # correctly with latch.
-# RUN python3 -m pip install --upgrade latch
-# ARG tag
-# ENV FLYTE_INTERNAL_IMAGE $tag
-# WORKDIR /root
-
 # Latch SDK
 # DO NOT REMOVE
-RUN pip install latch==2.39.0
+RUN pip install latch==2.40.2
 
 RUN mkdir /opt/latch
 
