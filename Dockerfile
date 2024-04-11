@@ -76,32 +76,17 @@ RUN python3 -m pip install MACS2==2.2.6
 # Copy output files for Shiny app
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
 COPY makeShinyFiles.R /root/makeShinyFiles.R
-
-COPY server.R /root/server.R
-COPY ui.R /root/ui.R
-
-COPY server_2.R /root/server_2.R
-COPY ui_2.R /root/ui_2.R
-
-COPY server_3.R /root/server_3.R
-COPY ui_3.R /root/ui_3.R
-
-COPY server_4.R /root/server_4.R
-COPY ui_4.R /root/ui_4.R
-
 COPY www /root/www
 
-# Latch SDK
-# DO NOT REMOVE
-RUN pip install latch==2.40.2
+COPY uiserver50by50 /root/uiserver50by50
+COPY uiserver96by96 /root/uiserver96by96
 
-RUN mkdir /opt/latch
-
-# Latch workflow registration metadata
-# DO NOT CHANGE
-ARG tag
-# DO NOT CHANGE
-ENV FLYTE_INTERNAL_IMAGE $tag
+# STOP HERE:
+# The following lines are needed to ensure your build environement works
+# correctly with latch.
+RUN python3 -m pip install --upgrade latch
 
 COPY wf /root/wf
+ARG tag
+ENV FLYTE_INTERNAL_IMAGE $tag
 WORKDIR /root

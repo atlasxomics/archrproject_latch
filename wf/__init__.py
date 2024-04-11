@@ -63,6 +63,7 @@ def archr_task(
     runs = [
         (
             f'{run.run_id},'
+            f'{run.sample_name},'
             f'{run.fragments_file.local_path},'
             f'{run.condition},'
             f'{run.positions_file.local_path},'
@@ -401,6 +402,7 @@ LaunchPlan(
     {
         'runs': [
             Run(
+                'default',
                 'default',
                 LatchFile(
                     'latch:///chromap_outputs/demo/chromap_output/fragments.tsv.gz'
