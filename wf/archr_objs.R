@@ -57,7 +57,7 @@ runs
 
 inputs <- c()
 for (run in runs) {
-  inputs[run[1]] <- run[2]
+  inputs[run[1]] <- run[3]
 }
 inputs
 
@@ -106,13 +106,14 @@ proj <- ArchRProject(
 
 # Add an additional Conditions column
 for (run in runs) {
-  proj$Condition[proj$Sample == run[1]] <- run[3]
+  proj$Condition[proj$Sample == run[1]] <- run[4]
+  proj$SampleName[proj$Sample == run[1]] <- run[2]
 }
 
 # Filter on-tissue
 all_ontissue <- c()
 for (run in runs) {
-  positions <- read.csv(run[4], header = FALSE)
+  positions <- read.csv(run[5], header = FALSE)
   positions$V1 <- paste(run[1], "#", positions$V1, "-1", sep = "")
   on_tissue <- positions$V1 [which(positions$V2 == 1)]
   all_ontissue <- c(all_ontissue, on_tissue)
@@ -284,7 +285,7 @@ for (run in runs) {
     run_id = run[1],
     matrix = matrix,
     metadata = metadata,
-    spatial_path = run[5]
+    spatial_path = run[6]
   )
 
   saveRDS(obj, file = paste0(run[1], "_SeuratObj.rds"))
@@ -1196,7 +1197,7 @@ for (run in runs) {
     run_id = run[1],
     matrix = dev_score3,
     metadata = metadata,
-    spatial_path = run[5]
+    spatial_path = run[6]
   )
   
   saveRDS(obj, file = paste0(run[1], "_SeuratObjMotif.rds"))
@@ -1638,12 +1639,36 @@ if (length(unique(proj$Condition)) > 1) {
   de <- "there is not enough conditions to be compared with!"  
 }  
 
+
+################-------------- save bigwig files -------- ######################
+
+treatment <- names(getCellColData(proj))[grep("condition_", names(getCellColData(proj)))]
+
+req_conditions <- c('Clusters',treatment)
+
+for (i in req_conditions){
+  bws <- getGroupBW(
+    ArchRProj = proj,
+    groupBy = i,
+    normMethod = "ReadsInTSS",
+    tileSize = 100,
+    maxCells = 1000,
+    ceiling = 4,
+    verbose = TRUE,
+    threads = getArchRThreads(),
+    logFile = createLogFile("getGroupBW")
+  )}
+
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # save ArchR object
 saveArchRProject(
   ArchRProj = proj,
   outputDirectory = paste0(project_name, "_ArchRProject")
 )
+
+
+
+
 
 #################------------- Motif Logo ---------------#######################
 
@@ -1918,9 +1943,13 @@ sc1def$meta1<- "Clusters"
 
 sc1def$meta2<- "Sample"
 
+sc1def$meta3<- "SampleName"
+
 sc2def$meta1<- "Clusters"
 
 sc2def$meta2<- "Sample"
+
+sc2def$meta3<- "SampleName"
 
 
 sc1def$Clusters <- req_genes1
@@ -1972,68 +2001,80 @@ saveRDS(sc2def,"/root/shinyApp/sc2def.rds")
 sc1conf <- readRDS("/root/shinyApp/sc1conf.rds")
 sc2conf <- readRDS("/root/shinyApp/sc2conf.rds")
 
-fav <- which(sc1conf$ID %in% c("Clusters","Sample", treatment))
-rest <- which(!sc1conf$ID %in% c("Clusters","Sample", treatment))
+fav <- which(sc1conf$ID %in% c("Clusters","Sample","SampleName", treatment))
+rest <- which(!sc1conf$ID %in% c("Clusters","Sample","SampleName", treatment))
 sc1conf <- sc1conf[c(fav,rest),]
 
 
-fav <- which(sc2conf$ID %in% c("Clusters","Sample", treatment))
-rest <- which(!sc2conf$ID %in% c("Clusters","Sample", treatment))
+fav <- which(sc2conf$ID %in% c("Clusters","Sample","SampleName", treatment))
+rest <- which(!sc2conf$ID %in% c("Clusters","Sample","SampleName", treatment))
 sc2conf <- sc2conf[c(fav,rest),]
 
 saveRDS(sc1conf,"/root/shinyApp/sc1conf.rds")
 saveRDS(sc2conf,"/root/shinyApp/sc2conf.rds")
 
+number_of_pixle <- c()
+for (run in runs) {
+  positions <- read.csv(run[5], header = FALSE)
+  number_of_pixle <- c(number_of_pixle, length(positions$V1))
+}
+max_number_of_pixle <- max(number_of_pixle)
+print(paste0('max number of pixels is ',max_number_of_pixle))
+ 
+print('make sure there is no ui.R or server.R file in /root')
+file.remove(list.files(path = "/root", pattern = "^ui.*\\.R$", all.files = FALSE,full.names = FALSE, recursive = FALSE, include.dirs = FALSE))
+file.remove(list.files(path = "/root", pattern = "^server.*\\.R$", all.files = FALSE,full.names = FALSE, recursive = FALSE, include.dirs = FALSE))
 
-  
-  if (length(unique(proj$Sample)) ==1){
-    file.remove("/root/ui.R")
-    file.remove("/root/server.R")
-    file.remove("/root/ui_2.R")
-    file.remove("/root/server_2.R")
-    file.remove("/root/ui_4.R")
-    file.remove("/root/server_4.R")
-    file.rename("/root/ui_3.R","/root/ui.R")
-    file.rename("/root/server_3.R","/root/server.R")
-    
-  } else if (length(unique(proj$Condition))<=1) {
-    
-    file.remove("/root/ui.R")
-    file.remove("/root/server.R")
-    file.remove("/root/ui_3.R")
-    file.remove("/root/server_3.R")
-    file.remove("/root/ui_4.R")
-    file.remove("/root/server_4.R")
-    file.rename("/root/ui_2.R","/root/ui.R")
-    file.rename("/root/server_2.R","/root/server.R")
-    
-  } else if (
-    
-          length(unique(proj$Condition))>1 & length(unique(proj$condition_1))>2 |
-          length(unique(proj$Condition))>1 & length(unique(proj$condition_2))>2
-             
-             ) {
-    
-    file.remove("/root/ui.R")
-    file.remove("/root/server.R")
-    file.remove("/root/ui_2.R")
-    file.remove("/root/server_2.R")
-    file.remove("/root/ui_3.R")
-    file.remove("/root/server_3.R")
-    file.rename("/root/ui_4.R","/root/ui.R")
-    file.rename("/root/server_4.R","/root/server.R")
-    
-    
-        
-  }else{
-    file.remove("/root/ui_2.R")
-    file.remove("/root/server_2.R")
-    file.remove("/root/ui_3.R")
-    file.remove("/root/server_3.R")
-    file.remove("/root/ui_4.R")
-    file.remove("/root/server_4.R")
-    
-    
+if (max_number_of_pixle <=2500) {
+               print('use ui/server from 50by50 folder')
+               unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
+
+              if (length(unique(proj$Sample)) ==1){
+              file.copy("/root/uiserver50by50/ui_3.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver50by50/server_3.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
+
+              } else if (length(unique(proj$Condition))<=1) {
+              file.copy("/root/uiserver50by50/ui_2.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver50by50/server_2.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
+
+              } else if (
+              length(unique(proj$Condition))>1 & length(unique(proj$condition_1))>2 |
+              length(unique(proj$Condition))>1 & length(unique(proj$condition_2))>2 ) {
+              file.copy("/root/uiserver50by50/ui_4.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver50by50/server_4.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
+
+              }else{
+              file.copy("/root/uiserver50by50/ui.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver50by50/server.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver50by50", recursive = TRUE)} # will delete directory
+
+
+}else{ #if it is more than 50 by 50 use ui/server from flowgel folder
+              print('use ui/server from 96by96 folder')
+              unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
+
+              if (length(unique(proj$Sample)) ==1){
+              file.copy("/root/uiserver96by96/ui_3.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver96by96/server_3.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
+              } else if (length(unique(proj$Condition))<=1) {
+              file.copy("/root/uiserver96by96/ui_2.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver96by96/server_2.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
+              } else if (
+              length(unique(proj$Condition))>1 & length(unique(proj$condition_1))>2 |
+              length(unique(proj$Condition))>1 & length(unique(proj$condition_2))>2 ) {
+              file.copy("/root/uiserver96by96/ui_4.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver96by96/server_4.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
+              }else{
+              file.copy("/root/uiserver96by96/ui.R","/root/ui.R", overwrite = TRUE)
+              file.copy("/root/uiserver96by96/server.R","/root/server.R", overwrite = TRUE)
+              unlink("/root/uiserver96by96", recursive = TRUE)} # will delete directory
+
   }
 
 # copy everything in shiny app to the root

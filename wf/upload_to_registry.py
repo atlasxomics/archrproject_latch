@@ -13,6 +13,7 @@ logging.basicConfig(format="%(levelname)s - %(asctime)s - %(message)s")
 @dataclass
 class Run:
     run_id: str
+    sample_name: str
     fragments_file: LatchFile
     condition: str = "None"
     spatial_dir: LatchDir = LatchDir(
