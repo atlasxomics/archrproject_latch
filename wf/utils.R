@@ -1,9 +1,9 @@
-library(ArchR)
-library(ggplot2)
-library(ggrepel)
-library(harmony)
-library(patchwork)
-library(Seurat)
+library("ArchR")
+library("ggplot2")
+library("ggrepel")
+library("harmony")
+library("patchwork")
+library("Seurat")
 
 find_func <- function(tempdir, pattern) {
   list.files(
@@ -50,13 +50,15 @@ plot_feature <- function(seurat_obj, feature, name) {
     object = seurat_obj,
     features = feature,
     alpha = c(0.2, 1),
-    pt.size.factor = 1) +
-    ggtitle(name) +
-    theme(
-      legend.position = "right",
-      plot.title = element_text(size = 15, hjust = 0.5),
-      text = element_text(size = 10)
-    )
+    pt.size.factor = 1,
+    crop = FALSE
+    ) +
+      ggtitle(name) +
+      theme(
+        legend.position = "right",
+        plot.title = element_text(size = 15, hjust = 0.5),
+        text = element_text(size = 10)
+      )
 }
 
 plot_spatial <- function(seurat_object, name) {
@@ -73,12 +75,12 @@ plot_spatial <- function(seurat_object, name) {
     crop = FALSE,
     cols = colors,
     stroke = 0) +
-    ggtitle(name) +
-    theme(
-      plot.title = element_text(size= 15),
-      text = element_text(size = 10),
-      legend.position = "bottom"
-    )
+      ggtitle(name) +
+      theme(
+        plot.title = element_text(size= 15),
+        text = element_text(size = 10),
+        legend.position = "bottom"
+      )
 }
 
 plot_geneset <- function(seurat_obj, marker_genes, name, title) {
@@ -93,10 +95,11 @@ plot_geneset <- function(seurat_obj, marker_genes, name, title) {
   plot <- SpatialFeaturePlot(
     object = seurat_obj,
     pt = 1,
-    features = paste0(name, 1)) +
-    ggtitle(title) +
-    theme(plot.title = element_text(hjust = 0.5)
-    )
+    features = paste0(name, 1),
+    crop = FALSE
+    ) +
+      ggtitle(title) +
+      theme(plot.title = element_text(hjust = 0.5))
 }
 
 plot_umap <- function(archrproj, name) {
