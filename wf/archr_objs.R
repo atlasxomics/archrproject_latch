@@ -2,37 +2,27 @@ library("ArchR")
 library("BSgenome")
 library("BSgenome.Hsapiens.UCSC.hg38")
 library("BSgenome.Mmusculus.UCSC.mm10")
+library("ComplexHeatmap")
+library("chromVARmotifs")
+library("circlize")
+library("data.table")
+library("dplyr")
+library("GenomicRanges")
 library("gridExtra")
 library("harmony")
+library("plyr")
 library("purrr")
-library("Seurat")
-library("GenomicRanges")
-library("dplyr")                                    # Load dplyr package
-library("plyr")                                     # Load plyr package
-library("readr")
 library("qdap")
-library("ShinyCell")
+library("readr")
+library("Seurat")
 library("seqLogo")
-library("chromVARmotifs")
-suppressPackageStartupMessages(require(tidyverse))
-suppressPackageStartupMessages(library("ComplexHeatmap"))
-suppressPackageStartupMessages(library("circlize"))
-suppressPackageStartupMessages(library(data.table))
+library("ShinyCell")
+library("tidyverse")
 
 source("/root/makeShinyFiles.R")
 source("/root/getDeviation_ArchR.R")
 source("/root/wf/utils.R")
 
-find_func <- function(tempdir,pattern){
-  
-  list.files(
-    path = tempdir, # replace with the directory you want
-    pattern = pattern, # has "test", followed by 0 or more characters,
-    # then ".csv", and then nothing else ($)
-    full.names = TRUE # include the directory in the result
-    , recursive = TRUE
-  )
-}
 
 # globals ---------------------------------------------------------------------
 
@@ -171,7 +161,7 @@ resolution = c(clustering_resolution)
 
 addclust <- function(x) {
   while (min(cluster_df$Freq) <= 20) {
-    print(paste0('with resolution equal to ',resolution ))
+    print(paste0('with resolution equal to ', resolution ))
     cluster_df <- as.data.frame(table(x$Clusters))
     print(cluster_df)
     # Update the value in each step
@@ -333,7 +323,14 @@ all <-  list()
 for (i in seq_along(seurat_objs)){
   all[[i]] <- seurat_objs[[i]]
   
-  all[[i]] <- RenameCells(all[[i]], new.names = paste0(unique(all[[i]]@meta.data$Sample),"#",colnames(all[[i]]),"-1"))
+  all[[i]] <- RenameCells(
+    all[[i]],
+    new.names = paste0(
+      unique(all[[i]]@meta.data$Sample),
+      "#",
+      colnames(all[[i]]),"-1"
+    )
+  )
 }
 
 pdf("qc_plots.pdf")
@@ -358,7 +355,7 @@ saveArchRProject(
 
 
 
-############-------------Identifying Marker Genes------------###################
+############-------------Identifying Marker Genes------------##################
 # per cluster
 
 markersGS <- getMarkerFeatures(
@@ -901,13 +898,20 @@ write.csv(merged_df, file = "medians.csv", row.names = FALSE)
 
 # Motif enrichment (Deviation)
 
-if("Motif" %ni% names(proj@peakAnnotation)){
+if("Motif" %ni% names(proj@peakAnnotation)) {
   if (
     species == "BSgenome.Hsapiens.UCSC.hg38" || species == "BSgenome.Mmusculus.UCSC.mm10") {
-    proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "cisbp", name = "Motif", force = TRUE)
+    proj <- addMotifAnnotations(
+      ArchRProj = proj, motifSet = "cisbp", name = "Motif", force = TRUE
+    )
   } else {
-    proj <- addMotifAnnotations(ArchRProj = proj, motifSet = "encode", name = "Motif", force = TRUE
-                                 , species = getGenome(ArchRProj = proj))
+    proj <- addMotifAnnotations(
+      ArchRProj = proj,
+      motifSet = "encode",
+      name = "Motif",
+      force = TRUE,
+      species = getGenome(ArchRProj = proj)
+    )
   }
 }
 
@@ -1078,9 +1082,16 @@ rownames(enrichMotifs) <- req_motifs1
 
 saveRDS(enrichMotifs,"enrichMotifs_clusters.rds")
 
-# cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be included in the heatmap. default is 20 but we decrease that!
+# cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be
+# included in the heatmap. default is 20 but we decrease that!
 
-heatmapEM <- plotEnrichHeatmap(enrichMotifs, n = 50, transpose = F,returnMatrix = TRUE, cutOff = 2)
+heatmapEM <- plotEnrichHeatmap(
+  enrichMotifs,
+  n = 50,
+  transpose = FALSE,
+  returnMatrix = TRUE,
+  cutOff = 2
+)
 
 motif_lst <- unique(rownames(heatmapEM))
 split_string <- strsplit(motif_lst, split = "\\(")
@@ -1123,7 +1134,7 @@ req_motifs1<- na.omit(req_motifs1)
 
 write.csv(req_motifs1,"req_motifs1.csv")
 
-######################### Add Motifs Matrix and Projections ####################
+######################## Add Motifs Matrix and Projections ####################
 
 proj <- addBgdPeaks(proj, force = TRUE)
 proj <- addDeviationsMatrix(
@@ -1159,16 +1170,16 @@ if (length(motifs)>1) {
   
   proj <- addImputeWeights(proj)
   
-  dev_score <- getDeviation_ArchR(ArchRProj = proj
-                                  , name = motifs
-                                  , imputeWeights = getImputeWeights(proj))
-  
+  dev_score <- getDeviation_ArchR(
+    ArchRProj = proj,
+    name = motifs,
+    imputeWeights = getImputeWeights(proj)
+  )
 
-  dev_score[is.na(dev_score)] <- 0 #min(dev_score, na.rm = TRUE)
-  
+  dev_score[is.na(dev_score)] <- 0 
 }
 
-dev_score2 <- dev_score[!is.infinite(rowSums(dev_score)),]
+dev_score2 <- dev_score[!is.infinite(rowSums(dev_score)), ]
 colnames(dev_score2) <- rownames(getCellColData(proj))
 # remove 0 deviations per All samples 
 all_zero <- names(which(rowSums(dev_score2)==0))
@@ -1211,11 +1222,16 @@ all_m <-  list()
 for (i in seq_along(seurat_objs)){
   all_m[[i]] <- seurat_objs[[i]]
   
-  all_m[[i]] <- RenameCells(all_m[[i]], new.names = paste0(unique(all_m[[i]]@meta.data$Sample),"#",colnames(all_m[[i]]),"-1"))
+  all_m[[i]] <- RenameCells(
+    all_m[[i]],
+    new.names = paste0(
+      unique(all_m[[i]]@meta.data$Sample),
+      "#",
+      colnames(all_m[[i]]),
+      "-1"
+    )
+  )
 }
-
-
-
 
 # peak calling with MACS2 for Sample -------------------------------------------
 if (length(unique(proj$Sample)) > 1) {
@@ -2087,6 +2103,3 @@ file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
 
 dataFiles <- dir(rawPath, "*.h5$", ignore.case = TRUE, all.files = TRUE)
 file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
-
-  
-  
