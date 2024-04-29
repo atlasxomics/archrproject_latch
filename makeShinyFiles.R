@@ -341,10 +341,7 @@ makeShinyFiles <- function(
     }
     sc1gexpr.grp.data[(i*chk+1):gex.matdim[1], ] <- as.matrix(
       obj[[gex.assay[1]]]@layers[[gex.slot[1]]][(i*chk+1):gex.matdim[1],])
-
-      
-      
-      
+  
   } else if (class(obj)[1] == "SingleCellExperiment"){
     # SCE Object
     for(i in 1:floor((gex.matdim[1]-8)/chk)){
@@ -387,7 +384,6 @@ makeShinyFiles <- function(
     }
   }
 
-  # sc1gexpr.grp.data[, ] <- as.matrix(gex.matrix[,])
   sc1gexpr$close_all()
   if(!isTRUE(all.equal(sc1meta$sampleID, gex.colnm))){
     sc1meta$sampleID = factor(sc1meta$sampleID, levels = gex.colnm)
@@ -456,8 +452,6 @@ makeShinyFiles <- function(
     }
   }
   sc1conf = sc1conf[, -c("fUI", "default"), with = FALSE]
-  
-  
   
   ### Saving objects
   saveRDS(sc1conf, file = paste0(shiny.dir, "/", shiny.prefix, "conf.rds"))
