@@ -97,9 +97,9 @@ plot_geneset <- function(seurat_obj, marker_genes, name, title) {
     pt = 1,
     features = paste0(name, 1),
     crop = FALSE
-    ) +
-      ggtitle(title) +
-      theme(plot.title = element_text(hjust = 0.5))
+  ) +
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5))
 }
 
 plot_umap <- function(archrproj, name) {
@@ -123,9 +123,9 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
     axis.text.x = element_text(angle = Xang, hjust = XjusH),
     legend.position = "bottom",
     legend.key = element_rect(colour = NA, fill = NA),
-    
+
   )
-  if(!XYval) {
+  if (!XYval) {
     oupTheme <- oupTheme + theme(
       axis.text.x = element_blank(), axis.ticks.x = element_blank(),
       axis.text.y = element_blank(), axis.ticks.y = element_blank())
@@ -145,7 +145,8 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
     ifelse(
       ggData$avg_log2FC > 0.0,
       condition1,
-      condition2),
+      condition2
+    ),
     "Not siginficant"
   )
 
@@ -154,28 +155,29 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
     levels = c(
       condition1,
       condition2,
-      "Not siginficant")
+      "Not siginficant"
+    )
   )
 
   ggData[ggData$p_val_adj < 1e-300, "p_val_adj"] <- 1e-300
   ggData$log10fdr <- -log10(ggData$p_val_adj)
 
   # Actual ggplot
-  ggOut <-
-    ggplot(ggData, aes(avg_log2FC, log10fdr)) +
-    geom_point() +
-    sctheme() +
-    ylab("-log10(FDR)") +
-    geom_point(aes(color = Significance)) +
-    scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
-    geom_text_repel(
-      data = subset(ggData, p_val_adj < minfdr1),
-      aes(label = gene)) +
-    ggtitle(paste("Markers:", feature)) +
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 20),
-      legend.text = element_text(size = 15),
-      legend.title = element_text(size = 18)
-    )
+  ggOut <- ggplot(ggData, aes(avg_log2FC, log10fdr)) +
+      geom_point() +
+      sctheme() +
+      ylab("-log10(FDR)") +
+      geom_point(aes(color = Significance)) +
+      scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
+      geom_text_repel(
+        data = subset(ggData, p_val_adj < minfdr1),
+        aes(label = gene)
+      ) +
+      ggtitle(paste("Markers:", feature)) +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 20),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 18)
+      )
   return(ggOut)
 }

@@ -1,68 +1,65 @@
-library(shiny) 
-library(shinyhelper) 
-library(data.table) 
-library(Matrix) 
-library(DT) 
-library(magrittr) 
-library(ggplot2) 
-library(ggrepel) 
-library(hdf5r) 
-library(ggdendro) 
-library(gridExtra) 
-require(ggseqlogo)# Motif Logo
-library("ComplexHeatmap") #heatmap
-library("circlize") #heatmap
-library("S4Vectors")
-library("SummarizedExperiment")
-library("ggplotify")
 library("ArchR")
+library("circlize")
+library("ComplexHeatmap")
+library("data.table")
+library("DT")
+library("ggdendro")
+library("ggplotify")
+library("ggplot2")
+library("ggrepel")
+require("ggseqlogo")
+library("gridExtra")
+library("hdf5r")
+library("magrittr")
+library("Matrix")
+library("purrr")
+library("RColorBrewer")
+library("shiny")
+library("shinyhelper")
 library("Seurat")
 library("stringi")
-library(RColorBrewer)
-library(purrr)
+library("SummarizedExperiment")
+library("S4Vectors")
+
 
 tempdir <- getwd()
-ArchRobj <- system(paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), intern = TRUE)
+archr_obj <- system(
+  paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), intern = TRUE
+)
 
+proj <- loadArchRProject(path = archr_obj, force = FALSE, showLogo = TRUE)
 
-proj <- loadArchRProject(path = ArchRobj, force = FALSE, showLogo = TRUE)
+sc1conf <- readRDS("sc1conf.rds")
+sc1def  <- readRDS("sc1def.rds")
+sc1gene <- readRDS("sc1gene.rds")
+sc1meta <- readRDS("sc1meta.rds")
 
-
-sc1conf = readRDS("sc1conf.rds")
-sc1def  = readRDS("sc1def.rds")
-sc1gene = readRDS("sc1gene.rds")
-sc1meta = readRDS("sc1meta.rds")
-
-
-
-sc2conf = readRDS("sc2conf.rds")
-sc2def  = readRDS("sc2def.rds")
-sc2gene = readRDS("sc2gene.rds")
-sc2meta = readRDS("sc2meta.rds")
-
+sc2conf <- readRDS("sc2conf.rds")
+sc2def  <- readRDS("sc2def.rds")
+sc2gene <- readRDS("sc2gene.rds")
+sc2meta <- readRDS("sc2meta.rds")
 
 # for genes heatmap
-seMarker_cluster <-  readRDS("markersGS_clusters.rds")
-seMarker_sample <-  readRDS("markersGS_sample.rds")
+seMarker_cluster <- readRDS("markersGS_clusters.rds")
 
 # for motif heatmap
-seEnrich_cluster <-  readRDS("enrichMotifs_clusters.rds")
-seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
+seEnrich_cluster <- readRDS("enrichMotifs_clusters.rds")
 
 # for conditions
-treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
-seMarker_treatment<-list()
+treatment <- names(
+  getCellColData(proj)
+)[grep("condition_", names(getCellColData(proj)))]
+
+seMarker_treatment <- list()
 seEnrich_treatment <- list()
-for (i in seq_along(treatment)){
-  seMarker_treatment[i] <-  readRDS(paste0("markersGS_condition_",i,".rds"))
-  seEnrich_treatment[i] <-  readRDS(paste0("enrichMotifs_condition_",i,".rds"))
+for (i in seq_along(treatment)) {
+  seMarker_treatment[i] <- readRDS(paste0("markersGS_condition_", i, ".rds"))
+  seEnrich_treatment[i] <- readRDS(paste0("enrichMotifs_condition_", i, ".rds"))
 }
 
-combined <- readRDS('combined.rds')
-# combined_m <- readRDS('combined_m.rds')
+combined <- readRDS("combined.rds")
 
-
-### Useful stuff
+### Format globals
 # Colour palette
 cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84",
                "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"),
@@ -206,9 +203,6 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
     }
     
   }
-  
-  
-  
   return(p)
 }
 
@@ -1346,8 +1340,11 @@ shinyServer(function(input, output, session) {
                        selected = choices[1], options = list(
                          maxOptions = 7, create = TRUE, persist = TRUE, render = I(optCrt)))
   
-  grps <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
-  updateSelectizeInput(session, "sc1de1grp", choices = grps, server = TRUE,
+  grps <- names(getCellColData(proj))[
+    grep('condition_',names(getCellColData(proj)))
+  ]
+  updateSelectizeInput(
+    session, "sc1de1grp", choices = grps, server = TRUE,
                        selected = grps[1], options = list(
                          maxOptions = 7, create = TRUE, persist = TRUE, render = I(optCrt)))
  
@@ -1507,199 +1504,342 @@ shinyServer(function(input, output, session) {
     #   create color selectors for plot
     
     dashboardSidebar(  # create mask for user interaction
-      collapsed = TRUE
-      , title = "Choose colors for the plot."  # sidebar title
-      # ,.list = colInput(dcn())   # if you want to have color pallet in one column
-      
-      # if you want to have color pallet in 4 columns, the below code is temporarily
-      
-      ,tags$style(HTML(".main-sidebar { font-size: 0px; }"))
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[1]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[2]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[3]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[4]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[5]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[6]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[7]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[8]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[9]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[10]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[11]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[12]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px") #; padding: 15px
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[13]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[14]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[15]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[16]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[17]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[18]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[19]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[20]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[21]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[22]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[23]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[24]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[25]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[26]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[27]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[28]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[29]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[30]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[31]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[32]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[33]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[34]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[35]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[36]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[37]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[38]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[39]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[40]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      ,actionButton("KeepMyColor", "KeepMyColor")
-      ,actionButton("DefaultColor", "DefaultColor")
-      
-      , write.csv(
-        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn()))
-        ,paste0('colorset_',input$sc1a1inp1,'.csv'))
-      
-    ) #dashboardSidebar
-    
-    
-  }) #renderUI
-  
-  
-  observeEvent(input$KeepMyColor, {
-    write.csv(
-      paste0("input$col", 1:length(dcn())) %>%   # use data color names
-        map(., function(i) {eval(parse(text = i))}) %>% # convert strings to obj
-        unlist() %>% setNames(dcn())
-      ,paste0('colorset_',input$sc1a1inp1,'.csv'))
-    
-    lapply(1:length(dcn()), function(k) {
-      updateColourInput(session,
-                        inputId = paste0("col", k)
-                        ,label = dcn()[k]      # color sel label for user
-                        ,value = read.csv(paste0('colorset_',input$sc1a1inp1,'.csv'))$x[k] #  this should match initial plot
-                        ,showColour = "both"  # show hex and color itself
-                        # ,width = 2
-      )})
-    
-    
-  }, ignoreInit=TRUE
+      collapsed = TRUE,
+      title = "Choose colors for the plot.",
+
+      # If you want to have color pallet in 4 columns
+      tags$style(HTML(".main-sidebar { font-size: 0px; }")),
+      splitLayout(
+        tryCatch(colInput(dcn())[[1]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[2]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[3]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[4]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[5]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[6]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[7]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[8]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[9]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[10]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[11]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[12]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[13]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[14]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[15]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[16]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[17]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[18]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[19]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[20]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[21]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[22]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[23]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[24]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[25]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[26]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[27]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[28]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[29]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[30]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[31]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[32]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[33]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[34]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[35]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[36]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[37]],error = function(e){""}),
+        tryCatch(colInput(dcn())[[38]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[39]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[40]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      actionButton("KeepMyColor", "KeepMyColor"),
+      actionButton("DefaultColor", "DefaultColor"),
+      write.csv(
+        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn())),
+        paste0("colorset_", input$sc1a1inp1, ".csv")
+      )
+    )
+  })
+  observeEvent(
+    input$KeepMyColor,
+    {
+      write.csv(
+        paste0("input$col", 1:length(dcn())) %>% # use data color names
+          map(., function(i) {
+            eval(parse(text = i))
+          }) %>% unlist() %>% setNames(dcn()),
+        paste0("colorset_", input$sc1a1inp1, ".csv")
+      )
+    lapply(
+      1:length(dcn()), function(k) {
+        updateColourInput(
+          session,
+          inputId = paste0("col", k),
+          label = dcn()[k], # color sel label for user
+          value = read.csv(paste0("colorset_", input$sc1a1inp1, ".csv"))$x[k],
+          showColour = "both" # show hex and color itself
+        )
+      }
+    )
+  },
+  ignoreInit = TRUE
   )
-  
-  observeEvent(input$DefaultColor, {
-    write.csv(
-      colorRampPalette(brewer.pal(12, "Paired"))(length(dcn()))
-      ,paste0('colorset_',input$sc1a1inp1,'.csv'))
-    
-    # update colors to default colors
-    
-    lapply(1:length(dcn()), function(k) {
-      updateColourInput(session,
-                        inputId = paste0("col", k)
-                        ,label = dcn()[k]      # color sel label for user
-                        ,value = colorRampPalette(brewer.pal(12, "Paired"))(length(dcn()))[k] #  this should match initial plot
-                        ,showColour = "both"  # show hex and color itself
-                        # ,width = 2
-      )})
-    
-    
-  }, ignoreInit=TRUE
+  observeEvent(
+    input$DefaultColor,
+    {
+      write.csv(
+        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn())),
+        paste0("colorset_", input$sc1a1inp1, ".csv")
+      )
+      # update colors to default colors
+      lapply(
+        1:length(dcn()), function(k) {
+          updateColourInput(
+            session,
+            inputId = paste0("col", k),
+            label = dcn()[k], # color sel label for user
+            value,
+            colorRampPalette(brewer.pal(12, "Paired"))(length(dcn()))[k],
+            showColour = "both"  # show hex and color itself
+          )
+        }
+      )
+    },
+    ignoreInit = TRUE
   )
-  
-  output$sc1a1oup1 <- renderPlot({ 
-    scDRcell(sc1conf, sc1meta, input$sc1a1drX, input$sc1a1inp1,  
-             input$sc1a1sub1, input$sc1a1sub2,
-             paste0("input$col", 1:length(dcn())) %>%   # use data color names
-               map(., function(i) {eval(parse(text = i))}) %>% # convert strings to obj
-               unlist() %>%  setNames(dcn()),
-             input$sc1a1siz, input$sc1a1col1, input$sc1a1ord1, 
-             input$sc1a1fsz, input$sc1a1asp, input$sc1a1txt, input$sc1a1lab1) 
-  }) 
-  output$sc1a1oup1.ui <- renderUI({ 
-    plotOutput("sc1a1oup1", height = 600, width = 800) 
-  }) 
-  output$sc1a1oup1.pdf <- downloadHandler( 
-    filename = function() { paste0("sc1",input$sc1a1drX,"_",input$sc1a1drY,"_",  
-                                   input$sc1a1inp1,".pdf") }, 
-    content = function(file) { ggsave( 
-      file, device = "pdf", height = input$sc1a1oup1.h, width = input$sc1a1oup1.w, useDingbats = FALSE, 
-      plot = scDRcell(sc1conf, sc1meta, input$sc1a1drX, input$sc1a1inp1,   
-                      input$sc1a1sub1, input$sc1a1sub2, 
-                      paste0("input$col", 1:length(dcn())) %>%   # use data color names
-                        map(., function(i) {eval(parse(text = i))}) %>% # convert strings to obj
-                        unlist() %>%  setNames(dcn()),
-                      input$sc1a1siz, input$sc1a1col1, input$sc1a1ord1,  
-                      input$sc1a1fsz, input$sc1a1asp, input$sc1a1txt, input$sc1a1lab1) ) 
+  output$sc1a1oup1 <- renderPlot(
+    { 
+      scDRcell(
+        sc1conf,
+        sc1meta,
+        input$sc1a1drX,
+        input$sc1a1inp1,
+        input$sc1a1sub1,
+        input$sc1a1sub2,
+        paste0("input$col", 1:length(dcn())) %>% # use data color names
+          map(., function(i) {
+            eval(parse(text = i))
+          }) %>% # convert strings to obj
+          unlist() %>%  setNames(dcn()),
+        input$sc1a1siz,
+        input$sc1a1col1,
+        input$sc1a1ord1, 
+        input$sc1a1fsz,
+        input$sc1a1asp,
+        input$sc1a1txt,
+        input$sc1a1lab1
+      )
+    }
+  ) 
+  output$sc1a1oup1.ui <- renderUI(
+    { 
+      plotOutput("sc1a1oup1", height = 600, width = 800)
+    }
+  ) 
+  output$sc1a1oup1.pdf <- downloadHandler(
+    filename = function() {
+      paste0(
+        "sc1", input$sc1a1drX, "_", input$sc1a1drY, "_", input$sc1a1inp1, ".pdf"
+      )
+    },
+    content = function(file) {
+      ggsave(
+        file,
+        device = "pdf",
+        height = input$sc1a1oup1.h,
+        width = input$sc1a1oup1.w,
+        useDingbats = FALSE,
+        plot = scDRcell(
+          sc1conf,
+          sc1meta,
+          input$sc1a1drX,
+          input$sc1a1inp1,
+          input$sc1a1sub1,
+          input$sc1a1sub2,
+          paste0("input$col", 1:length(dcn())) %>% # use data color names
+            map(., function(i) {
+              eval(parse(text = i))
+            }) %>%
+            unlist() %>%  setNames(dcn()),
+          input$sc1a1siz,
+          input$sc1a1col1,
+          input$sc1a1ord1,
+          input$sc1a1fsz,
+          input$sc1a1asp,
+          input$sc1a1txt,
+          input$sc1a1lab1
+        )
+      )
+    }
+  ) 
+  output$sc1a1oup1.png <- downloadHandler(
+    filename = function() {
+      paste0(
+        "sc1", input$sc1a1drX, "_", input$sc1a1drY, "_", input$sc1a1inp1, ".png"
+      )
+    }, 
+    content = function(file) {
+      ggsave(
+        file,
+        device = "png",
+        height = input$sc1a1oup1.h,
+        width = input$sc1a1oup1.w,
+        plot = scDRcell(
+          sc1conf,
+          sc1meta,
+          input$sc1a1drX,
+          input$sc1a1inp1,
+          input$sc1a1sub1,
+          input$sc1a1sub2,
+          paste0("input$col", 1:length(dcn())) %>% 
+            map(., function(i) {eval(parse(text = i))}) %>% 
+            unlist() %>%  setNames(dcn()),
+          input$sc1a1siz,
+          input$sc1a1col1,
+          input$sc1a1ord1,
+          input$sc1a1fsz, input$sc1a1asp,
+          input$sc1a1txt,
+          input$sc1a1lab1
+        )
+    )
     }) 
-  output$sc1a1oup1.png <- downloadHandler( 
-    filename = function() { paste0("sc1",input$sc1a1drX,"_",input$sc1a1drY,"_",  
-                                   input$sc1a1inp1,".png") }, 
-    content = function(file) { ggsave( 
-      file, device = "png", height = input$sc1a1oup1.h, width = input$sc1a1oup1.w, 
-      plot = scDRcell(sc1conf, sc1meta, input$sc1a1drX, input$sc1a1inp1,   
-                      input$sc1a1sub1, input$sc1a1sub2,
-                      paste0("input$col", 1:length(dcn())) %>%   # use data color names
-                        map(., function(i) {eval(parse(text = i))}) %>% # convert strings to obj
-                        unlist() %>%  setNames(dcn()),
-                      input$sc1a1siz, input$sc1a1col1, input$sc1a1ord1,  
-                      input$sc1a1fsz, input$sc1a1asp, input$sc1a1txt, input$sc1a1lab1) ) 
-    }) 
-  output$sc1a1.dt <- renderDataTable({ 
-    ggData = scDRnum(sc1conf, sc1meta, input$sc1a1inp1, input$sc1a1inp2, 
-                     input$sc1a1sub1, input$sc1a1sub2, 
-                     "sc1gexpr.h5", sc1gene, input$sc1a1splt) 
-    datatable(ggData, rownames = FALSE, extensions = "Buttons", 
-              options = list(pageLength = -1, dom = "tB", buttons = c("copy", "csv", "excel"))) %>% 
-      formatRound(columns = c("pctExpress"), digits = 2) 
-  }) 
-  
-  output$sc1a1oup2 <- renderPlot({ 
-    scDRgene(sc1conf, sc1meta, input$sc1a1drX2, input$sc1a1inp2,  
-             input$sc1a1sub1, input$sc1a1sub2, 
-             "sc1gexpr.h5", sc1gene, 
-             input$sc1a1siz, input$sc1a1col2, input$sc1a1ord2, 
-             input$sc1a1fsz, input$sc1a1asp, input$sc1a1txt) 
-  }) 
-  output$sc1a1oup2.ui <- renderUI({ 
-    plotOutput("sc1a1oup2", height = 600, width = 800) 
-  }) 
-  output$sc1a1oup2.pdf <- downloadHandler( 
-    filename = function() { paste0("sc1",input$sc1a1drX2,"_",input$sc1a1drY2,"_",  
-                                   input$sc1a1inp2,".pdf") }, 
-    content = function(file) { ggsave( 
-      file, device = "pdf", height = input$sc1a1oup2.h, width = input$sc1a1oup2.w, useDingbats = FALSE, 
-      plot = scDRgene(sc1conf, sc1meta, input$sc1a1drX2, input$sc1a1inp2,  
-                      input$sc1a1sub1, input$sc1a1sub2, 
-                      "sc1gexpr.h5", sc1gene, 
-                      input$sc1a1siz, input$sc1a1col2, input$sc1a1ord2, 
-                      input$sc1a1fsz, input$sc1a1asp, input$sc1a1txt) ) 
-    }) 
-  output$sc1a1oup2.png <- downloadHandler( 
-    filename = function() { paste0("sc1",input$sc1a1drX2,"_",input$sc1a1drY2,"_",  
-                                   input$sc1a1inp2,".png") }, 
-    content = function(file) { ggsave( 
-      file, device = "png", height = input$sc1a1oup2.h, width = input$sc1a1oup2.w, 
-      plot = scDRgene(sc1conf, sc1meta, input$sc1a1drX2, input$sc1a1inp2,  
-                      input$sc1a1sub1, input$sc1a1sub2, 
-                      "sc1gexpr.h5", sc1gene, 
-                      input$sc1a1siz, input$sc1a1col2, input$sc1a1ord2, 
-                      input$sc1a1fsz, input$sc1a1asp, input$sc1a1txt) ) 
-    }) 
-  
-  
+  output$sc1a1.dt <- renderDataTable(
+    {
+      ggData = scDRnum(
+        sc1conf,
+        sc1meta,
+        input$sc1a1inp1,
+        input$sc1a1inp2,
+        input$sc1a1sub1,
+        input$sc1a1sub2,
+        "sc1gexpr.h5",
+        sc1gene,
+        input$sc1a1splt
+      )
+      datatable(
+        ggData,
+        rownames = FALSE,
+        extensions = "Buttons",
+        options = list(
+          pageLength = -1, dom = "tB", buttons = c("copy", "csv", "excel")
+        )
+      ) %>% 
+        formatRound(columns = c("pctExpress"), digits = 2)
+    }
+  )
+  output$sc1a1oup2 <- renderPlot(
+    {
+      scDRgene(
+        sc1conf,
+        sc1meta,
+        input$sc1a1drX2,
+        input$sc1a1inp2,
+        input$sc1a1sub1,
+        input$sc1a1sub2,
+        "sc1gexpr.h5",
+        sc1gene,
+        input$sc1a1siz,
+        input$sc1a1col2,
+        input$sc1a1ord2,
+        input$sc1a1fsz,
+        input$sc1a1asp,
+        input$sc1a1txt
+      )
+    }
+  ) 
+  output$sc1a1oup2.ui <- renderUI(
+    {
+      plotOutput("sc1a1oup2", height = 600, width = 800) 
+    }
+  ) 
+  output$sc1a1oup2.pdf <- downloadHandler(4r
+    filename = function() {
+      paste0(
+        "sc1",
+        input$sc1a1drX2,
+        "_",
+        input$sc1a1drY2,
+        "_",
+        input$sc1a1inp2,
+        ".pdf"
+      )
+    },
+    content = function(file) {
+      ggsave( 
+        file,
+        device = "pdf",
+        height = input$sc1a1oup2.h,
+        width = input$sc1a1oup2.w,
+        useDingbats = FALSE, 
+        plot = scDRgene(
+          sc1conf,
+          sc1meta,
+          input$sc1a1drX2,
+          input$sc1a1inp2,
+          input$sc1a1sub1,
+          input$sc1a1sub2,
+          "sc1gexpr.h5",
+          sc1gene,
+          input$sc1a1siz,
+          input$sc1a1col2,
+          input$sc1a1ord2,
+          input$sc1a1fsz,
+          input$sc1a1asp,
+          input$sc1a1txt
+        )
+      )
+    }
+  ) 
+  output$sc1a1oup2.png <- downloadHandler(
+    filename = function() {
+      paste0(
+        "sc1",
+        input$sc1a1drX2,
+        "_",
+        input$sc1a1drY2,
+        "_",
+        input$sc1a1inp2,
+        ".png"
+      )
+    }, 
+    content = function(file) {
+      ggsave(
+        file,
+        device = "png",
+        height = input$sc1a1oup2.h,
+        width = input$sc1a1oup2.w,
+        plot = scDRgene(
+          sc1conf,
+          sc1meta,
+          input$sc1a1drX2,
+          input$sc1a1inp2,
+          input$sc1a1sub1,
+          input$sc1a1sub2,
+          "sc1gexpr.h5",
+          sc1gene,
+          input$sc1a1siz,
+          input$sc1a1col2,
+          input$sc1a1ord2,
+          input$sc1a1fsz,
+          input$sc1a1asp,
+          input$sc1a1txt
+        )
+      )
+    }
+  )
   ### Plots for tab a2 
   output$sc1a2sub1.ui <- renderUI({ 
     sub = strsplit(sc1conf[UI == input$sc1a2sub1]$fID, "\\|")[[1]] 
@@ -2917,18 +3057,6 @@ shinyServer(function(input, output, session) {
              content = c("Input motifs to plot",
                          "- Maximum 50 motifs (due to ploting space limitations)",
                          "- Motifs should be separated by comma, semicolon or newline"))
-    #   # geneList = scGeneList(input$sc1d1inp, sc1gene)
-    #   # if(nrow(geneList) > 50){
-    #   #   HTML("More than 50 input genes! Please reduce the gene list!")
-    #   # } else {
-    #   #   oup = paste0(nrow(geneList[present == TRUE]), "genes OK and will be plotted")
-    #   #   if(nrow(geneList[present == FALSE]) > 0){
-    #   #     oup = paste0(oup, "<br/>",
-    #   #                  nrow(geneList[present == FALSE]), "genes not found (",
-    #   #                  paste0(geneList[present == FALSE]$gene, collapse = ", "), ")")
-    #   #   }
-    #   # HTML(oup)
-    #   # }
   })
   
   output$sc2d1oup <- renderPlot({
@@ -2966,12 +3094,4 @@ shinyServer(function(input, output, session) {
       
     })
   
-  ###########################################################  
-  
-  
-  
 }) 
-
-
-
-
