@@ -1,4 +1,4 @@
-''' Workflow for converting ATAC fragments (fragments.tss.gz) into ArchR
+''' Workflow for converting ATAC fragments (fragments.tsv.gz) into ArchR
 objects for downstream analysis; additionally, generates UMAP and
 SpatialDimPlots for a list of lsi_varfeatures.
 '''
