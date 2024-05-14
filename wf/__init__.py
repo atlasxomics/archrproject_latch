@@ -26,6 +26,7 @@ from wf.upload_to_registry import upload_to_registry, Run
 class Genome(Enum):
     mm10 = 'mm10'
     hg38 = 'hg38'
+    rnor6 = 'rnor6'
 
 
 @custom_task(cpu=62, memory=384, storage_gib=500)

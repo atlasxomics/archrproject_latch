@@ -52,13 +52,13 @@ plot_feature <- function(seurat_obj, feature, name) {
     alpha = c(0.2, 1),
     pt.size.factor = 1,
     crop = FALSE
-    ) +
-      ggtitle(name) +
-      theme(
-        legend.position = "right",
-        plot.title = element_text(size = 15, hjust = 0.5),
-        text = element_text(size = 10)
-      )
+  ) +
+    ggtitle(name) +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(size = 15, hjust = 0.5),
+      text = element_text(size = 10)
+    )
 }
 
 plot_spatial <- function(seurat_object, name) {
@@ -74,10 +74,11 @@ plot_spatial <- function(seurat_object, name) {
     image.alpha = 0,
     crop = FALSE,
     cols = colors,
-    stroke = 0) +
+    stroke = 0
+    ) +
       ggtitle(name) +
       theme(
-        plot.title = element_text(size= 15),
+        plot.title = element_text(size = 15),
         text = element_text(size = 10),
         legend.position = "bottom"
       )
@@ -97,9 +98,9 @@ plot_geneset <- function(seurat_obj, marker_genes, name, title) {
     pt = 1,
     features = paste0(name, 1),
     crop = FALSE
-    ) +
-      ggtitle(title) +
-      theme(plot.title = element_text(hjust = 0.5))
+  ) +
+    ggtitle(title) +
+    theme(plot.title = element_text(hjust = 0.5))
 }
 
 plot_umap <- function(archrproj, name) {
@@ -123,9 +124,8 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
     axis.text.x = element_text(angle = Xang, hjust = XjusH),
     legend.position = "bottom",
     legend.key = element_rect(colour = NA, fill = NA),
-    
   )
-  if(!XYval) {
+  if (!XYval) {
     oupTheme <- oupTheme + theme(
       axis.text.x = element_blank(), axis.ticks.x = element_blank(),
       axis.text.y = element_blank(), axis.ticks.y = element_blank())
@@ -145,7 +145,8 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
     ifelse(
       ggData$avg_log2FC > 0.0,
       condition1,
-      condition2),
+      condition2
+    ),
     "Not siginficant"
   )
 
@@ -161,8 +162,7 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
   ggData$log10fdr <- -log10(ggData$p_val_adj)
 
   # Actual ggplot
-  ggOut <-
-    ggplot(ggData, aes(avg_log2FC, log10fdr)) +
+  ggOut <- ggplot(ggData, aes(avg_log2FC, log10fdr)) +
     geom_point() +
     sctheme() +
     ylab("-log10(FDR)") +
@@ -178,4 +178,24 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
       legend.title = element_text(size = 18)
     )
   return(ggOut)
+}
+
+add_motif_annotations <- function(proj, genome) {
+  if (genome == "hg38" || genome == "mm10") {
+    proj <- addMotifAnnotations(
+      ArchRProj = proj,
+      motifSet = "cisbp",
+      name = "Motif",
+      force = TRUE
+    )
+  } else {
+    proj <- addMotifAnnotations(
+      ArchRProj = proj,
+      motifSet = "encode",
+      name = "Motif",
+      force = TRUE,
+      species = getGenome(ArchRProj = proj)
+    )
+  }
+  return(proj)
 }
