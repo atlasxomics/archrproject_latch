@@ -63,7 +63,7 @@ RUN R CMD javareconf
 RUN echo "TZ=$( cat /etc/timezone )" >> /etc/R/Renviron.site
 
 # Installation of R packages with renv
-RUN R -e "install.packages('https://cran.r-project.org/src/contrib/renv_1.0.5.tar.gz', repos = NULL, type = 'source')"
+RUN R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/renv/renv_1.0.5.tar.gz', repos = NULL, type = 'source')"
 COPY renv.lock /root/renv.lock
 RUN mkdir /root/renv
 COPY renv/activate.R /root/renv/activate.R
@@ -80,6 +80,8 @@ COPY www /root/www
 
 COPY uiserver50by50 /root/uiserver50by50
 COPY uiserver96by96 /root/uiserver96by96
+
+COPY custom_ArchR_genomes_and_annotations /root/custom_ArchR_genomes_and_annotations
 
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
