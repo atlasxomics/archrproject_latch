@@ -564,7 +564,7 @@ scDRcoexNum <- function(
   ggData[val1 > 0]$express <- inp1
   ggData[val2 > 0]$express <- inp2
   ggData[val1 > 0 & val2 > 0]$express <- "both"
-  ggData$express = factor(
+  ggData$express <- factor(
     ggData$express, levels = unique(c("both", inp1, inp2, "none"))
   )
   ggData <- ggData[, .(nCells = .N), by = "express"]
@@ -590,39 +590,41 @@ scVioBox <- function(
   inpsiz,
   inpfsz
 ) {
-  if(is.null(inpsub1)){inpsub1 = inpConf$UI[1]} 
-  # Prepare ggData 
-  ggData = inpMeta[,
+  if (is.null(inpsub1)) {
+    inpsub1 <- inpConf$UI[1]
+  }
+  # Prepare ggData
+  ggData <- inpMeta[,
     c(inpConf[UI == inp1]$ID, inpConf[UI == inpsub1]$ID),
     with = FALSE
   ]
-  colnames(ggData) = c("X", "sub")
+  colnames(ggData) <- c("X", "sub")
 
   # Load in either cell meta or gene expr
   if (inp2 %in% inpConf$UI) {
     ggData$val <- inpMeta[[inpConf[UI == inp2]$ID]]
   } else {
-    h5file <- H5File$new(inpH5, mode = "r") 
-    h5data <- h5file[["grp"]][["data"]] 
-    ggData$val = h5data$read(args = list(inpGene[inp2], quote(expr=))) 
-    ggData[val < 0]$val = 0 
-    set.seed(42) 
-    tmpNoise = rnorm(length(ggData$val)) * diff(range(ggData$val)) / 1000 
-    ggData$val = ggData$val + tmpNoise 
-    h5file$close_all() 
-  } 
-  if(length(inpsub2) != 0 & length(inpsub2) != nlevels(ggData$sub)){ 
-    ggData = ggData[sub %in% inpsub2] 
-  } 
-  
-  # Do factoring 
+    h5file <- H5File$new(inpH5, mode = "r")
+    h5data <- h5file[["grp"]][["data"]]
+    ggData$val <- h5data$read(args = list(inpGene[inp2], quote(expr=)))
+    ggData[val < 0]$val <- 0
+    set.seed(42)
+    tmpNoise = rnorm(length(ggData$val)) * diff(range(ggData$val)) / 1000
+    ggData$val = ggData$val + tmpNoise
+    h5file$close_all()
+  }
+  if(length(inpsub2) != 0 & length(inpsub2) != nlevels(ggData$sub)) {
+    ggData <- ggData[sub %in% inpsub2]
+  }
+
+  # Do factoring
   ggCol <- inpsub3
-  names(ggCol) = levels(ggData$X) 
-  ggLvl = levels(ggData$X)[levels(ggData$X) %in% unique(ggData$X)] 
-  ggData$X = factor(ggData$X, levels = ggLvl) 
-  ggCol = ggCol[ggLvl] 
-  
-  # Actual ggplot 
+  names(ggCol) <- levels(ggData$X)
+  ggLvl <- levels(ggData$X)[levels(ggData$X) %in% unique(ggData$X)] 
+  ggData$X <- factor(ggData$X, levels = ggLvl) 
+  ggCol <- ggCol[ggLvl] 
+
+  # Actual ggplot
   if(inptyp == "violin") {
     ggOut = ggplot(ggData, aes(X, val, fill = X))
       + geom_violin(scale = "width")
@@ -851,11 +853,12 @@ scBubbHeat <- function(
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     
     nClust <- ncol(mat)
-    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
-      'X'
-      , 'Clusters'
-      ,treatment
-      ,"Sample")]
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[, c(
+      "X",
+      "Clusters",
+      treatment,
+      "Sample"
+    )]
     
     d <-  list()
     out <-  list()
@@ -865,7 +868,7 @@ scBubbHeat <- function(
     
     for (i in seq_along(1:nClust)) {
       
-      d[[i]] <- ggData1[,c(1,i+1)]
+      d[[i]] <- ggData1[, c(1, i + 1)]
       cluster[[i]] <- paste0("C", i)
       n1[[i]] = nrow(
         req_meta_data[which(req_meta_data$Clusters == cluster[[i]]), ]
@@ -931,20 +934,37 @@ scBubbHeat <- function(
       
     }
     
-    out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Sample==y),]$X,1,each=n2)), out,samples)
-    out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Sample",nrow(x))))
-    out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,samples)
+    out <- mapply(
+      function(x, y) DataFrame(geneName = rep(x[, 1], y), val = rep(x[, 2], y)),
+      d,
+      n1
+    )
+    out <- mapply(
+      function(x,y) DataFrame(
+        x,
+        sampleID = rep(
+          req_meta_data[which(req_meta_data$Sample == y), ]$X, 1, each = n2
+        )
+      ),
+      out,
+      samples
+    )
+    out <- lapply(
+      out, function(x) DataFrame(x, grpBy = rep("Sample", nrow(x)))
+    )
+    out <- mapply(
+      function(x, y) DataFrame(x, sub = rep(y, nrow(x))), out, samples
+    )
     
     h5data <- as.data.frame(do.call("rbind", out))
     
   } else {
-    idx = as.integer(unlist(strsplit(inpGrp,"_"))[2])
+    idx = as.integer(unlist(strsplit(inpGrp, "_"))[2])
     
     seMarker <- seMarker_treatment[[idx]]
     
     for(iGene in geneList$gene){
-      seMarker <- seMarker[which(rowData(seMarker)$name%in%geneList$gene),]
+      seMarker <- seMarker[which(rowData(seMarker)$name %in% geneList$gene), ]
     }
     mat = Creat_matrix(seMarker)
     ggData1 = as.data.frame(mat)
@@ -955,9 +975,8 @@ scBubbHeat <- function(
     nTreatment <- ncol(mat)
     
     req_meta_data <- read.csv(
-      "./tables/req_meta_data.csv")[
-        , c("X", "Clusters", treatment, "Sample")
-    ]
+      "./tables/req_meta_data.csv"
+    )[, c("X", "Clusters", treatment, "Sample")]
     
     d <-  list()
     out <-  list()
@@ -994,7 +1013,11 @@ scBubbHeat <- function(
   if (length(inpsub2) != 0 & length(inpsub2) != nlevels(ggData$sub)) {
     ggData = ggData[sub %in% inpsub2]
   }
-  shiny::validate(need(uniqueN(ggData$grpBy) > 1, "Only 1 group present, unable to plot!"))
+  shiny::validate(
+    need(
+      uniqueN(ggData$grpBy) > 1, "Only 1 group present, unable to plot!"
+    )
+  )
   colRange = c(-max(abs(range(ggData$val))), max(abs(range(ggData$val))))
   
   if(inpRow){
@@ -1313,12 +1336,11 @@ scBubbHeat2 <- function(
     h5data <- as.data.frame(do.call("rbind", out))
     
   } else if (inpGrp=="Sample") {
-    
-    
+
     seEnrich <- seEnrich_sample
-    
-    for(iGene in geneList$gene){
-      seEnrich <- seEnrich[which(rownames(seEnrich)%in%geneList$gene),]
+
+    for (iGene in geneList$gene) {
+      seEnrich <- seEnrich[which(rownames(seEnrich) %in% geneList$gene), ]
     }
     mat = Creat_matrix_motif(seEnrich)
     
@@ -1328,11 +1350,12 @@ scBubbHeat2 <- function(
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     nSample <- ncol(mat) 
     
-    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
-      'X'
-      , 'Clusters'
-      ,treatment
-      ,"Sample")]
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[, c(
+      "X",
+      "Clusters",
+      treatment,
+      "Sample"
+    )]
     
     d <-  list()
     out <-  list()
@@ -1378,14 +1401,14 @@ scBubbHeat2 <- function(
     n1 <-  list()
     n2 = nrow(ggData1)
     AllTreatment <-  colnames(mat)
-    
+
     Treatment <- list()
-    for (i in seq_along(1:nTreatment)){
-      
+    for (i in seq_along(1:nTreatment)) {
+
       d[[i]] <- ggData1[,c(1,i+1)]
       Treatment[[i]] <- AllTreatment[i]
       n1[[i]] = nrow(req_meta_data[which(req_meta_data[[inpGrp]]==Treatment[[i]]),])
-      
+
     }
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data[[inpGrp]]==y),]$X,1,each=n2)), out,Treatment)
@@ -1426,7 +1449,7 @@ scBubbHeat2 <- function(
 
   cmplxData = data.table()
   for(iGene in geneList$gene){
-    fo r(iclst in as.character(unique(ggData$grpBy))) {
+    for (iclst in as.character(unique(ggData$grpBy))) {
       temp <-  ggData[
         which(ggData$geneName==iGene & ggData$grpBy == iclst),
       ][1, ]
@@ -1457,11 +1480,12 @@ scBubbHeat2 <- function(
 
   # Actual plot according to plottype 
   if (inpPlt == "Bubbleplot") {
-    #we don't use bubble plot
-  } else {
-    # Heatmap
+    # we don't use bubble plot
+  } else { # Heatmap
     customRowLabel <- rownames(cmplxData3)
-    customRowLabelIDs <- as.numeric(rownames(as.data.frame(rownames(cmplxData3))))
+    customRowLabelIDs <- as.numeric(
+      rownames(as.data.frame(rownames(cmplxData3)))
+    )
     fontSizeLabels <- 7
     ggOut = ComplexHeatmap::draw(
       ComplexHeatmap::Heatmap(

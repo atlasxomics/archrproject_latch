@@ -84,8 +84,8 @@ pList3 = c("600px", "800px", "1000px")
 names(pList3) = c("Small", "Medium", "Large") 
 sList = c(18,24,30) 
 names(sList) = c("Small", "Medium", "Large") 
-lList = c(5,6,7) 
-names(lList) = c("Small", "Medium", "Large") 
+lList = c(5,6,7)
+names(lList) = c("Small", "Medium", "Large")
 
 # Function to extract legend
 g_legend <- function(a.gplot){  
@@ -303,9 +303,7 @@ scDRgene <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2,
     }  else  {
       
       p <- p 
-    }
-    
-    
+    } 
   }
   
   return(p)
@@ -380,11 +378,6 @@ scDRcoex <- function(inpConf, inpMeta, inpdrX, inp,
   }
   
   return(plotAllLayers(ggOut))
-  
-  
-  
-  
-  # return(ggOut) 
 } 
 
 scDRcoexLeg <- function(inp1, inp2, inpcol, inpfsz){ 
@@ -556,8 +549,7 @@ scGeneList <- function(inp, inpGene){
   return(geneList) 
 } 
 
-
-# Plot gene expression bubbleplot / heatmap for genes #####################################################################################
+# Plot gene expression bubbleplot / heatmap for genes #########################
 # create heatmap matrix
 
 Creat_matrix <-  function(seMarker){
@@ -632,19 +624,22 @@ Creat_matrix <-  function(seMarker){
   }
   rownames(mat) <- rn
   rownames(passMat) <- rn
-  return(mat)
-  
+  return(mat) 
 }
 
-
-scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt, 
-                       inpsub1, inpsub2, inpH5, inpGene, inpScl,
-                       inpRow, inpCol, inpcols, inpfsz, save = FALSE) { 
-  if(is.null(inpsub1)){inpsub1 = inpConf$UI[1]} 
+scBubbHeat <- function(
+  inpConf, inpMeta, inp, inpGrp, inpPlt, 
+  inpsub1, inpsub2, inpH5, inpGene, inpScl,
+  inpRow, inpCol, inpcols, inpfsz, save = FALSE
+) {
+  if (is.null(inpsub1)) {
+    inpsub1 = inpConf$UI[1]
+  }
+  
   # Identify genes that are in our dataset 
   geneList = scGeneList(inp, inpGene) 
   geneList = geneList[present == TRUE] 
-  # shiny::validate(need(nrow(geneList) <= 50, "More than 50 genes to plot! Please reduce the gene list!"))
+
   shiny::validate(need(nrow(geneList) > 1, "Please input at least 2 genes to plot!")) 
   
   
@@ -687,11 +682,8 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     }
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
     
     h5data <- as.data.frame(do.call("rbind", out))  
@@ -730,30 +722,19 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       samples[[i]] <- Allsamples[i]
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Sample==samples[[i]]),])
-      
     }
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Sample==y),]$X,1,each=n2)), out,samples)
-    
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Sample",nrow(x))))
-    
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,samples)
     
     
     h5data <- as.data.frame(do.call("rbind", out))
     
-    
-    
   } else {
     
-    
     idx = as.integer(unlist(strsplit(inpGrp,"_"))[2])
-    
     
     seMarker <- seMarker_treatment[[idx]]
     
@@ -785,12 +766,9 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       Treatment[[i]] <- AllTreatment[i]
       n1[[i]] = nrow(req_meta_data[which(req_meta_data[[inpGrp]]==Treatment[[i]]),])
-      
     }
     
-    
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
     
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data[[inpGrp]]==y),]$X,1,each=n2)), out,Treatment)
     
@@ -877,15 +855,14 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       col = cList[[inpcols]],
       show_column_names = T,
       cluster_columns = clusterCols,
-      show_column_dend = T,
-      show_row_names = T,
+      show_column_dend = TRUE,
+      show_row_names = TRUE,
       cluster_rows = clusterRows)+
         rowAnnotation(foo = anno_mark(at= customRowLabelIDs, labels = customRowLabel
                                       ,labels_gp = gpar(fontsize = fontSizeLabels)
         )))
     
   }
-  
   
   return(ggOut)
 }
@@ -1294,16 +1271,8 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
   } 
   
-  
-  
-  
-  
-  return(ggOut) ########################################################################################
+  return(ggOut) ###############################################################
 }
-
-
-
-
 
 ### Start server code 
 shinyServer(function(input, output, session) { 
@@ -1500,25 +1469,34 @@ shinyServer(function(input, output, session) {
           # ,width = 2
         )})) }
     
-    
     #   create color selectors for plot
-    
     dashboardSidebar(  # create mask for user interaction
       collapsed = TRUE,
       title = "Choose colors for the plot.",
-
-      # If you want to have color pallet in 4 columns
+      
       tags$style(HTML(".main-sidebar { font-size: 0px; }")),
       splitLayout(
         tryCatch(colInput(dcn())[[1]], error = function(e){""}),
         tryCatch(colInput(dcn())[[2]], error = function(e){""}),
         tryCatch(colInput(dcn())[[3]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[4]], error = function(e){""}),
         tryCatch(colInput(dcn())[[5]], error = function(e){""}),
         tryCatch(colInput(dcn())[[6]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[7]], error = function(e){""}),
         tryCatch(colInput(dcn())[[8]], error = function(e){""}),
         tryCatch(colInput(dcn())[[9]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[10]], error = function(e){""}),
         tryCatch(colInput(dcn())[[11]], error = function(e){""}),
         tryCatch(colInput(dcn())[[12]], error = function(e){""}),
@@ -1529,12 +1507,24 @@ shinyServer(function(input, output, session) {
         tryCatch(colInput(dcn())[[13]], error = function(e){""}),
         tryCatch(colInput(dcn())[[14]], error = function(e){""}),
         tryCatch(colInput(dcn())[[15]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[16]], error = function(e){""}),
         tryCatch(colInput(dcn())[[17]], error = function(e){""}),
         tryCatch(colInput(dcn())[[18]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[19]], error = function(e){""}),
         tryCatch(colInput(dcn())[[20]], error = function(e){""}),
         tryCatch(colInput(dcn())[[21]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[22]], error = function(e){""}),
         tryCatch(colInput(dcn())[[23]], error = function(e){""}),
         tryCatch(colInput(dcn())[[24]], error = function(e){""}),
@@ -1545,12 +1535,24 @@ shinyServer(function(input, output, session) {
         tryCatch(colInput(dcn())[[25]], error = function(e){""}),
         tryCatch(colInput(dcn())[[26]], error = function(e){""}),
         tryCatch(colInput(dcn())[[27]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[28]], error = function(e){""}),
         tryCatch(colInput(dcn())[[29]], error = function(e){""}),
         tryCatch(colInput(dcn())[[30]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[31]], error = function(e){""}),
         tryCatch(colInput(dcn())[[32]], error = function(e){""}),
         tryCatch(colInput(dcn())[[33]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
         tryCatch(colInput(dcn())[[34]], error = function(e){""}),
         tryCatch(colInput(dcn())[[35]], error = function(e){""}),
         tryCatch(colInput(dcn())[[36]], error = function(e){""}),
@@ -1561,7 +1563,6 @@ shinyServer(function(input, output, session) {
         tryCatch(colInput(dcn())[[37]],error = function(e){""}),
         tryCatch(colInput(dcn())[[38]], error = function(e){""}),
         tryCatch(colInput(dcn())[[39]], error = function(e){""}),
-        tryCatch(colInput(dcn())[[40]], error = function(e){""}),
         cellArgs = list (style = "overflow:visible; width: 88px"),
         align = "left"
       ),
@@ -1765,7 +1766,7 @@ shinyServer(function(input, output, session) {
       plotOutput("sc1a1oup2", height = 600, width = 800) 
     }
   ) 
-  output$sc1a1oup2.pdf <- downloadHandler(4r
+  output$sc1a1oup2.pdf <- downloadHandler(
     filename = function() {
       paste0(
         "sc1",
@@ -2107,8 +2108,6 @@ shinyServer(function(input, output, session) {
                       input$sc1b2fsz, input$sc1b2asp, input$sc1b2txt) ) 
     }) 
   
-  
-  
   ### Plots for tab c1 
   output$sc1c1sub1.ui <- renderUI({ 
     sub = strsplit(sc1conf[UI == input$sc1c1sub1]$fID, "\\|")[[1]] 
@@ -2134,7 +2133,6 @@ shinyServer(function(input, output, session) {
                "sc1gexpr.h5", sc1gene, input$sc1c1typ, input$sc1c1pts, 
                input$sc1c1siz, input$sc1c1fsz) 
     })  
-    
     
   }, ignoreInit=TRUE
           )
@@ -2172,7 +2170,6 @@ shinyServer(function(input, output, session) {
                       input$sc1c1siz, input$sc1c1fsz) ) 
     }) 
   
-  
   ### Plots for tab c2 
   
   output$sc1c2sub1.ui <- renderUI({
@@ -2192,15 +2189,12 @@ shinyServer(function(input, output, session) {
   }) 
   
   observeEvent(input$sc1c2togL, {
-    
     output$sc1c2oup <- renderPlot({
       scProp(sc1conf, sc1meta, input$sc1c2inp1, input$sc1c2inp2,
              input$sc1c2sub1, input$sc1c2sub2,
              read.csv(paste0('colorset_',input$sc1c2inp2,'.csv'))$x,
              input$sc1c2typ, input$sc1c2flp, input$sc1c2fsz)
     })
-    
-    
     
   }, ignoreInit=TRUE
   )
@@ -2234,7 +2228,6 @@ shinyServer(function(input, output, session) {
                     input$sc1c2typ, input$sc1c2flp, input$sc1c2fsz) ) 
     }) 
   
-  
   ### Plots for tab d1 
   output$sc1d1sub1.ui <- renderUI({ 
     sub = strsplit(sc1conf[UI == input$sc1d1sub1]$fID, "\\|")[[1]] 
@@ -2252,32 +2245,17 @@ shinyServer(function(input, output, session) {
                              choices = sub, selected = sub, inline = TRUE) 
   }) 
   
-  
   output$sc1d1oupTxt <- renderUI({ 
     x <- input$sc1d1grp
-    # # updateTextAreaInput(session, "sc1d1inp", value = paste0(sc1def[[x]], collapse = ", "))
     textAreaInput("sc1d1inp", HTML("List of gene names (Max 50 genes, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
                   value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on bubbleplot / heatmap",
              content = c("Input genes to plot",
                          "- Maximum 50 genes (due to ploting space limitations)",
                          "- Genes should be separated by comma, semicolon or newline"))
-    # geneList = scGeneList(input$sc1d1inp, sc1gene)
-    # if(nrow(geneList) > 50){
-    #   HTML("More than 50 input genes! Please reduce the gene list!")
-    # } else {
-    #   oup = paste0(nrow(geneList[present == TRUE]), "genes OK and will be plotted")
-    #   if(nrow(geneList[present == FALSE]) > 0){
-    #     oup = paste0(oup, "<br/>",
-    #                  nrow(geneList[present == FALSE]), "genes not found (",
-    #                  paste0(geneList[present == FALSE]$gene, collapse = ", "), ")")
-    #   }
-    # HTML(oup)
-    # }
   })
   
   output$sc1d1oup <- renderPlot({ 
@@ -2314,12 +2292,9 @@ shinyServer(function(input, output, session) {
   
   ################################################################################  
   
-  
   # ### Tab1.x2: New tab for genome tracks
   
-  
   choices <- unname(getGenes(ArchRProj = proj)$symbol)
-  
   
   updateSelectizeInput(session, "sc1trackinp", choices = choices, server = TRUE,
                        selected = choices[1], options = list(
@@ -2341,10 +2316,6 @@ shinyServer(function(input, output, session) {
     
   }, priority = 200)
   
-  
-  
-  
-  
   sctrack <- function(x,y,z,g){
     # Prepare tracks
     upstream <- -min(z)*1000
@@ -2365,7 +2336,6 @@ shinyServer(function(input, output, session) {
     
   }
   
-  
   output$sc1trackoup <- renderPlot({
     
     sctrack(input$sc1trackinp
@@ -2375,13 +2345,9 @@ shinyServer(function(input, output, session) {
     
   }, height = 550, width = 850)
   
-  
-  
   output$sc1trackoup.ui <- renderUI({
     plotOutput("sc1trackoup", height = pList[input$sc1a1psz])
   })
-  
-  
   
   output$sc1trackoup.pdf <- downloadHandler(
     filename = function() { paste0("sc1","_","tracks",".pdf") },
@@ -2395,10 +2361,6 @@ shinyServer(function(input, output, session) {
                 ,input$sc1trackgrp
                 ,input$range_min_1,input$range_max_1
         )
-        
-        
-        
-        
       )
       dev.off()
     })
@@ -2418,15 +2380,6 @@ shinyServer(function(input, output, session) {
       dev.off()
       
     })
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   optCrt="{ option_create: function(data,escape) {return('<div class=\"create\"><strong>' + '</strong></div>');} }" 
   updateSelectizeInput(session, "sc2a1inp2", choices = names(sc2gene), server = TRUE,
@@ -2542,20 +2495,10 @@ shinyServer(function(input, output, session) {
     lapply(datalist_m,volcplot_m)   
   }
   
-  # output$sc2de1oup <- renderPlot({
-  #   
-  #   i<- grep(input$sc2de1subgrp,sort(unique(proj@cellColData[input$sc2de1grp][,1])))
-  #   scvolcano_m(input$sc2de1grp)[[i]]
-    
-    
-    # , height = 450, width = 750
-  # })
-  
   output$sc2de1oup <- renderPlot({
     scvolcano_m(input$sc2de1grp)
     
   }, height = 450, width = 750)
-  
   
   output$sc2de1oup.ui <- renderUI({
     plotOutput("sc2de1oup", height = pList[input$sc2a1psz])

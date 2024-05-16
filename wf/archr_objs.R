@@ -1626,7 +1626,7 @@ treatment <- names(getCellColData(proj))[
   grep("condition_", names(getCellColData(proj)))
 ]
 
-req_conditions <- c('Clusters',treatment)
+req_conditions <- c('Clusters', treatment)
 
 for (i in req_conditions) {
   bws <- getGroupBW(
@@ -1664,7 +1664,7 @@ lapply(ProbMatrices, colSums) %>% range
 PWMatrixToProbMatrix <- function(x) {
   if (class(x) != "PWMatrix") stop("x must be a TFBSTools::PWMatrix object")
   m <- (exp(as(x, "matrix"))) * TFBSTools::bg(x) / sum(TFBSTools::bg(x))
-  m <- t(t(m)/colSums(m))
+  m <- t(t(m) / colSums(m))
   m
 }
 
@@ -1676,63 +1676,63 @@ saveRDS(ProbMatrices, "seqlogo.rds")
 ######creating combimed.rds files ########
 
 main_func <- function(seurat_lst, umap_embedding) {
-  
+
   find_samples_name <- function(seurat_lst) {
     # Extract list of sample names from list of SeuratObjs.
     sapply(seq_along(seurat_lst), function(i) {
       unique(seurat_lst[[i]]@meta.data$Sample)
     })
   }
-  
+
   samples <- find_samples_name(seurat_lst)
-  
+
   D00_fun <- function(seurat_lst) {
     # Remove samples without "counts" from list of SeuratObjs
     toRemove <- lapply(seurat_lst, function(x) {
       names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
-      }) 
+    })
     mapply(function(x, y) x[, !colnames(x) %in% y], seurat_lst, toRemove)
   }
-  
+
   D00 <- D00_fun(seurat_lst)
   
-  Spatial_D00_fun <- function(D00){
-    
+  Spatial_D00_fun <- function(D00) {
+
     Spatial_D00 <- lapply(D00, function(x) {
-      as.data.frame(x@images[[1]]@coordinates[,c(5,4)])
+      as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
     })
     Spatial_D00 <- lapply(Spatial_D00, function(x) {
       colnames(x) <- paste0("Spatial_", 1:2)
       x
-    })  
+    })
     lapply(Spatial_D00, function(x) {
-      x$Spatial_2 <- -(x$Spatial_2) 
+      x$Spatial_2 <- -(x$Spatial_2)
       x
     })
   }
-  
+
   Spatial_D00 <- Spatial_D00_fun(D00)
 
   Spatial_D00_all_fun <- function(Spatial_D00) {
-    
+
     tmp <- lapply(seq_along(Spatial_D00), function(i) {
       bind_rows(Spatial_D00[-i])
     })
     tmp <- lapply(tmp, function(x) {
-      x$Spatial_1<- 0
+      x$Spatial_1 <- 0
       x
     })
     tmp <- lapply(tmp, function(x) {
-      x$Spatial_2<- 0
+      x$Spatial_2 <- 0
       x
     })
     tmp <- lapply(seq_along(Spatial_D00), function(i) {
       as.matrix(rbind(Spatial_D00[[i]], tmp[[i]]))
     })
   }
-  
+
   Spatial_D00_all <- Spatial_D00_all_fun(Spatial_D00)
-  
+
   temp_fun <- function(D00) {
     # Convert list of SeuratObjs to list of Assay counts as dataframes.
     temp <- lapply(D00, function(x) {
@@ -1743,26 +1743,32 @@ main_func <- function(seurat_lst, umap_embedding) {
     temp <- lapply(temp, function(x) {
       x$region <- rownames(x)
       x
-    })  
+    })
   }
-  
+
   temp <- temp_fun(D00)
-  
+
   # merge seurat objects
   combined_mat <- purrr::reduce(temp, full_join, by = "region")
-  
+
   rownames(combined_mat) <- combined_mat$region
-  combined_mat$region<- NULL
-  
+  combined_mat$region <- NULL
+
   # remove extra cells
-  extra_cells <- setdiff(colnames(combined_mat), rownames(Spatial_D00_all[[1]]))
-  combined_mat <- combined_mat[, which(!colnames(combined_mat) %in% extra_cells)]
+  extra_cells <- setdiff(
+    colnames(combined_mat), rownames(Spatial_D00_all[[1]])
+  )
+  combined_mat <- combined_mat[
+    , which(!colnames(combined_mat) %in% extra_cells)
+  ]
   combined_mat <- as.matrix(combined_mat)
-  
-  # clean columns of metadata per sample that attached sample's name before rbind
+
+  # clean columns of metadata per sample that before rbind
   l <- D00
   l <- lapply(l, function(x) {
-    colnames(x@meta.data) <- gsub(paste0("_", Assays(x)), "", colnames(x@meta.data))
+    colnames(x@meta.data) <- gsub(
+      paste0("_", Assays(x)), "", colnames(x@meta.data)
+    )
     x
   })
   D00 <- l
@@ -1781,12 +1787,12 @@ main_func <- function(seurat_lst, umap_embedding) {
     assay = "scATAC",
     meta.data = meta.data
   )
-  
+
   combined@meta.data$Clusters <- factor(
     combined@meta.data$Clusters,
     levels = c(paste0("C", seq_along(unique(combined@meta.data$Clusters))))
   )
-  
+
   Spatial_D00 <- list()
   for (i in seq_along(samples)) {
     Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined), ]
