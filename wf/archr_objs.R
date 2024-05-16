@@ -357,7 +357,9 @@ for (i in seq_along(seurat_objs)) {
     new.names = paste0(
       unique(all[[i]]@meta.data$Sample),
       "#",
-      colnames(all[[i]]), "-1"
+      shiny_names_plots
+      colnames(all[[i]]),
+      "-1"
     )
   )
 }
@@ -440,7 +442,7 @@ gene_hm <- ComplexHeatmap::draw(
 )
 heatmaps[[1]] <- gene_hm
 
-###############################################################################
+##############################################################################
 
 # per sample
 
@@ -465,7 +467,6 @@ if (length(unique(proj$Sample)) > 1) {
     file = "marker_genes_per_sample.csv",
     row.names = FALSE
   )
-
   for (rd in names(proj@reducedDims)) {
     if (rd == "Harmony") {
       proj <- addImputeWeights(proj, reducedDims = "Harmony")
@@ -487,9 +488,8 @@ if (length(unique(proj$Sample)) > 1) {
   heatmapGS <- "There are not enough samples to be compared with!"
 }
 
-
 # per treatment
-######---------------------Identifying Marker Genes----------------------#######
+######---------------------Identifying Marker Genes----------------------######
 if (length(unique(proj$Condition)) > 1) {
 
   for (i in seq_along(treatment)) {
@@ -553,10 +553,12 @@ if (length(unique(proj$Condition) ) >1) {
     distr <- as.data.frame.matrix(round(prop.table(as.matrix(df1), 1), 2))
     lst <- list()
 
-    for (i in 1:nrow(distr)) {
+
+    for(i in 1:nrow(distr)) {
       row <- distr[i, ]
       if (
-        sum(unname(unlist(row)) >= 0.90) == 1) {
+        sum(unname(unlist(row)) >= 0.90) == 1
+      ) {
         rownames(row) -> lst[[i]]
       }
     }
@@ -569,6 +571,7 @@ if (length(unique(proj$Condition) ) >1) {
     req_clusters <- req_clusters[which(!req_clusters %in% not_req_list)]
     markerList_C <- list()
     proj_C <- list()
+
     for (i in seq_along(req_clusters)) {
 
       idxSample <- BiocGenerics::which(proj$Clusters == req_clusters[i])
@@ -982,8 +985,6 @@ if (length(unique(proj$Condition)) > 1) {
     )
   }
 }
-
-##################### Plot clust marker peaks, motifs #######################
 
 peak_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_peaks <- plotMarkerHeatmap(
@@ -1696,7 +1697,7 @@ main_func <- function(seurat_lst, umap_embedding) {
   Spatial_D00_fun <- function(D00) {
 
     Spatial_D00 <- lapply(D00, function(x) {
-      as.data.frame(x@images[[1]]@coordinates[,c(5,4)])
+      as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
     })
     Spatial_D00 <- lapply(Spatial_D00, function(x) {
       colnames(x) <- paste0("Spatial_", 1:2)

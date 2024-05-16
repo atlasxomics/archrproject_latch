@@ -155,7 +155,8 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
     levels = c(
       condition1,
       condition2,
-      "Not siginficant")
+      "Not siginficant"
+    )
   )
 
   ggData[ggData$p_val_adj < 1e-300, "p_val_adj"] <- 1e-300
@@ -163,20 +164,21 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
 
   # Actual ggplot
   ggOut <- ggplot(ggData, aes(avg_log2FC, log10fdr)) +
-    geom_point() +
-    sctheme() +
-    ylab("-log10(FDR)") +
-    geom_point(aes(color = Significance)) +
-    scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
-    geom_text_repel(
-      data = subset(ggData, p_val_adj < minfdr1),
-      aes(label = gene)) +
-    ggtitle(paste("Markers:", feature)) +
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 20),
-      legend.text = element_text(size = 15),
-      legend.title = element_text(size = 18)
-    )
+      geom_point() +
+      sctheme() +
+      ylab("-log10(FDR)") +
+      geom_point(aes(color = Significance)) +
+      scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
+      geom_text_repel(
+        data = subset(ggData, p_val_adj < minfdr1),
+        aes(label = gene)
+      ) +
+      ggtitle(paste("Markers:", feature)) +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 20),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 18)
+      )
   return(ggOut)
 }
 

@@ -1,25 +1,25 @@
-library(shiny) 
-library(shinyhelper) 
-library(data.table) 
-library(Matrix) 
-library(DT) 
-library(magrittr) 
-library(ggplot2) 
-library(ggrepel) 
-library(hdf5r) 
-library(ggdendro) 
-library(gridExtra) 
-require(ggseqlogo)# Motif Logo
-library("ComplexHeatmap") #heatmap
-library("circlize") #heatmap
-library("S4Vectors")
-library("SummarizedExperiment")
-library("ggplotify")
 library("ArchR")
+library("circlize")
+library("ComplexHeatmap")
+library("data.table")
+library("DT")
+library("ggdendro")
+library("ggplotify")
+library("ggplot2")
+library("ggrepel")
+require("ggseqlogo")
+library("gridExtra")
+library("hdf5r")
+library("magrittr")
+library("Matrix")
+library("purrr")
+library("RColorBrewer")
+library("shiny")
+library("shinyhelper")
 library("Seurat")
 library("stringi")
-library(RColorBrewer)
-library(purrr)
+library("SummarizedExperiment")
+library("S4Vectors")
 
 tempdir <- getwd()
 ArchRobj <- system(paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), intern = TRUE)
@@ -691,27 +691,15 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
-    # 
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-    
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
-    
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
     
   } else if (inpGrp=="Sample") {
-    
     
     seMarker <- seMarker_sample 
     
@@ -800,26 +788,15 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       Treatment[[i]] <- AllTreatment[i]
       n1[[i]] = nrow(req_meta_data[which(req_meta_data[[inpGrp]]==Treatment[[i]]),])
-      
     }
     
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data[[inpGrp]]==y),]$X,1,each=n2)), out,Treatment)
-    
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep(inpGrp,nrow(x))))
-    
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,Treatment)
     
-    
-    
     h5data <- as.data.frame(do.call("rbind", out))
-    
-    
   }
   
   ggData = data.table()
@@ -833,20 +810,18 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     ggData = rbindlist(list(ggData, tmp))
   }
   
-  
-  if(length(inpsub2) != 0 & length(inpsub2) != nlevels(ggData$sub)){
+  if (length(inpsub2) != 0 & length(inpsub2) != nlevels(ggData$sub)) {
     ggData = ggData[sub %in% inpsub2]
-    
   }
   shiny::validate(need(uniqueN(ggData$grpBy) > 1, "Only 1 group present, unable to plot!"))
   colRange = c(-max(abs(range(ggData$val))), max(abs(range(ggData$val))))
   
-  if(inpRow){
+  if (inpRow) {
     clusterRows = TRUE
   } else {
     clusterRows = FALSE
   }
-  if(inpCol){
+  if (inpCol){
     clusterCols = TRUE
   } else {
     clusterCols = FALSE
@@ -875,8 +850,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
   
   
   # Actual plot according to plottype 
-  if(inpPlt == "Bubbleplot"){
-    
+  if (inpPlt == "Bubbleplot") {
     #we don't use bubble plot
     
   } else {
@@ -900,8 +874,6 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
         )))
     
   }
-  
-  
   return(ggOut)
 }
 
@@ -978,9 +950,7 @@ Creat_matrix_motif <- function(
     rastr = TRUE,
     transpose = FALSE,
     returnMatrix = TRUE
-){
-  
-  
+) {
   mat <- assays(seEnrich)[["mlog10Padj"]]
   
   keep <- lapply(seq_len(ncol(mat)), function(x){
@@ -1502,9 +1472,6 @@ shinyServer(function(input, output, session) {
          }
                })
   
-  
-  
-  
   output$sc1a1sub3.ui <- renderUI({
     
     colInput <- function(vecFeats) { # vecFeats = vector of feature names for colors
@@ -1519,82 +1486,112 @@ shinyServer(function(input, output, session) {
           ,showColour = "both"  # show hex and color itself
           # ,width = 2
         )})) }
-    
-    
+
     #   create color selectors for plot
-    
     dashboardSidebar(  # create mask for user interaction
-      collapsed = TRUE
-      , title = "Choose colors for the plot."  # sidebar title
-      # ,.list = colInput(dcn())   # if you want to have color pallet in one column
+      collapsed = TRUE,
+      title = "Choose colors for the plot.",
       
-      # if you want to have color pallet in 4 columns, the below code is temporarily
-      
-      ,tags$style(HTML(".main-sidebar { font-size: 0px; }"))
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[1]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[2]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[3]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[4]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[5]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[6]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[7]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[8]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[9]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[10]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[11]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[12]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px") #; padding: 15px
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[13]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[14]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[15]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[16]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[17]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[18]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[19]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[20]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[21]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[22]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[23]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[24]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[25]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[26]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[27]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[28]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[29]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[30]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[31]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[32]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[33]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[34]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[35]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[36]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[37]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[38]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[39]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[40]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      ,actionButton("KeepMyColor", "KeepMyColor")
-      ,actionButton("DefaultColor", "DefaultColor")
-      
-      , write.csv(
-        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn()))
-        ,paste0('colorset_',input$sc1a1inp1,'.csv'))
-      
-    ) #dashboardSidebar
-    
-    
-  }) #renderUI
-  
+      tags$style(HTML(".main-sidebar { font-size: 0px; }")),
+      splitLayout(
+        tryCatch(colInput(dcn())[[1]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[2]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[3]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[4]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[5]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[6]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[7]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[8]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[9]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[10]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[11]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[12]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[13]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[14]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[15]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[16]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[17]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[18]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[19]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[20]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[21]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[22]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[23]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[24]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[25]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[26]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[27]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[28]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[29]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[30]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[31]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[32]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[33]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[34]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[35]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[36]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[37]],error = function(e){""}),
+        tryCatch(colInput(dcn())[[38]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[39]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      actionButton("KeepMyColor", "KeepMyColor"),
+      actionButton("DefaultColor", "DefaultColor"),
+      write.csv(
+        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn())),
+        paste0("colorset_", input$sc1a1inp1, ".csv")
+      )
+    )
+  })
   
   observeEvent(input$KeepMyColor, {
     write.csv(

@@ -1,26 +1,28 @@
-# this version produced to use when the project has only one Sample!
+# Version when project has only one Sample!
 
-library(shiny) 
-library(shinyhelper) 
-library(data.table) 
-library(Matrix) 
-library(DT) 
-library(magrittr) 
-library(ggplot2) 
-library(ggrepel) 
-library(hdf5r) 
-library(ggdendro) 
-library(gridExtra) 
-require(ggseqlogo)# Motif Logo
-library("ComplexHeatmap") #heatmap
-library("circlize") #heatmap
-library("S4Vectors")
-library("SummarizedExperiment")
-library("ggplotify")
 library("ArchR")
+library("circlize")
+library("ComplexHeatmap")
+library("data.table")
+library("DT")
+library("ggdendro")
+library("ggplotify")
+library("ggplot2")
+library("ggrepel")
+require("ggseqlogo")
+library("gridExtra")
+library("hdf5r")
+library("magrittr")
+library("Matrix")
+library("purrr")
+library("RColorBrewer")
+library("shiny")
+library("shinyhelper")
 library("Seurat")
 library("stringi")
-library(RColorBrewer)
+library("SummarizedExperiment")
+library("S4Vectors")
+
 
 tempdir <- getwd()
 ArchRobj <- system(paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), intern = TRUE)
@@ -1408,76 +1410,109 @@ shinyServer(function(input, output, session) {
     #   create color selectors for plot
     
     dashboardSidebar(  # create mask for user interaction
-      collapsed = TRUE
-      , title = "Choose colors for the plot."  # sidebar title
-      # ,.list = colInput(dcn())   # if you want to have color pallet in one column
+      collapsed = TRUE,
+      title = "Choose colors for the plot.",
       
-      # if you want to have color pallet in 4 columns, the below code is temporarily
-      
-      ,tags$style(HTML(".main-sidebar { font-size: 0px; }"))
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[1]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[2]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[3]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[4]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[5]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[6]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[7]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[8]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[9]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[10]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[11]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[12]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px") #; padding: 15px
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[13]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[14]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[15]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[16]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[17]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[18]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[19]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[20]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[21]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[22]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[23]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[24]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[25]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[26]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[27]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[28]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[29]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[30]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[31]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[32]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[33]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[34]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[35]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[36]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      
-      ,splitLayout( tryCatch(colInput(dcn())[[37]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[38]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[39]],error = function(e){''})
-                    ,tryCatch(colInput(dcn())[[40]],error = function(e){''})
-                    ,cellArgs = list (style = "overflow:visible; width: 88px")
-                    , align = "left")
-      ,actionButton("KeepMyColor", "KeepMyColor")
-      ,actionButton("DefaultColor", "DefaultColor")
-      
-      , write.csv(
-        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn()))
-        ,paste0('colorset_',input$sc1a1inp1,'.csv'))
-      
-    ) #dashboardSidebar
-    
-    
-  }) #renderUI
+      tags$style(HTML(".main-sidebar { font-size: 0px; }")),
+      splitLayout(
+        tryCatch(colInput(dcn())[[1]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[2]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[3]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[4]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[5]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[6]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[7]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[8]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[9]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[10]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[11]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[12]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[13]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[14]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[15]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[16]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[17]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[18]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[19]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[20]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[21]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[22]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[23]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[24]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[25]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[26]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[27]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[28]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[29]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[30]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[31]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[32]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[33]], error = function(e){""}),
+        cellArgs = list(style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[34]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[35]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[36]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      splitLayout(
+        tryCatch(colInput(dcn())[[37]],error = function(e){""}),
+        tryCatch(colInput(dcn())[[38]], error = function(e){""}),
+        tryCatch(colInput(dcn())[[39]], error = function(e){""}),
+        cellArgs = list (style = "overflow:visible; width: 88px"),
+        align = "left"
+      ),
+      actionButton("KeepMyColor", "KeepMyColor"),
+      actionButton("DefaultColor", "DefaultColor"),
+      write.csv(
+        colorRampPalette(brewer.pal(12, "Paired"))(length(dcn())),
+        paste0("colorset_", input$sc1a1inp1, ".csv")
+      )
+    )
+  })
   
   
   observeEvent(input$KeepMyColor, {
