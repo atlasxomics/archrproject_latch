@@ -52,13 +52,13 @@ plot_feature <- function(seurat_obj, feature, name) {
     alpha = c(0.2, 1),
     pt.size.factor = 1,
     crop = FALSE
-    ) +
-      ggtitle(name) +
-      theme(
-        legend.position = "right",
-        plot.title = element_text(size = 15, hjust = 0.5),
-        text = element_text(size = 10)
-      )
+  ) +
+    ggtitle(name) +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(size = 15, hjust = 0.5),
+      text = element_text(size = 10)
+    )
 }
 
 plot_spatial <- function(seurat_object, name) {
@@ -74,10 +74,11 @@ plot_spatial <- function(seurat_object, name) {
     image.alpha = 0,
     crop = FALSE,
     cols = colors,
-    stroke = 0) +
+    stroke = 0
+    ) +
       ggtitle(name) +
       theme(
-        plot.title = element_text(size= 15),
+        plot.title = element_text(size = 15),
         text = element_text(size = 10),
         legend.position = "bottom"
       )
@@ -123,7 +124,6 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
     axis.text.x = element_text(angle = Xang, hjust = XjusH),
     legend.position = "bottom",
     legend.key = element_rect(colour = NA, fill = NA),
-
   )
   if (!XYval) {
     oupTheme <- oupTheme + theme(
@@ -180,4 +180,24 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
         legend.title = element_text(size = 18)
       )
   return(ggOut)
+}
+
+add_motif_annotations <- function(proj, genome) {
+  if (genome == "hg38" || genome == "mm10") {
+    proj <- addMotifAnnotations(
+      ArchRProj = proj,
+      motifSet = "cisbp",
+      name = "Motif",
+      force = TRUE
+    )
+  } else {
+    proj <- addMotifAnnotations(
+      ArchRProj = proj,
+      motifSet = "encode",
+      name = "Motif",
+      force = TRUE,
+      species = getGenome(ArchRProj = proj)
+    )
+  }
+  return(proj)
 }
