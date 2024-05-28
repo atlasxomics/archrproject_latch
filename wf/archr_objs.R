@@ -357,7 +357,6 @@ for (i in seq_along(seurat_objs)) {
     new.names = paste0(
       unique(all[[i]]@meta.data$Sample),
       "#",
-      shiny_names_plots
       colnames(all[[i]]),
       "-1"
     )

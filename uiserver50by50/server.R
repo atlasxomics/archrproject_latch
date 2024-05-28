@@ -102,14 +102,6 @@ names(sList) <- c("Small", "Medium", "Large")
 lList <- c(5, 6, 7)
 names(lList) <- c("Small", "Medium", "Large")
 
-# Function to extract legend
-g_legend <- function(a.gplot) {
-  tmp <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(a.gplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  legend
-}
-
 # Plot theme
 sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
   oupTheme <- theme(
@@ -197,8 +189,7 @@ scDRcell <- function(
   ggOut <- ggplot2::ggplot(ggData, aes(X, Y, color = val))
   if (bgCells) {
     ggOut <- ggOut +
-      geom_point(
-        data = ggData2, color = "snow2", size = inpsiz, shape = 16)
+      geom_point(data = ggData2, color = "snow2", size = inpsiz, shape = 16)
   }
   ggOut <- ggOut +
     geom_point(size = inpsiz, shape = 16) +
@@ -381,8 +372,8 @@ scDRgene <- function(
     reduction <- substring(inpdrX, 1, nchar(inpdrX) - 2)
     if (reduction == i) {
       p <- p +
-      xlim(sc1def$limits[[i]][1], sc1def$limits[[i]][2]) +
-      ylim(sc1def$limits[[i]][3], sc1def$limits[[i]][4])
+        xlim(sc1def$limits[[i]][1], sc1def$limits[[i]][2]) +
+        ylim(sc1def$limits[[i]][3], sc1def$limits[[i]][4])
     } else {
       p <- p
     }
@@ -620,23 +611,23 @@ scVioBox <- function(
   # Do factoring
   ggCol <- inpsub3
   names(ggCol) <- levels(ggData$X)
-  ggLvl <- levels(ggData$X)[levels(ggData$X) %in% unique(ggData$X)] 
-  ggData$X <- factor(ggData$X, levels = ggLvl) 
-  ggCol <- ggCol[ggLvl] 
+  ggLvl <- levels(ggData$X)[levels(ggData$X) %in% unique(ggData$X)]
+  ggData$X <- factor(ggData$X, levels = ggLvl)
+  ggCol <- ggCol[ggLvl]
 
   # Actual ggplot
   if(inptyp == "violin") {
-    ggOut = ggplot(ggData, aes(X, val, fill = X))
+    ggOut <- ggplot(ggData, aes(X, val, fill = X))
       + geom_violin(scale = "width")
-  } else { 
-    ggOut = ggplot(ggData, aes(X, val, fill = X))
-      + geom_boxplot()
+  } else {
+    ggOut <- ggplot(ggData, aes(X, val, fill = X)) +
+      geom_boxplot()
   }
   if (inppts) {
     ggOut <- ggOut +
       geom_jitter(size = inpsiz, shape = 16)
   }
-  ggOut = ggOut +
+  ggOut <- ggOut +
     xlab(inp1) +
     ylab(inp2) +
     sctheme(base_size = sList[inpfsz], Xang = 45, XjusH = 1) +
@@ -645,7 +636,7 @@ scVioBox <- function(
   return(ggOut)
 }
 
-# Plot proportion plot 
+# Plot proportion plot
 scProp <- function(
   inpConf,
   inpMeta,
@@ -659,11 +650,11 @@ scProp <- function(
   inpfsz
 ) {
   if (is.null(inpsub1)) {
-    inpsub1 = inpConf$UI[1]
+    inpsub1 <- inpConf$UI[1]
   }
 
-  # Prepare ggData 
-  ggData = inpMeta[,
+  # Prepare ggData
+  ggData <- inpMeta[,
     c(
       inpConf[UI == inp1]$ID, inpConf[UI == inp2]$ID, inpConf[UI == inpsub1]$ID
     ),
@@ -673,18 +664,18 @@ scProp <- function(
   if (length(inpsub2) != 0 & length(inpsub2) != nlevels(ggData$sub)) {
     ggData = ggData[sub %in% inpsub2]
   }
-  ggData = ggData[, .(nCells = .N), by = c("X", "grp")]
-  ggData = ggData[, {
-    tot = sum(nCells)
+  ggData <- ggData[, .(nCells = .N), by = c("X", "grp")]
+  ggData <- ggData[, {
+    tot <- sum(nCells)
     .SD[, .(pctCells = 100 * sum(nCells) / tot, nCells = nCells), by = "grp"]
   },
-  by = "X"] 
+  by = "X"]
   ggCol <- inpsub3
-  
-  names(ggCol) = levels(ggData$grp)
-  ggLvl = levels(ggData$grp)[levels(ggData$grp) %in% unique(ggData$grp)] 
-  ggData$grp = factor(ggData$grp, levels = ggLvl) 
-  ggCol = ggCol[ggLvl] 
+
+  names(ggCol) <- levels(ggData$grp)
+  ggLvl <- levels(ggData$grp)[levels(ggData$grp) %in% unique(ggData$grp)] 
+  ggData$grp <- factor(ggData$grp, levels = ggLvl) 
+  ggCol <- ggCol[ggLvl] 
   
   # Actual ggplot 
   if(inptyp == "Proportion"){ 
@@ -706,11 +697,11 @@ scProp <- function(
 
 # Get gene list 
 scGeneList <- function(inp, inpGene) {
-  geneList = data.table(
+  geneList <- data.table(
     gene = unique(trimws(strsplit(inp, ",|;|")[[1]])),
     present = TRUE
   )
-  geneList[!gene %in% names(inpGene)]$present = FALSE
+  geneList[!gene %in% names(inpGene)]$present <- FALSE
   return(geneList)
 } 
 
@@ -875,14 +866,14 @@ scBubbHeat <- function(
       ) 
     }
     out <- mapply(
-      function(x, y) DataFrame(
+      function(x, y) S4Vectors::DataFrame(
         geneName = rep(x[, 1], y), val = rep(x[, 2], y)
       ),
       d,
       n1
     )
     out <- mapply(
-      function(x,y) DataFrame(
+      function(x,y) S4Vectors::DataFrame(
         x,
         sampleID = rep(
           req_meta_data[which(req_meta_data$Clusters == y), ]$X, 1, each = n2
@@ -892,10 +883,16 @@ scBubbHeat <- function(
       )
     )
     out <- lapply(
-      out, function(x) DataFrame(x, grpBy = rep("Clusters", nrow(x)))
+      out, function(x) S4Vectors::DataFrame(
+        x, grpBy = rep("Clusters", nrow(x))
+      )
     )
     out <- mapply(
-      function(x, y) DataFrame(x, sub = rep(y, nrow(x))), out, cluster
+      function(x, y) S4Vectors::DataFrame(
+        x, sub = rep(y, nrow(x))
+      ),
+      out,
+      cluster
     )
 
     h5data <- as.data.frame(do.call("rbind", out))  
@@ -935,12 +932,14 @@ scBubbHeat <- function(
     }
     
     out <- mapply(
-      function(x, y) DataFrame(geneName = rep(x[, 1], y), val = rep(x[, 2], y)),
+      function(x, y) S4Vectors::DataFrame(
+        geneName = rep(x[, 1], y), val = rep(x[, 2], y)
+      ),
       d,
       n1
     )
     out <- mapply(
-      function(x,y) DataFrame(
+      function(x,y) S4Vectors::DataFrame(
         x,
         sampleID = rep(
           req_meta_data[which(req_meta_data$Sample == y), ]$X, 1, each = n2
@@ -950,10 +949,16 @@ scBubbHeat <- function(
       samples
     )
     out <- lapply(
-      out, function(x) DataFrame(x, grpBy = rep("Sample", nrow(x)))
+      out, function(x) S4Vectors::DataFrame(
+        x, grpBy = rep("Sample", nrow(x))
+      )
     )
     out <- mapply(
-      function(x, y) DataFrame(x, sub = rep(y, nrow(x))), out, samples
+      function(x, y) S4Vectors::DataFrame(
+          x, sub = rep(y, nrow(x))
+        ),
+        out,
+        samples
     )
     
     h5data <- as.data.frame(do.call("rbind", out))
@@ -985,16 +990,42 @@ scBubbHeat <- function(
     AllTreatment <-  colnames(mat)
     
     Treatment <- list()
-    for (i in seq_along(1:nTreatment)){
-      d[[i]] <- ggData1[,c(1,i+1)]
+    for (i in seq_along(1:nTreatment)) {
+      d[[i]] <- ggData1[, c(1 ,i + 1)]
       Treatment[[i]] <- AllTreatment[i]
-      n1[[i]] = nrow(req_meta_data[which(req_meta_data[[inpGrp]]==Treatment[[i]]),]) 
+      n1[[i]] = nrow(
+        req_meta_data[which(req_meta_data[[inpGrp]] == Treatment[[i]]), ]
+      )
     }
     
-    out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data[[inpGrp]]==y),]$X,1,each=n2)), out,Treatment)
-    out <- lapply(out, function(x) DataFrame(x,grpBy=rep(inpGrp,nrow(x))))
-    out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,Treatment)
+    out <- mapply(
+      function(x, y) S4Vectors::DataFrame(
+        geneName = rep(x[, 1], y), val = rep(x[, 2], y)
+      ),
+      d,
+      n1
+    )
+    out <- mapply(
+      function(x, y) S4Vectors::DataFrame(
+        x,
+        sampleID = rep(
+          req_meta_data[which(req_meta_data[[inpGrp]] == y), ]$X, 1, each = n2
+        )
+      ),
+      out,
+      Treatment
+    )
+    out <- lapply(
+      out,
+      function(x) S4Vectors::DataFrame(x, grpBy = rep(inpGrp, nrow(x)))
+    )
+    out <- mapply(
+      function(x, y) S4Vectors::DataFrame(
+        x,
+        sub = rep(y, nrow(x))),
+        out,
+        Treatment
+    )
     
     h5data <- as.data.frame(do.call("rbind", out))
   }
@@ -1116,7 +1147,7 @@ scBubbHeat <- function(
 
 .binarySort <- function(
   m = NULL, scale = FALSE, cutOff = 1, lmat = NULL, clusterCols = TRUE
-){
+) {
   
   if (is.null(lmat)) {
     #Compute Row-Zscores
@@ -1182,7 +1213,7 @@ Creat_matrix_motif <- function(
   }) %>% unlist %>% unique
   mat <- mat[keep, ,drop = FALSE]
   
-  if(nrow(mat)==0){
+  if (nrow(mat)==0) {
     stop("No enrichments found for your cutoff!")
   }
   
@@ -1193,8 +1224,8 @@ Creat_matrix_motif <- function(
   
   mat[mat > pMax] <- pMax
   
-  if(nrow(mat)==0){
-    stop("No enrichments found for your cutofff!!!")
+  if (nrow(mat) == 0){
+    stop("No enrichments found for your cutofff.")
   }
   
   mat <- .rowScale(as.matrix(mat), min = 0)
@@ -1239,7 +1270,6 @@ Creat_matrix_motif <- function(
     borderColor <- TRUE
   }
   
-  
   if (returnMatrix) {
     return(mat2)
   }
@@ -1278,10 +1308,10 @@ scBubbHeat2 <- function(
     grep("condition_", names(getCellColData(proj)))
   ]
   
-  if(inpGrp == "Clusters"){
+  if (inpGrp == "Clusters") {
     seEnrich <- seEnrich_cluster
     
-    for(iGene in geneList$gene){
+    for (iGene in geneList$gene) {
       seEnrich <-seEnrich[which(rownames(seEnrich) %in% geneList$gene), ]
     }
     mat = Creat_matrix_motif(seEnrich)
@@ -1350,12 +1380,9 @@ scBubbHeat2 <- function(
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     nSample <- ncol(mat) 
     
-    req_meta_data <- read.csv("./tables/req_meta_data.csv")[, c(
-      "X",
-      "Clusters",
-      treatment,
-      "Sample"
-    )]
+    req_meta_data <- read.csv(
+      "./tables/req_meta_data.csv"
+    )[, c("X", "Clusters", treatment, "Sample")]
     
     d <-  list()
     out <-  list()
@@ -1385,16 +1412,15 @@ scBubbHeat2 <- function(
     }
     mat = Creat_matrix_motif(seEnrich)
     ggData1 = as.data.frame(mat)
+
     # add gene names into the first col
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     
     nTreatment <- ncol(mat)
     
-    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
-      'X'
-      , 'Clusters'
-      ,treatment
-      ,"Sample")]
+    req_meta_data <- read.csv(
+      "./tables/req_meta_data.csv"
+    )[, c("X", "Clusters", treatment, "Sample")]
     
     d <-  list()
     out <-  list()
@@ -1410,7 +1436,13 @@ scBubbHeat2 <- function(
       n1[[i]] = nrow(req_meta_data[which(req_meta_data[[inpGrp]]==Treatment[[i]]),])
 
     }
-    out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
+    out <- mapply(
+      function(x, y) DataFrame(
+        geneName = rep(x[, 1], y), val = rep(x[, 2], y)
+      ),
+      d,
+      n1
+    )
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data[[inpGrp]]==y),]$X,1,each=n2)), out,Treatment)
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep(inpGrp,nrow(x))))
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,Treatment)
@@ -2077,8 +2109,9 @@ shinyServer(function(input, output, session) {
           input$sc1a1txt,
           input$sc1a1lab1
         )
-    )
-    }) 
+      )
+    }
+  )
   output$sc1a1.dt <- renderDataTable(
     {
       ggData = scDRnum(
@@ -2428,11 +2461,20 @@ shinyServer(function(input, output, session) {
       )
     }
   )
-  observeEvent(input$sc1b2sub1all, { 
-    sub = strsplit(sc1conf[UI == input$sc1b2sub1]$fID, "\\|")[[1]] 
-    updateCheckboxGroupInput(session, inputId = "sc1b2sub2", label = "Select which cells to show", 
-                             choices = sub, selected = sub, inline = TRUE) 
-  }) 
+  observeEvent(
+    input$sc1b2sub1all,
+    { 
+      sub = strsplit(sc1conf[UI == input$sc1b2sub1]$fID,"\\|")[[1]] 
+      updateCheckboxGroupInput(
+        session,
+        inputId = "sc1b2sub2",
+        label = "Select which cells to show",
+        choices = sub,
+        selected = sub,
+        inline = TRUE
+      )
+    }
+  ) 
   
   output$sc1b2oupTxt <- renderUI({ 
     x <- "Clusters"
@@ -2737,9 +2779,10 @@ shinyServer(function(input, output, session) {
       dev.off()
     })
   output$sc1trackoup.png <- downloadHandler(
-    filename = function() { paste0("sc1","_","tracks",".png") },
+    filename = function() {
+      paste0("sc1", "_","tracks", ".png")
+    },
     content = function(file) {
-      
       png(file,  width = 465, height = 225, units='mm', res = 300)
       print(
         sctrack(
@@ -2798,17 +2841,21 @@ shinyServer(function(input, output, session) {
     updateSelectizeInput(session, inputId = "sc2de1subgrp", choices = selected_markers, selected = selected_markers[1])
   })
   
-  scvolcano_m <- function(grp){
+  scvolcano_m <- function(grp) {
     
-    idx_m = unlist(strsplit(grp,"_"))[2]
+    idx_m = unlist(strsplit(grp, "_"))[2]
     
-    filelist_m = as.list(list.files(  path = "./tables", 
-                                    recursive = TRUE,
-                                    pattern = paste0("volcanoMarkers_motifs_", idx_m,"_"), 
-                                    full.names = TRUE))
-    
-    
-    
+    filelist_m = as.list(
+      list.files(
+        path = "./tables",
+        recursive = TRUE,
+        pattern = paste0(
+          "volcanoMarkers_motifs_", idx_m, "_"
+        ),
+        full.names = TRUE
+      )
+    )
+
     datalist_m = lapply(filelist_m, function(x) fread(x))    
     
     volcplot_m <- function(inpMarkers_m){                 
@@ -2817,26 +2864,38 @@ shinyServer(function(input, output, session) {
       cond1 = unique(ggData[which(ggData$avg_log2FC>0 & ggData$Significance != "Not siginficant"),]$Significance)    
       others = unique(ggData[which(ggData$avg_log2FC<0 & ggData$Significance != "Not siginficant"),]$Significance)    
       
-      if(nrow(ggData)==0){
-        
-        
-        showNotification(paste0('There is no volcano plot for cluster '
-                                ,input$sc2de1inp
-                                , ' because it contains more than 90% of one of the conditions. Please check Proportion plot tab!')
-                         , duration = 7)
-        
+      if (nrow(ggData)==0) {
+
+        showNotification(
+          paste0(
+            "There are no volcano plots for cluster ",
+            input$sc2de1inp,
+            "because it contains more than 90% of one of the conditions. Please ",
+            "check Proportion plot tab!"
+          ),
+          duration = 7
+        )
       } else {
         minfdr = 0.09
-        minfdr1 = 10^-(1/6 *(-log10(min(inpMarkers_m[cluster == input$sc2de1inp]$p_val_adj))))
+        minfdr1 = 10^-(
+          1/6 * (
+            -log10(min(inpMarkers_m[cluster == input$sc2de1inp]$p_val_adj))
+          )
+        )
+        minfdr2 = 10^-(
+          2/3 * (
+            -log10(min(inpMarkers_m[cluster == input$sc2de1inp]$p_val_adj))
+          )
+        )
         
-        minfdr2 = 10^-(2/3 *(-log10(min(inpMarkers_m[cluster == input$sc2de1inp]$p_val_adj))))
-        
-        ggData$Significance = ifelse(ggData$p_val_adj < minfdr,
-                                     # & abs(ggData$avg_log2FC) >= 0.58,
-                                     ifelse(ggData$avg_log2FC > 0.0
-                                            ,cond1
-                                            ,others)
-                                     ,'Not siginficant'
+        ggData$Significance = ifelse(
+          ggData$p_val_adj < minfdr,
+          ifelse(
+            ggData$avg_log2FC > 0.0,
+            cond1,
+            others
+          ),
+          "Not siginficant"
         )
         ggData$Significance <- factor(ggData$Significance
                                       , levels = c(cond1
@@ -2957,14 +3016,29 @@ shinyServer(function(input, output, session) {
                       input$sc2a1siz, input$sc2a1col1, input$sc2a1ord1,
                       input$sc2a1fsz, input$sc2a1asp, input$sc2a1txt, input$sc2a1lab1) )
     })
-  output$sc2a1.dt <- renderDataTable({
-    ggData = scDRnum(sc2conf, sc2meta, input$sc2a1inp1, input$sc2a1inp2,
-                     input$sc2a1sub1, input$sc2a1sub2,
-                     "sc2gexpr.h5", sc2gene, input$sc2a1splt)
-    datatable(ggData, rownames = FALSE, extensions = "Buttons",
-              options = list(pageLength = -1, dom = "tB", buttons = c("copy", "csv", "excel"))) %>%
-      formatRound(columns = c("pctExpress"), digits = 2)
-  })
+  output$sc2a1.dt <- renderDataTable(
+    {
+      ggData = scDRnum(
+        sc2conf,
+        sc2meta,
+        input$sc2a1inp1,
+        input$sc2a1inp2,
+        input$sc2a1sub1,
+        input$sc2a1sub2,
+        "sc2gexpr.h5",
+        sc2gene,
+        input$sc2a1splt
+      )
+      datatable(
+        ggData,
+        rownames = FALSE,
+        extensions = "Buttons",
+        options = list(
+          pageLength = -1, dom = "tB", buttons = c("copy", "csv", "excel")
+        )
+      ) %>% formatRound(columns = c("pctExpress"), digits = 2)
+    }
+  )
   output$sc2a1oup2 <- renderPlot({
     scDRgene(sc2conf, sc2meta, input$sc2a1drX, input$sc2a1inp2,
              input$sc2a1sub1, input$sc2a1sub2,
@@ -2987,54 +3061,142 @@ shinyServer(function(input, output, session) {
                       input$sc2a1fsz, input$sc2a1asp, input$sc2a1txt) )
     })
   output$sc2a1oup2.png <- downloadHandler(
-    filename = function() { paste0("sc2",input$sc2a1drX,"_",input$sc2a1drY,"_",
-                                   input$sc2a1inp2,".png") },
-    content = function(file) { ggsave(
-      file, device = "png", height = input$sc2a1oup2.h, width = input$sc2a1oup2.w,
-      plot = scDRgene(sc2conf, sc2meta, input$sc2a1drX, input$sc2a1inp2,
-                      input$sc2a1sub1, input$sc2a1sub2,
-                      "sc2gexpr.h5", sc2gene,
-                      input$sc2a1siz, input$sc2a1col2, input$sc2a1ord2,
-                      input$sc2a1fsz, input$sc2a1asp, input$sc2a1txt) )
-    })
+    filename = function() {
+      paste0(
+        "sc2",
+        input$sc2a1drX,
+        "_",
+        input$sc2a1drY,
+        "_",
+        input$sc2a1inp2,
+        ".png"
+      )
+    },
+    content = function(file) {
+      ggsave(
+        file,
+        device = "png",
+        height = input$sc2a1oup2.h,
+        width = input$sc2a1oup2.w,
+        plot = scDRgene(
+          sc2conf,
+          sc2meta,
+          input$sc2a1drX,
+          input$sc2a1inp2,
+          input$sc2a1sub1,
+          input$sc2a1sub2,
+          "sc2gexpr.h5",
+          sc2gene,
+          input$sc2a1siz,
+          input$sc2a1col2,
+          input$sc2a1ord2,
+          input$sc2a1fsz,
+          input$sc2a1asp,
+          input$sc2a1txt
+        )
+      )
+    }
+  )
   
   ### Plots for tab a2 
-  output$sc2a2sub1.ui <- renderUI({
-    sub = strsplit(sc2conf[UI == input$sc2a2sub1]$fID, "\\|")[[1]]
-    checkboxGroupInput("sc2a2sub2", "Select which cells to show", inline = TRUE,
-                       choices = sub, selected = sub)
-  })
-  observeEvent(input$sc2a2sub1non, {
-    sub = strsplit(sc2conf[UI == input$sc2a2sub1]$fID, "\\|")[[1]]
-    updateCheckboxGroupInput(session, inputId = "sc2a2sub2", label = "Select which cells to show",
-                             choices = sub, selected = NULL, inline = TRUE)
-  })
-  observeEvent(input$sc2a2sub1all, {
-    sub = strsplit(sc2conf[UI == input$sc2a2sub1]$fID, "\\|")[[1]]
-    updateCheckboxGroupInput(session, inputId = "sc2a2sub2", label = "Select which cells to show",
-                             choices = sub, selected = sub, inline = TRUE)
-  })
-  output$sc2a2oup1 <- renderPlot({
-    scDRcell(sc2conf, sc2meta, input$sc2a2drX, input$sc2a2inp1,
-             input$sc2a2sub1, input$sc2a2sub2,
-             input$sc2a2siz, input$sc2a2col1, input$sc2a2ord1,
-             input$sc2a2fsz, input$sc2a2asp, input$sc2a2txt, input$sc2a2lab1)
-  })
-  output$sc2a2oup1.ui <- renderUI({
-    plotOutput("sc2a2oup1", height = pList[input$sc2a2psz])
-  })
+  output$sc2a2sub1.ui <- renderUI(
+    {
+      sub = strsplit(sc2conf[UI == input$sc2a2sub1]$fID, "\\|")[[1]]
+      checkboxGroupInput(
+        "sc2a2sub2",
+        "Select which cells to show",
+        inline = TRUE,
+        choices = sub,
+        selected = sub
+      )
+    }
+  )
+  observeEvent(
+    input$sc2a2sub1non,
+    {
+      sub = strsplit(sc2conf[UI == input$sc2a2sub1]$fID, "\\|")[[1]]
+      updateCheckboxGroupInput(
+        session,
+        inputId = "sc2a2sub2",
+        label = "Select which cells to show",
+        choices = sub,
+        selected = NULL,
+        inline = TRUE
+      )
+    }
+  )
+  observeEvent(
+    input$sc2a2sub1all,
+    {
+      sub = strsplit(sc2conf[UI == input$sc2a2sub1]$fID, "\\|")[[1]]
+      updateCheckboxGroupInput(
+        session,
+        inputId = "sc2a2sub2",
+        label = "Select which cells to show",
+        choices = sub,
+        selected = sub,
+        inline = TRUE
+      )
+    }
+  )
+  output$sc2a2oup1 <- renderPlot(
+    {
+      scDRcell(
+        sc2conf,
+        sc2meta,
+        input$sc2a2drX,
+        input$sc2a2inp1,
+        input$sc2a2sub1,
+        input$sc2a2sub2,
+        input$sc2a2siz,
+        input$sc2a2col1,
+        input$sc2a2ord1,
+        input$sc2a2fsz,
+        input$sc2a2asp,
+        input$sc2a2txt,
+        input$sc2a2lab1
+      )
+    }
+  )
+  output$sc2a2oup1.ui <- renderUI(
+    {
+      plotOutput("sc2a2oup1", height = pList[input$sc2a2psz])
+    }
+  )
   output$sc2a2oup1.pdf <- downloadHandler(
-    filename = function() { paste0("sc2",input$sc2a2drX,"_",input$sc2a2drY,"_",
-                                   input$sc2a2inp1,".pdf") },
-    content = function(file) { ggsave(
-      file, device = "pdf", height = input$sc2a2oup1.h, width = input$sc2a2oup1.w, useDingbats = FALSE,
-      plot = scDRcell(sc2conf, sc2meta, input$sc2a2drX, input$sc2a2inp1,
-                      input$sc2a2sub1, input$sc2a2sub2,
-                      input$sc2a2siz, input$sc2a2col1, input$sc2a2ord1,
-                      input$sc2a2fsz, input$sc2a2asp, input$sc2a2txt, input$sc2a2lab1) )
-    })
+    filename = function() {
+      paste0(
+        "sc2", input$sc2a2drX, "_", input$sc2a2drY, "_", input$sc2a2inp1,".pdf"
+      )
+    },
+    content = function(file) {
+      ggsave(
+        file,
+        device = "pdf",
+        height = input$sc2a2oup1.h,
+        width = input$sc2a2oup1.w,
+        useDingbats = FALSE,
+        plot = scDRcell(
+          sc2conf,
+          sc2meta,
+          input$sc2a2drX,
+          input$sc2a2inp1,
+          input$sc2a2sub1,
+          input$sc2a2sub2,
+          input$sc2a2siz,
+          input$sc2a2col1,
+          input$sc2a2ord1,
+          input$sc2a2fsz,
+          input$sc2a2asp,
+          input$sc2a2txt,
+          input$sc2a2lab1
+        )
+      )
+    }
+  )
   output$sc2a2oup1.png <- downloadHandler(
-    filename = function() { paste0("sc2",input$sc2a2drX,"_",input$sc2a2drY,"_",
+    filename = function() {
+      paste0("sc2",input$sc2a2drX,"_",input$sc2a2drY,"_",
                                    input$sc2a2inp1,".png") },
     content = function(file) { ggsave(
       file, device = "png", height = input$sc2a2oup1.h, width = input$sc2a2oup1.w,
@@ -3351,12 +3513,26 @@ shinyServer(function(input, output, session) {
                          "- Motifs should be separated by comma, semicolon or newline"))
   })
   
-  output$sc2d1oup <- renderPlot({
-    scBubbHeat2(sc2conf, sc2meta, input$sc2d1inp, input$sc2d1grp, input$sc2d1plt,
-                input$sc2d1sub1, input$sc2d1sub2, "sc2gexpr.h5", sc2gene,
-                input$sc2d1scl, input$sc2d1row, input$sc2d1col,
-                input$sc2d1cols, input$sc2d1fsz)
-  })
+  output$sc2d1oup <- renderPlot(
+    {
+      scBubbHeat2(
+        sc2conf,
+        sc2meta,
+        input$sc2d1inp,
+        input$sc2d1grp,
+        input$sc2d1plt,
+        input$sc2d1sub1,
+        input$sc2d1sub2,
+        "sc2gexpr.h5",
+        sc2gene,
+        input$sc2d1scl,
+        input$sc2d1row,
+        input$sc2d1col,
+        input$sc2d1cols,
+        input$sc2d1fsz
+      )
+    }
+  )
   output$sc2d1oup.ui <- renderUI({
     plotOutput("sc2d1oup", height = pList3[input$sc2d1psz])
   })
