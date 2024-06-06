@@ -41,9 +41,11 @@ lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
 umap_mindist <- as.numeric(args[10])
 num_threads <- as.integer(args[11])
-print(num_threads)
+min_cells_cluster <- as.integer(args[12])
+max_clusters <- as.integer(args[13])
+print(paste("Number of threads:", num_threads))
 
-runs <- strsplit(args[12:length(args)], ",")
+runs <- strsplit(args[14:length(args)], ",")
 runs
 
 inputs <- c()
@@ -55,7 +57,7 @@ inputs
 out_dir <- paste0(project_name, "_ArchRProject")
 
 # save input metrics in csv
-metrics <- as.list(args[1:11])
+metrics <- as.list(args[1:13])
 names(metrics) <- c(
   "project_name",
   "genome",
@@ -67,7 +69,9 @@ names(metrics) <- c(
   "lsi_varFeatures",
   "clustering_resolution",
   "umap_minimum_distance",
-  "number_threads"
+  "number_threads",
+  "min_cells_cluster",
+  "max_clusters"
 )
 write.csv(metrics, file = "metadata.csv", row.names = FALSE)
 
@@ -141,8 +145,7 @@ for (run in runs) {
 proj <- proj[proj$cellNames %in% all_ontissue]
 
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 # dimension reduction and clustering ------------------------------------------
@@ -181,16 +184,13 @@ proj <- ArchR::addClusters(
   method = "Seurat",
   name = "Clusters",
   resolution = c(clustering_resolution),
+  nOutlier = min_cells_cluster,
+  maxClusters = max_clusters,
   force = TRUE
 )
-
-# Check that each cluster has >= min_cells; if not, decrease clustering by 0.1
-# and repeat until condition is met or clustering resolution = 0.
-proj <- addclust(proj, clustering_resolution, name, 20)
 print(table(proj$Clusters))
 
-##################
-proj <- addUMAP(
+proj <- ArchR::addUMAP(
   ArchRProj = proj,
   reducedDims = name,
   name = "UMAP",
@@ -201,6 +201,10 @@ proj <- addUMAP(
 )
 
 proj <- addImputeWeights(proj)
+
+saveArchRProject(
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
+)
 
 conds <- strsplit(proj$Condition, split = "\\s|-")
 
@@ -221,7 +225,7 @@ treatment <- names(getCellColData(proj))[
   grep("condition_", names(getCellColData(proj)))
 ]
 
-print("++++ what are the treatments in this project +++++++")
+print("++++ What treatments are in this project? ++++")
 treatment
 
 umap_plots <- c()
@@ -268,7 +272,7 @@ matrix <- imputeMatrix(
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
 
-print("+++++++++++creating seurat objs++++++++++++++")
+print("++++ creating seurat objs ++++")
 
 seurat_objs <- c()
 for (run in runs) {
@@ -318,7 +322,7 @@ for (i in seq_along(metrics)) {
   all_qc_plots[[i]] <- spatial_qc_plots
 }
 
-print("These are the available SeuratObjects: ")
+print("These are the available SeuratObjects:")
 seurat_objs
 
 all <-  list()
@@ -349,8 +353,7 @@ dev.off()
 
 # save ArchR object
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 ############-------------Identifying Marker Genes------------##################
@@ -794,8 +797,7 @@ UMAPHarmony <- getEmbedding(
 write.csv(UMAPHarmony, "UMAPHarmony.csv")
 
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 # sometimes we get outofMemory error; number of threads here:
@@ -867,8 +869,7 @@ write.csv(merged_df, file = "medians.csv", row.names = FALSE)
 proj <- add_motif_annotations(proj, genome) # from utils
 
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 ######################### get marker peaks, save ##############################
@@ -1191,8 +1192,7 @@ if (length(unique(proj$Sample)) > 1) {
   proj <- add_motif_annotations(proj, genome) # from utils
 
   saveArchRProject(
-    ArchRProj = proj,
-    outputDirectory = paste0(project_name, "_ArchRProject")
+    ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
   )
 
   markersPeaks <- getMarkerFeatures(
@@ -1295,8 +1295,7 @@ if (length(unique(proj$Condition)) > 1) {
 
     # save ArchR object
     saveArchRProject(
-      ArchRProj = proj,
-      outputDirectory = paste0(project_name, "_ArchRProject")
+      ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
     )
   }
 
@@ -1611,11 +1610,8 @@ for (i in req_conditions) {
   )
 }
 
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-# save ArchR object
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 #################------------- Motif Logo ---------------#######################

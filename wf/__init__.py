@@ -42,7 +42,9 @@ def archr_task(
     lsi_varfeatures: int,
     clustering_resolution: float,
     umap_mindist: float,
-    num_threads: int
+    num_threads: int,
+    min_cells_cluster: int,
+    max_clusters: int
 ) -> LatchDir:
 
     _archr_cmd = [
@@ -59,6 +61,8 @@ def archr_task(
         f'{clustering_resolution}',
         f'{umap_mindist}',
         f'{num_threads}',
+        f'{min_cells_cluster}',
+        f'{max_clusters}'
     ]
 
     runs = [
@@ -217,6 +221,24 @@ metadata = LatchMetadata(
             batch_table_column=True,
             hidden=True
         ),
+        'min_cells_cluster': LatchParameter(
+            display_name='minimum cells per cluster',
+            description='Minimum number of cells in a cluster; passed to the \
+                        nOutlier parameter of ArchR::addClusters. If a \
+                        cluster falls below the minimum, it is merged into a \
+                        neighboring cluster',
+            batch_table_column=True,
+            hidden=True
+        ),
+        'max_clusters': LatchParameter(
+            display_name='maximum clusters',
+            description='Maximum number of clusters allow for the project; \
+                        passed to the maxClusters parameter of \
+                        ArchR::addClusters. If above maximum clusters, \
+                        clusters are merged.',
+            batch_table_column=True,
+            hidden=True
+        ),
         'run_table_id': LatchParameter(
             display_name='Registry Table ID',
             description='The runs will be updated in Registry with its \
@@ -247,6 +269,8 @@ def archrproject_workflow(
     clustering_resolution: float = 1.0,
     umap_mindist: float = 0.0,
     num_threads: int = 50,
+    min_cells_cluster: int = 20,
+    max_clusters: int = 25,
     run_table_id: str = "761",
     project_table_id: str = "779"
 ) -> LatchDir:
@@ -384,7 +408,9 @@ def archrproject_workflow(
         lsi_varfeatures=lsi_varfeatures,
         clustering_resolution=clustering_resolution,
         umap_mindist=umap_mindist,
-        num_threads=num_threads
+        num_threads=num_threads,
+        min_cells_cluster=min_cells_cluster,
+        max_clusters=max_clusters
     )
 
     upload_to_registry(
