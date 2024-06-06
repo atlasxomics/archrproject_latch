@@ -175,7 +175,7 @@ if (length(runs) > 1) {
   name <- "IterativeLSI"
 }
 
-proj <- addClusters(
+proj <- ArchR::addClusters(
   input = proj,
   reducedDims = name,
   method = "Seurat",
@@ -184,38 +184,10 @@ proj <- addClusters(
   force = TRUE
 )
 
-###### check how many cells are in each cluster
-cluster_df <- as.data.frame(table(proj$Clusters))
-resolution <- c(clustering_resolution)
-
-addclust <- function(x) {
-  while (min(cluster_df$Freq) <= 20) {
-    print(paste0("with resolution equal to ", resolution))
-    cluster_df <- as.data.frame(table(x$Clusters))
-    print(cluster_df)
-
-    # Update the value in each step
-    resolution <- resolution - 0.1
-    print(paste0("changing the resolution to ", resolution))
-
-    x <- addClusters(
-      input = x,
-      reducedDims = name,
-      method = "Seurat",
-      name = "Clusters",
-      resolution = resolution,
-      force = TRUE
-    )
-    cluster_df <- as.data.frame(table(x$Clusters))
-    print(cluster_df)
-  }
-  return(x)
-}
-
-proj_2 <- addclust(proj)
-table(proj_2$Clusters)
-
-proj <- proj_2
+# Check that each cluster has >= min_cells; if not, decrease clustering by 0.1
+# and repeat until condition is met or clustering resolution = 0.
+proj <- addclust(proj, clustering_resolution, name, 20)
+print(table(proj$Clusters))
 
 ##################
 proj <- addUMAP(
