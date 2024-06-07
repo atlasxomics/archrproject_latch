@@ -288,7 +288,7 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
-print("+++++++++++creating spatial plots++++++++++++++")
+print("++++ creating spatial plots ++++")
 
 spatial_cluster_plots <- list()
 for (i in seq_along(seurat_objs)) {
@@ -306,7 +306,7 @@ for (i in seq_along(spatial_lists)) {
 }
 dev.off()
 
-print("+++++++++++creating qc plots++++++++++++++")
+print("++++ creating qc plots ++++")
 
 # feature plot from utils
 metrics <- c("TSSEnrichment", "nFrags", "log10_nFrags")
@@ -782,8 +782,8 @@ if (length(unique(proj$Condition)) > 1) {
     final <- do.call(rbind, df)
 
     req_genes2 <- unlist(df)
-    req_genes2<- req_genes2[!duplicated(req_genes2)]
-    req_genes2<- na.omit(req_genes2)
+    req_genes2 <- req_genes2[!duplicated(req_genes2)]
+    req_genes2 <- na.omit(req_genes2)
     write.csv(req_genes2, paste0("req_genes2_", j, ".csv"))
   }
 
@@ -1122,7 +1122,7 @@ all_zero <- names(which(rowSums(dev_score2) == 0))
 dev_score2 <- dev_score2[which(!rownames(dev_score2) %in% c(all_zero)), ]
 
 # convert to dgCmatrix
-dev_score3 <- Matrix(as.matrix(dev_score2), sparse = TRUE)
+dev_score3 <- Matrix(as.matrix(dev_score2), sparse = FALSE)
 
 # create metadata object for Seurat object
 metadata <- getCellColData(ArchRProj = proj)
@@ -1157,7 +1157,7 @@ all_m <-  list()
 for (i in seq_along(seurat_objs)) {
   all_m[[i]] <- seurat_objs[[i]]
 
-  all_m[[i]] <- RenameCells(
+  all_m[[i]] <- Seurat::RenameCells(
     all_m[[i]],
     new.names = paste0(
       unique(all_m[[i]]@meta.data$Sample),
@@ -1642,20 +1642,15 @@ saveRDS(ProbMatrices, "seqlogo.rds")
 
 main_func <- function(seurat_lst, umap_embedding) {
 
-  find_samples_name <- function(seurat_lst) {
-    # Extract list of sample names from list of SeuratObjs.
-    sapply(seq_along(seurat_lst), function(i) {
-      unique(seurat_lst[[i]]@meta.data$Sample)
-    })
-  }
-
   samples <- find_samples_name(seurat_lst)
 
   D00_fun <- function(seurat_lst) {
     # Remove samples without "counts" from list of SeuratObjs
-    toRemove <- lapply(seurat_lst, function(x) {
-      names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
-    })
+    toRemove <- lapply(
+      seurat_lst, function(x) {
+        names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
+      }
+    )
     mapply(function(x, y) x[, !colnames(x) %in% y], seurat_lst, toRemove)
   }
 
@@ -1702,7 +1697,7 @@ main_func <- function(seurat_lst, umap_embedding) {
     # Convert list of SeuratObjs to list of Assay counts as dataframes.
     temp <- lapply(D00, function(x) {
       df <- as.data.frame(x@assays[[1]]@counts)
-      colnames(df) <- Cells(x)
+      colnames(df) <- Seurat::Cells(x)
       return(df)
     })
     temp <- lapply(temp, function(x) {
@@ -1730,7 +1725,7 @@ main_func <- function(seurat_lst, umap_embedding) {
   l <- D00
   l <- lapply(l, function(x) {
     colnames(x@meta.data) <- gsub(
-      paste0("_", Assays(x)), "", colnames(x@meta.data)
+      paste0("_", Seurat::Assays(x)), "", colnames(x@meta.data)
     )
     x
   })
@@ -1745,7 +1740,7 @@ main_func <- function(seurat_lst, umap_embedding) {
   meta.data <- do.call("rbind", list_of_metadata)
   write.csv(meta.data, "req_meta_data.csv", row.names = TRUE)
 
-  combined <- CreateSeuratObject(
+  combined <- Seurat::CreateSeuratObject(
     counts = as.data.frame(combined_mat),
     assay = "scATAC",
     meta.data = meta.data
@@ -1757,26 +1752,28 @@ main_func <- function(seurat_lst, umap_embedding) {
   Spatial_D00 <- list()
   for (i in seq_along(samples)) {
     Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined), ]
-    combined[[samples[i]]] <- CreateDimReducObject(
+    combined[[samples[i]]] <- Seurat::CreateDimReducObject(
       embeddings = Spatial_D00[[i]],
       key = samples[i],
-      assay = DefaultAssay(combined)
+      assay = Seurat::DefaultAssay(combined)
     )
   }
   # we need to run Variable Features
-  combined <- NormalizeData(
+  combined <- Seurat::NormalizeData(
     combined, normalization.method = "LogNormalize", scale.factor = 10000
   )
-  combined <- FindVariableFeatures(
+  combined <- Seurat::FindVariableFeatures(
     combined, selection.method = "vst", nfeatures = 2000
   )
-  combined[["UMAP"]] <- CreateDimReducObject(
-  embeddings = as.matrix(umap_embedding),
-  key = "UMAP",
-  assay = DefaultAssay(combined)
-)
+  combined[["UMAP"]] <- Seurat::CreateDimReducObject(
+    embeddings = as.matrix(umap_embedding),
+    key = "UMAP",
+    assay = Seurat::DefaultAssay(combined)
+  )
   return(combined)
 }
+
+save.image()
 
 combined <- main_func(all, UMAPHarmony)
 combined_m <- main_func(all_m, UMAPHarmony)
@@ -1840,10 +1837,6 @@ makeShinyCodesMulti(
 sc1def <- readRDS("/root/shinyApp/sc1def.rds")
 sc2def <- readRDS("/root/shinyApp/sc2def.rds")
 
-find_samples_name <- function(lst) {
-
-  sapply(seq_along(lst), function(i) unique(lst[[i]]@meta.data$Sample))
-}
 samples <- find_samples_name(all)
 
 D00 <- list()

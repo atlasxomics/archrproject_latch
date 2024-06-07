@@ -85,8 +85,8 @@ plot_spatial <- function(seurat_object, name) {
 }
 
 plot_geneset <- function(seurat_obj, marker_genes, name, title) {
-  # Return a Seurat SpatialFeaturePlot of the average expression score for a
-  # set of genes.
+  #' Return a Seurat SpatialFeaturePlot of the average expression score for a
+  #' set of genes.
 
   seurat_obj <- Seurat::AddModuleScore(
     object = seurat_obj,
@@ -230,4 +230,13 @@ addclust <- function(archrproj, resolution, reduceddims_name, min_cells) {
     print(cluster_df)
   }
   return(archrproj)
+}
+
+find_samples_name <- function(seurat_lst) {
+  # Extract list of sample names from list of SeuratObjs.
+  sapply(
+    seq_along(seurat_lst), function(i) {
+      unique(seurat_lst[[i]]@meta.data$Sample)
+    }
+  )
 }

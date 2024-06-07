@@ -88,6 +88,7 @@ def archr_task(
     seurat_objs = glob.glob('*.rds')
     h5_files = glob.glob('*.h5')
     R_files = glob.glob('*.R')
+    image = glob.glob('.RData')
 
     _mv_cmd = (
         ['mv'] +
@@ -96,6 +97,7 @@ def archr_task(
         seurat_objs +
         h5_files +
         R_files +
+        image +
         [out_dir]
     )
 
