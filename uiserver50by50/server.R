@@ -841,7 +841,7 @@ scBubbHeat <- function(
   treatment <- names(getCellColData(proj))[
     grep('condition_',names(getCellColData(proj)))
   ]
-  if(inpGrp == "Clusters") {
+  if (inpGrp == "Clusters") {
     seMarker <- seMarker_cluster
 
     for (iGene in geneList$gene) {
@@ -868,37 +868,42 @@ scBubbHeat <- function(
     
     for (i in seq_along(1:nClust)) {
       
-      d[[i]] <- ggData1[, c(1, i + 1)]
-      cluster[[i]] <- paste0("C", i)
-      n1[[i]] = nrow(
-        req_meta_data[which(req_meta_data$Clusters == cluster[[i]]), ]
+      d[[i]] <- ggData1[, c(1, i + 1)] # subset ggData1 for Cluster i as df in list
+      cluster[[i]] <- paste0("C", i) # store cluster id
+      n1[[i]] = nrow( # record number of cells in cluster i
+        req_meta_data[which(req_meta_data$Clusters == cluster[[i]]), ] 
       ) 
     }
-    out <- mapply(
+    
+    out <- mapply( # transform d from list of s3.dataframe to s4Vector::Dframe
       function(x, y) DataFrame(
         geneName = rep(x[, 1], y), val = rep(x[, 2], y)
       ),
       d,
       n1
     )
-    out <- mapply(
-      function(x,y) DataFrame(
+    out <- mapply( # add sample ID to out
+      function(x, y) S4Vectors::DataFrame(
         x,
         sampleID = rep(
           req_meta_data[which(req_meta_data$Clusters == y), ]$X, 1, each = n2
-        ),
-        out,
-        cluster
-      )
+        )
+      ),
+      out,
+      cluster
     )
-    out <- lapply(
+    
+    out <- lapply( # add column grpBy w value 'Clusters' to each df
       out, function(x) DataFrame(x, grpBy = rep("Clusters", nrow(x)))
     )
-    out <- mapply(
-      function(x, y) DataFrame(x, sub = rep(y, nrow(x))), out, cluster
+    
+    out <- mapply( # add column 'sub' with cluster value
+      function(x, y) DataFrame(x, sub = rep(y, nrow(x))),
+      out,
+      cluster
     )
-
-    h5data <- as.data.frame(do.call("rbind", out))  
+    
+    h5data <- as.data.frame(do.call("rbind", out))
 
   } else if (inpGrp == "Sample") {
     
