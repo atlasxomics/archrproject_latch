@@ -1,16 +1,16 @@
 # this version produced to use when the project has only one or None condition!
 
-library(shiny) 
-library(shinyhelper) 
-library(data.table) 
-library(Matrix) 
-library(DT) 
-library(magrittr) 
-library(ggplot2) 
-library(ggrepel) 
-library(hdf5r) 
-library(ggdendro) 
-library(gridExtra) 
+library(shiny)
+library(shinyhelper)
+library(data.table)
+library(Matrix)
+library(DT)
+library(magrittr)
+library(ggplot2)
+library(ggrepel)
+library(hdf5r)
+library(ggdendro)
+library(gridExtra)
 require(ggseqlogo)# Motif Logo
 library("ComplexHeatmap") #heatmap
 library("circlize") #heatmap
@@ -34,13 +34,10 @@ sc1def  = readRDS("sc1def.rds")
 sc1gene = readRDS("sc1gene.rds")
 sc1meta = readRDS("sc1meta.rds")
 
-
-
 sc2conf = readRDS("sc2conf.rds")
 sc2def  = readRDS("sc2def.rds")
 sc2gene = readRDS("sc2gene.rds")
 sc2meta = readRDS("sc2meta.rds")
-
 
 # for genes heatmap
 seMarker_cluster <-  readRDS("markersGS_clusters.rds")
@@ -55,7 +52,7 @@ treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(
 
 combined <- readRDS('combined.rds')
 
-### Useful stuff 
+### Useful stuff
 # Colour palette 
 cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84", 
                "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"), 
@@ -703,8 +700,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     
   
-  } else if (inpGrp=="Sample") {
-    
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
       seMarker <- seMarker_sample 
       
@@ -1072,8 +1068,6 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
   
   if(inpGrp=="Clusters"){
     seEnrich <- seEnrich_cluster
-    
-    
     for(iGene in geneList$gene){
       seEnrich <-seEnrich[which(rownames(seEnrich)%in%geneList$gene),]
     }
@@ -1101,34 +1095,23 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       cluster[[i]] <- paste0("C",i)
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
-      
     }
-    # 
-    
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
-    
+
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-    
     
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
-    
-  } else if (inpGrp=="Sample") {
-    
-    
+
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
+
     seEnrich <- seEnrich_sample
     
     for(iGene in geneList$gene){
-      seEnrich <- seEnrich[which(rownames(seEnrich)%in%geneList$gene),]
+      seEnrich <- seEnrich[which(rownames(seEnrich)%in%geneList$gene), ]
     }
     mat = Creat_matrix_motif(seEnrich)
     
@@ -1138,7 +1121,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     ggData1 = data.frame(X = rownames(ggData1), ggData1)
     nSample <- ncol(mat) 
     
-    req_meta_data <- read.csv("./tables/req_meta_data.csv")[,c(
+    req_meta_data <- read.csv("./tables/req_meta_data.csv")[, c(
       'X'
       , 'Clusters'
       ,treatment
@@ -1162,18 +1145,13 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
     
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Sample==y),]$X,1,each=n2)), out,samples)
-    
     
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Sample",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,samples)
     
-    
     h5data <- as.data.frame(do.call("rbind", out))
-    
     
   } else {
     idx = as.integer(unlist(strsplit(inpGrp,"_"))[2])

@@ -34,27 +34,26 @@ sc1def  = readRDS("sc1def.rds")
 sc1gene = readRDS("sc1gene.rds")
 sc1meta = readRDS("sc1meta.rds")
 
-
-
 sc2conf = readRDS("sc2conf.rds")
 sc2def  = readRDS("sc2def.rds")
 sc2gene = readRDS("sc2gene.rds")
 sc2meta = readRDS("sc2meta.rds")
 
-
 # for genes heatmap
 seMarker_cluster <-  readRDS("markersGS_clusters.rds")
+seMarker_sample <-  readRDS("markersGS_sample.rds")
 
 # for motif heatmap
 seEnrich_cluster <-  readRDS("enrichMotifs_clusters.rds")
+seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
 
 # for conditions
 treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
 
 combined <- readRDS('combined.rds')
 
-### Useful stuff 
-# Colour palette 
+### Useful stuff
+# Colour palette
 cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84", 
                "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"), 
              c("#4575B4","#74ADD1","#ABD9E9","#E0F3F8","#FFFFBF", 
@@ -67,17 +66,17 @@ cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84",
              ) 
 names(cList) = c("White-Red", "Blue-Yellow-Red", "Yellow-Green-Purple","comet","blueYellow") 
  
-# Panel sizes 
-pList = c("400px", "600px", "800px") 
-names(pList) = c("Small", "Medium", "Large") 
-pList2 = c("500px", "700px", "900px") 
-names(pList2) = c("Small", "Medium", "Large") 
-pList3 = c("600px", "800px", "1000px") 
-names(pList3) = c("Small", "Medium", "Large") 
-sList = c(18,24,30) 
-names(sList) = c("Small", "Medium", "Large") 
-lList = c(5,6,7) 
-names(lList) = c("Small", "Medium", "Large") 
+# Panel sizes
+pList = c("400px", "600px", "800px")
+names(pList) = c("Small", "Medium", "Large")
+pList2 = c("500px", "700px", "900px")
+names(pList2) = c("Small", "Medium", "Large")
+pList3 = c("600px", "800px", "1000px")
+names(pList3) = c("Small", "Medium", "Large")
+sList = c(18,24,30)
+names(sList) = c("Small", "Medium", "Large")
+lList = c(5,6,7)
+names(lList) = c("Small", "Medium", "Large")
  
 # Function to extract legend 
 g_legend <- function(a.gplot){  
@@ -680,29 +679,18 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       cluster[[i]] <- paste0("C",i)
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
-
     }
-    # 
-
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-
 
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
 
-
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
 
-
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
   
-  } else if (inpGrp=="Sample") {
-    
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
       seMarker <- seMarker_sample 
       
@@ -736,30 +724,21 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
         d[[i]] <- ggData1[,c(1,i+1)]
         samples[[i]] <- Allsamples[i]
         n1[[i]] = nrow(req_meta_data[which(req_meta_data$Sample==samples[[i]]),])
-
       }
 
       out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
 
-
       out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Sample==y),]$X,1,each=n2)), out,samples)
-
 
       out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Sample",nrow(x))))
 
-
       out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,samples)
-
       
       h5data <- as.data.frame(do.call("rbind", out))
     
-    
-    
   } else {
-  
     
     idx = as.integer(unlist(strsplit(inpGrp,"_"))[2])
-    
     
     seMarker <- seMarker_treatment[[idx]]
 
@@ -793,24 +772,15 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data[[inpGrp]]==Treatment[[i]]),])
 
     }
-
-
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-
 
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data[[inpGrp]]==y),]$X,1,each=n2)), out,Treatment)
 
-
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep(inpGrp,nrow(x))))
-
 
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,Treatment)
 
-
-
     h5data <- as.data.frame(do.call("rbind", out))
-
-     
   }
 
   ggData = data.table()
@@ -1099,29 +1069,18 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       cluster[[i]] <- paste0("C",i)
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
-      
     }
-    # 
-    
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
     
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
     
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+   
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
-    
-  } else if (inpGrp=="Sample") {
-    
+
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seEnrich <- seEnrich_sample
     

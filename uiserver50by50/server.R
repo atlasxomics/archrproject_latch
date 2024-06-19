@@ -907,7 +907,7 @@ scBubbHeat <- function(
     
     h5data <- as.data.frame(do.call("rbind", out))
 
-  } else if (inpGrp == "Sample" | inpGrp == "SampleName") {
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seMarker <- seMarker_sample
     
@@ -1285,7 +1285,7 @@ scBubbHeat2 <- function(
     grep("condition_", names(getCellColData(proj)))
   ]
   
-  if(inpGrp == "Clusters"){
+  if (inpGrp == "Clusters") {
     seEnrich <- seEnrich_cluster
     
     for(iGene in geneList$gene){
@@ -1312,10 +1312,10 @@ scBubbHeat2 <- function(
     n2 = nrow(ggData1)
     cluster <-  list()
     
-    for (i in seq_along(1:nClust)){
+    for (i in seq_along(1:nClust)) {
       
-      d[[i]] <- ggData1[,c(1,i+1)]
-      cluster[[i]] <- paste0("C",i)
+      d[[i]] <- ggData1[, c(1, i + 1)]
+      cluster[[i]] <- paste0("C", i)
       n1[[i]] = nrow(
         req_meta_data[which(req_meta_data$Clusters==cluster[[i]]), ]
       ) 
@@ -1342,7 +1342,7 @@ scBubbHeat2 <- function(
   
     h5data <- as.data.frame(do.call("rbind", out))
     
-  } else if (inpGrp=="Sample" | inpGrp=="SampleName") {
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
 
     seEnrich <- seEnrich_sample
 

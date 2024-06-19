@@ -24,22 +24,17 @@ library(purrr)
 tempdir <- getwd()
 ArchRobj <- system(paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), intern = TRUE)
 
-
 proj <- loadArchRProject(path = ArchRobj, force = FALSE, showLogo = TRUE)
-
 
 sc1conf = readRDS("sc1conf.rds")
 sc1def  = readRDS("sc1def.rds")
 sc1gene = readRDS("sc1gene.rds")
 sc1meta = readRDS("sc1meta.rds")
 
-
-
 sc2conf = readRDS("sc2conf.rds")
 sc2def  = readRDS("sc2def.rds")
 sc2gene = readRDS("sc2gene.rds")
 sc2meta = readRDS("sc2meta.rds")
-
 
 # for genes heatmap
 seMarker_cluster <-  readRDS("markersGS_clusters.rds")
@@ -59,8 +54,6 @@ for (i in seq_along(treatment)){
 }
 
 combined <- readRDS('combined.rds')
-# combined_m <- readRDS('combined_m.rds')
-
 
 ### Useful stuff 
 # Colour palette 
@@ -691,27 +684,18 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
-    # 
-    
+
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
     
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
     
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
-    out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+    out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster) 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
     
-    
-    
-  } else if (inpGrp=="Sample") {
-    
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seMarker <- seMarker_sample 
     
@@ -1060,8 +1044,6 @@ Creat_matrix_motif <- function(
 }
 # =========================
 
-
-
 scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt, 
                         inpsub1, inpsub2, inpH5, inpGene, inpScl, inpRow, inpCol, 
                         inpcols, inpfsz, save = FALSE){ 
@@ -1069,7 +1051,6 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
   # Identify motifs that are in our dataset 
   geneList = scGeneList(inp, inpGene) 
   geneList = geneList[present == TRUE] 
-  #shiny::validate(need(nrow(geneList) <= 50, "More than 50 genes to plot! Please reduce the gene list!"))
   shiny::validate(need(nrow(geneList) > 1, "Please input at least 2 genes to plot!"))
   
   
@@ -1110,28 +1091,18 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
-    # 
-    
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
     
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
     
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+ 
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
     
-    
-    
-  } else if (inpGrp=="Sample") {
-    
-    
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
+
     seEnrich <- seEnrich_sample
     
     for(iGene in geneList$gene){
@@ -2241,8 +2212,7 @@ shinyServer(function(input, output, session) {
     grid::grid.draw(p[[x]])
     
   }
-  
-  
+    
   output$sc1trackoup <- renderPlot({
     
     sctrack(input$sc1trackinp
@@ -2272,10 +2242,6 @@ shinyServer(function(input, output, session) {
                 ,input$sc1trackgrp
                 ,input$range_min_1,input$range_max_1
         )
-        
-        
-        
-        
       )
       dev.off()
     })
@@ -2295,15 +2261,6 @@ shinyServer(function(input, output, session) {
       dev.off()
       
     })
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   optCrt="{ option_create: function(data,escape) {return('<div class=\"create\"><strong>' + '</strong></div>');} }" 
   updateSelectizeInput(session, "sc2a1inp2", choices = names(sc2gene), server = TRUE,
@@ -2354,8 +2311,6 @@ shinyServer(function(input, output, session) {
     selected_markers <- try(sort(unique(getCellColData(proj)[input$sc2de1grp][,1])),silent = TRUE)
     updateSelectizeInput(session, inputId = "sc2de1subgrp", choices = selected_markers, selected = selected_markers[1])
   })
-  
-  
   
   scvolcano_m <- function(grp){
     
@@ -2930,18 +2885,6 @@ shinyServer(function(input, output, session) {
              content = c("Input motifs to plot",
                          "- Maximum 50 motifs (due to ploting space limitations)",
                          "- Motifs should be separated by comma, semicolon or newline"))
-    #   # geneList = scGeneList(input$sc1d1inp, sc1gene)
-    #   # if(nrow(geneList) > 50){
-    #   #   HTML("More than 50 input genes! Please reduce the gene list!")
-    #   # } else {
-    #   #   oup = paste0(nrow(geneList[present == TRUE]), "genes OK and will be plotted")
-    #   #   if(nrow(geneList[present == FALSE]) > 0){
-    #   #     oup = paste0(oup, "<br/>",
-    #   #                  nrow(geneList[present == FALSE]), "genes not found (",
-    #   #                  paste0(geneList[present == FALSE]$gene, collapse = ", "), ")")
-    #   #   }
-    #   # HTML(oup)
-    #   # }
   })
   
   output$sc2d1oup <- renderPlot({
@@ -2981,10 +2924,4 @@ shinyServer(function(input, output, session) {
   
   ###########################################################  
   
-  
-  
 }) 
-
-
-
-
