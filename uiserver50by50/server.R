@@ -41,9 +41,11 @@ sc2meta <- readRDS("sc2meta.rds")
 
 # for genes heatmap
 seMarker_cluster <- readRDS("markersGS_clusters.rds")
+seMarker_sample <-  readRDS("markersGS_sample.rds")
 
 # for motif heatmap
 seEnrich_cluster <- readRDS("enrichMotifs_clusters.rds")
+seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
 
 # for conditions
 treatment <- names(
@@ -905,7 +907,7 @@ scBubbHeat <- function(
     
     h5data <- as.data.frame(do.call("rbind", out))
 
-  } else if (inpGrp == "Sample") {
+  } else if (inpGrp == "Sample" | inpGrp == "SampleName") {
     
     seMarker <- seMarker_sample
     
@@ -1340,7 +1342,7 @@ scBubbHeat2 <- function(
   
     h5data <- as.data.frame(do.call("rbind", out))
     
-  } else if (inpGrp=="Sample") {
+  } else if (inpGrp=="Sample" | inpGrp=="SampleName") {
 
     seEnrich <- seEnrich_sample
 
