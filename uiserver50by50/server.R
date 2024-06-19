@@ -628,11 +628,11 @@ scVioBox <- function(
 
   # Actual ggplot
   if(inptyp == "violin") {
-    ggOut = ggplot(ggData, aes(X, val, fill = X))
-      + geom_violin(scale = "width")
+    ggOut = ggplot(ggData, aes(X, val, fill = X)) +
+      geom_violin(scale = "width")
   } else { 
-    ggOut = ggplot(ggData, aes(X, val, fill = X))
-      + geom_boxplot()
+    ggOut = ggplot(ggData, aes(X, val, fill = X)) +
+      geom_boxplot()
   }
   if (inppts) {
     ggOut <- ggOut +
