@@ -2442,11 +2442,9 @@ shinyServer(function(input, output, session) {
   }) 
   
   output$sc1b2oupTxt <- renderUI({ 
-    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
-                  value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
+                  value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",
@@ -2696,10 +2694,10 @@ shinyServer(function(input, output, session) {
     
   }, priority = 200)
   
-  sctrack <- function(x,y,z,g){
+  sctrack <- function(x, y, z, g) {
     # Prepare tracks
-    upstream <- -min(z)*1000
-    downstream <- max(g)*1000
+    upstream <- -min(z) * 1000
+    downstream <- max(g) * 1000
     
     p <- plotBrowserTrack(
       ArchRProj = proj,
@@ -2711,18 +2709,17 @@ shinyServer(function(input, output, session) {
     )
     # Observe the inputs for ATAC-Seq  Co-accessibility
     grid::grid.newpage()
-    
     grid::grid.draw(p[[x]])
-    
   }
   
   output$sc1trackoup <- renderPlot({
     
-    sctrack(input$sc1trackinp
-            ,input$sc1trackgrp
-            ,input$range_min_1,input$range_max_1
+    sctrack(
+      input$sc1trackinp,
+      input$sc1trackgrp,
+      input$range_min_1,
+      input$range_max_1
     )
-    
   }, height = 550, width = 850)
   
   output$sc1trackoup.ui <- renderUI({
@@ -2730,9 +2727,10 @@ shinyServer(function(input, output, session) {
   })
   
   output$sc1trackoup.pdf <- downloadHandler(
-    filename = function() { paste0("sc1","_","tracks",".pdf") },
+    filename = function() {
+      paste0("sc1","_","tracks",".pdf")
+    },
     content = function(file) {
-      
       pdf(file, height = input$sc1trackoup.h, width = input$sc1trackoup.w)
       print(
         sctrack(
@@ -2742,12 +2740,14 @@ shinyServer(function(input, output, session) {
         )
       )
       dev.off()
-    })
+    }
+  )
   output$sc1trackoup.png <- downloadHandler(
-    filename = function() { paste0("sc1","_","tracks",".png") },
+    filename = function() {
+      paste0("sc1", "_", "tracks", ".png")
+    },
     content = function(file) {
-      
-      png(file,  width = 465, height = 225, units='mm', res = 300)
+      png(file,  width = 465, height = 225, units="mm", res = 300)
       print(
         sctrack(
           input$sc1trackinp,
@@ -2759,7 +2759,7 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  optCrt="{ option_create: function(data,escape) {return('<div class=\"create\"><strong>' + '</strong></div>');} }" 
+  optCrt <- "{ option_create: function(data,escape) {return('<div class=\"create\"><strong>' + '</strong></div>');} }" 
   updateSelectizeInput(session, "sc2a1inp2", choices = names(sc2gene), server = TRUE,
                        selected = sc2def$gene1, options = list(
                          maxOptions = 7, create = TRUE, persist = TRUE, render = I(optCrt)))
