@@ -29,7 +29,7 @@ class Genome(Enum):
     rnor6 = 'rnor6'
 
 
-@custom_task(cpu=62, memory=384, storage_gib=500)
+@custom_task(cpu=62, memory=384, storage_gib=4949)
 def archr_task(
     runs: List[Run],
     project_name: str,
