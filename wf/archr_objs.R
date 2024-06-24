@@ -89,7 +89,8 @@ if (genome != "rnor6") {
     addGeneScoreMat = TRUE,
     offsetPlus = 0,
     offsetMinus = 0,
-    TileMatParams = list(tileSize = tile_size)
+    TileMatParams = list(tileSize = tile_size),
+    excludeChr = c("chrM", "chrY", "chrX"),
   )
 
   proj <- ArchRProject(
