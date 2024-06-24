@@ -137,7 +137,7 @@ for (run in runs) {
 all_ontissue <- c()
 for (run in runs) {
   positions <- read.csv(run[5], header = FALSE)
-  positions$V1 <- paste(run[1], "#", positions$V1, "-1", sep = "")
+  positions$V1 <- paste0(run[1], "#", positions$V1, "-1")
   on_tissue <- positions$V1 [which(positions$V2 == 1)]
   all_ontissue <- c(all_ontissue, on_tissue)
 }
@@ -1122,7 +1122,7 @@ all_zero <- names(which(rowSums(dev_score2) == 0))
 dev_score2 <- dev_score2[which(!rownames(dev_score2) %in% c(all_zero)), ]
 
 # convert to dgCmatrix
-dev_score3 <- Matrix(as.matrix(dev_score2), sparse = FALSE)
+dev_score3 <- Matrix(as.matrix(dev_score2), sparse = TRUE)
 
 # create metadata object for Seurat object
 metadata <- getCellColData(ArchRProj = proj)
@@ -1133,7 +1133,7 @@ rownames(metadata) <- str_split_fixed(
 )[, 1]
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-# create seurat objects -------------------------------------------------------
+# create motif seurat objects -------------
 
 seurat_objs <- c()
 
@@ -1590,10 +1590,6 @@ if (length(unique(proj$Condition)) > 1) {
 
 ################-------------- save bigwig files -------- ######################
 
-treatment <- names(getCellColData(proj))[
-  grep("condition_", names(getCellColData(proj)))
-]
-
 req_conditions <- c("Clusters", treatment)
 
 for (i in req_conditions) {
@@ -1725,7 +1721,9 @@ main_func <- function(seurat_lst, umap_embedding) {
   l <- D00
   l <- lapply(l, function(x) {
     colnames(x@meta.data) <- gsub(
-      paste0("_", Seurat::Assays(x)), "", colnames(x@meta.data)
+      paste0("_", Seurat::Assays(x)),
+      "",
+      colnames(x@meta.data)
     )
     x
   })
@@ -1773,12 +1771,10 @@ main_func <- function(seurat_lst, umap_embedding) {
   return(combined)
 }
 
-save.image()
-
 combined <- main_func(all, UMAPHarmony)
 combined_m <- main_func(all_m, UMAPHarmony)
 
-#remove nFeature and nCounts
+# remove nFeature and nCounts
 combined@meta.data$nCount_scATAC <- NULL
 combined@meta.data$nCount <- NULL
 combined@meta.data$nFeature_scATAC <- NULL
@@ -1828,7 +1824,6 @@ makeShinyCodesMulti(
   shiny.title = paste0(project_name, "_Lab Data Analysis"),
   shiny.footnotes = citation,
   shiny.prefix = c("sc1", "sc2"),
-
   shiny.headers = c("Gene Accessibility", "Peak/Motifs"),
   shiny.dir = "./shinyApp"
 )
@@ -1903,10 +1898,6 @@ sc2def$dimred[3] <- paste0(names(combined_m@reductions)[1], "_1")
 sc2def$dimred[4] <- paste0(names(combined_m@reductions)[1], "_2")
 sc2def$dimred[5] <- paste0(names(combined_m@reductions)[2], "_1")
 sc2def$dimred[6] <- paste0(names(combined_m@reductions)[2], "_2")
-
-treatment <- names(getCellColData(proj))[
-  grep("condition_", names(getCellColData(proj)))
-]
 
 if (length(unique(proj$Condition)) > 1) {
   for (i in seq_along(treatment)) {
