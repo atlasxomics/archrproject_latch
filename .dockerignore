@@ -13,3 +13,7 @@ wf/*.pdf
 wf/spatial
 wf/shinyApp
 wf/combined*rds
+**/*.RData
+wf/*.h5ad
+wf/*.h5seurat
+wf/*.h5

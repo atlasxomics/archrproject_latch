@@ -22,7 +22,9 @@ wf/*.pdf
 wf/spatial
 wf/shinyApp
 wf/combined*.rds
-
 **/.RData
 **/.Rhistory
 **/.DS_Store
+**/*.ipynb
+wf/*.rds
+wf/*.h5*
