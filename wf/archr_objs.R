@@ -41,9 +41,11 @@ lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
 umap_mindist <- as.numeric(args[10])
 num_threads <- as.integer(args[11])
-print(num_threads)
+min_cells_cluster <- as.integer(args[12])
+max_clusters <- as.integer(args[13])
+print(paste("Number of threads:", num_threads))
 
-runs <- strsplit(args[12:length(args)], ",")
+runs <- strsplit(args[14:length(args)], ",")
 runs
 
 inputs <- c()
@@ -55,7 +57,7 @@ inputs
 out_dir <- paste0(project_name, "_ArchRProject")
 
 # save input metrics in csv
-metrics <- as.list(args[1:11])
+metrics <- as.list(args[1:13])
 names(metrics) <- c(
   "project_name",
   "genome",
@@ -67,7 +69,9 @@ names(metrics) <- c(
   "lsi_varFeatures",
   "clustering_resolution",
   "umap_minimum_distance",
-  "number_threads"
+  "number_threads",
+  "min_cells_cluster",
+  "max_clusters"
 )
 write.csv(metrics, file = "metadata.csv", row.names = FALSE)
 
@@ -133,7 +137,7 @@ for (run in runs) {
 all_ontissue <- c()
 for (run in runs) {
   positions <- read.csv(run[5], header = FALSE)
-  positions$V1 <- paste(run[1], "#", positions$V1, "-1", sep = "")
+  positions$V1 <- paste0(run[1], "#", positions$V1, "-1")
   on_tissue <- positions$V1 [which(positions$V2 == 1)]
   all_ontissue <- c(all_ontissue, on_tissue)
 }
@@ -141,8 +145,7 @@ for (run in runs) {
 proj <- proj[proj$cellNames %in% all_ontissue]
 
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 # dimension reduction and clustering ------------------------------------------
@@ -175,50 +178,19 @@ if (length(runs) > 1) {
   name <- "IterativeLSI"
 }
 
-proj <- addClusters(
+proj <- ArchR::addClusters(
   input = proj,
   reducedDims = name,
   method = "Seurat",
   name = "Clusters",
   resolution = c(clustering_resolution),
+  nOutlier = min_cells_cluster,
+  maxClusters = max_clusters,
   force = TRUE
 )
+print(table(proj$Clusters))
 
-###### check how many cells are in each cluster
-cluster_df <- as.data.frame(table(proj$Clusters))
-resolution <- c(clustering_resolution)
-
-addclust <- function(x) {
-  while (min(cluster_df$Freq) <= 20) {
-    print(paste0("with resolution equal to ", resolution))
-    cluster_df <- as.data.frame(table(x$Clusters))
-    print(cluster_df)
-
-    # Update the value in each step
-    resolution <- resolution - 0.1
-    print(paste0("changing the resolution to ", resolution))
-
-    x <- addClusters(
-      input = x,
-      reducedDims = name,
-      method = "Seurat",
-      name = "Clusters",
-      resolution = resolution,
-      force = TRUE
-    )
-    cluster_df <- as.data.frame(table(x$Clusters))
-    print(cluster_df)
-  }
-  return(x)
-}
-
-proj_2 <- addclust(proj)
-table(proj_2$Clusters)
-
-proj <- proj_2
-
-##################
-proj <- addUMAP(
+proj <- ArchR::addUMAP(
   ArchRProj = proj,
   reducedDims = name,
   name = "UMAP",
@@ -229,6 +201,10 @@ proj <- addUMAP(
 )
 
 proj <- addImputeWeights(proj)
+
+saveArchRProject(
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
+)
 
 conds <- strsplit(proj$Condition, split = "\\s|-")
 
@@ -249,7 +225,7 @@ treatment <- names(getCellColData(proj))[
   grep("condition_", names(getCellColData(proj)))
 ]
 
-print("++++ what are the treatments in this project +++++++")
+print("++++ What treatments are in this project? ++++")
 treatment
 
 umap_plots <- c()
@@ -296,7 +272,7 @@ matrix <- imputeMatrix(
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
 
-print("+++++++++++creating seurat objs++++++++++++++")
+print("++++ creating seurat objs ++++")
 
 seurat_objs <- c()
 for (run in runs) {
@@ -312,7 +288,7 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
-print("+++++++++++creating spatial plots++++++++++++++")
+print("++++ creating spatial plots ++++")
 
 spatial_cluster_plots <- list()
 for (i in seq_along(seurat_objs)) {
@@ -330,7 +306,7 @@ for (i in seq_along(spatial_lists)) {
 }
 dev.off()
 
-print("+++++++++++creating qc plots++++++++++++++")
+print("++++ creating qc plots ++++")
 
 # feature plot from utils
 metrics <- c("TSSEnrichment", "nFrags", "log10_nFrags")
@@ -346,7 +322,7 @@ for (i in seq_along(metrics)) {
   all_qc_plots[[i]] <- spatial_qc_plots
 }
 
-print("These are the available SeuratObjects: ")
+print("These are the available SeuratObjects:")
 seurat_objs
 
 all <-  list()
@@ -377,8 +353,7 @@ dev.off()
 
 # save ArchR object
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 ############-------------Identifying Marker Genes------------##################
@@ -807,8 +782,8 @@ if (length(unique(proj$Condition)) > 1) {
     final <- do.call(rbind, df)
 
     req_genes2 <- unlist(df)
-    req_genes2<- req_genes2[!duplicated(req_genes2)]
-    req_genes2<- na.omit(req_genes2)
+    req_genes2 <- req_genes2[!duplicated(req_genes2)]
+    req_genes2 <- na.omit(req_genes2)
     write.csv(req_genes2, paste0("req_genes2_", j, ".csv"))
   }
 
@@ -822,8 +797,7 @@ UMAPHarmony <- getEmbedding(
 write.csv(UMAPHarmony, "UMAPHarmony.csv")
 
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 # sometimes we get outofMemory error; number of threads here:
@@ -895,8 +869,7 @@ write.csv(merged_df, file = "medians.csv", row.names = FALSE)
 proj <- add_motif_annotations(proj, genome) # from utils
 
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 ######################### get marker peaks, save ##############################
@@ -1160,7 +1133,7 @@ rownames(metadata) <- str_split_fixed(
 )[, 1]
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-# create seurat objects -------------------------------------------------------
+# create motif seurat objects -------------
 
 seurat_objs <- c()
 
@@ -1184,7 +1157,7 @@ all_m <-  list()
 for (i in seq_along(seurat_objs)) {
   all_m[[i]] <- seurat_objs[[i]]
 
-  all_m[[i]] <- RenameCells(
+  all_m[[i]] <- Seurat::RenameCells(
     all_m[[i]],
     new.names = paste0(
       unique(all_m[[i]]@meta.data$Sample),
@@ -1219,8 +1192,7 @@ if (length(unique(proj$Sample)) > 1) {
   proj <- add_motif_annotations(proj, genome) # from utils
 
   saveArchRProject(
-    ArchRProj = proj,
-    outputDirectory = paste0(project_name, "_ArchRProject")
+    ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
   )
 
   markersPeaks <- getMarkerFeatures(
@@ -1323,8 +1295,7 @@ if (length(unique(proj$Condition)) > 1) {
 
     # save ArchR object
     saveArchRProject(
-      ArchRProj = proj,
-      outputDirectory = paste0(project_name, "_ArchRProject")
+      ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
     )
   }
 
@@ -1619,10 +1590,6 @@ if (length(unique(proj$Condition)) > 1) {
 
 ################-------------- save bigwig files -------- ######################
 
-treatment <- names(getCellColData(proj))[
-  grep("condition_", names(getCellColData(proj)))
-]
-
 req_conditions <- c("Clusters", treatment)
 
 for (i in req_conditions) {
@@ -1639,11 +1606,8 @@ for (i in req_conditions) {
   )
 }
 
-# @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-# save ArchR object
 saveArchRProject(
-  ArchRProj = proj,
-  outputDirectory = paste0(project_name, "_ArchRProject")
+  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
 
 #################------------- Motif Logo ---------------#######################
@@ -1674,20 +1638,15 @@ saveRDS(ProbMatrices, "seqlogo.rds")
 
 main_func <- function(seurat_lst, umap_embedding) {
 
-  find_samples_name <- function(seurat_lst) {
-    # Extract list of sample names from list of SeuratObjs.
-    sapply(seq_along(seurat_lst), function(i) {
-      unique(seurat_lst[[i]]@meta.data$Sample)
-    })
-  }
-
   samples <- find_samples_name(seurat_lst)
 
   D00_fun <- function(seurat_lst) {
     # Remove samples without "counts" from list of SeuratObjs
-    toRemove <- lapply(seurat_lst, function(x) {
-      names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
-    })
+    toRemove <- lapply(
+      seurat_lst, function(x) {
+        names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
+      }
+    )
     mapply(function(x, y) x[, !colnames(x) %in% y], seurat_lst, toRemove)
   }
 
@@ -1734,7 +1693,7 @@ main_func <- function(seurat_lst, umap_embedding) {
     # Convert list of SeuratObjs to list of Assay counts as dataframes.
     temp <- lapply(D00, function(x) {
       df <- as.data.frame(x@assays[[1]]@counts)
-      colnames(df) <- Cells(x)
+      colnames(df) <- Seurat::Cells(x)
       return(df)
     })
     temp <- lapply(temp, function(x) {
@@ -1762,7 +1721,9 @@ main_func <- function(seurat_lst, umap_embedding) {
   l <- D00
   l <- lapply(l, function(x) {
     colnames(x@meta.data) <- gsub(
-      paste0("_", Assays(x)), "", colnames(x@meta.data)
+      paste0("_", Seurat::Assays(x)),
+      "",
+      colnames(x@meta.data)
     )
     x
   })
@@ -1777,7 +1738,7 @@ main_func <- function(seurat_lst, umap_embedding) {
   meta.data <- do.call("rbind", list_of_metadata)
   write.csv(meta.data, "req_meta_data.csv", row.names = TRUE)
 
-  combined <- CreateSeuratObject(
+  combined <- Seurat::CreateSeuratObject(
     counts = as.data.frame(combined_mat),
     assay = "scATAC",
     meta.data = meta.data
@@ -1789,31 +1750,31 @@ main_func <- function(seurat_lst, umap_embedding) {
   Spatial_D00 <- list()
   for (i in seq_along(samples)) {
     Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined), ]
-    combined[[samples[i]]] <- CreateDimReducObject(
+    combined[[samples[i]]] <- Seurat::CreateDimReducObject(
       embeddings = Spatial_D00[[i]],
       key = samples[i],
-      assay = DefaultAssay(combined)
+      assay = Seurat::DefaultAssay(combined)
     )
   }
   # we need to run Variable Features
-  combined <- NormalizeData(
+  combined <- Seurat::NormalizeData(
     combined, normalization.method = "LogNormalize", scale.factor = 10000
   )
-  combined <- FindVariableFeatures(
+  combined <- Seurat::FindVariableFeatures(
     combined, selection.method = "vst", nfeatures = 2000
   )
-  combined[["UMAP"]] <- CreateDimReducObject(
-  embeddings = as.matrix(umap_embedding),
-  key = "UMAP",
-  assay = DefaultAssay(combined)
-)
+  combined[["UMAP"]] <- Seurat::CreateDimReducObject(
+    embeddings = as.matrix(umap_embedding),
+    key = "UMAP",
+    assay = Seurat::DefaultAssay(combined)
+  )
   return(combined)
 }
 
 combined <- main_func(all, UMAPHarmony)
 combined_m <- main_func(all_m, UMAPHarmony)
 
-#remove nFeature and nCounts
+# remove nFeature and nCounts
 combined@meta.data$nCount_scATAC <- NULL
 combined@meta.data$nCount <- NULL
 combined@meta.data$nFeature_scATAC <- NULL
@@ -1863,7 +1824,6 @@ makeShinyCodesMulti(
   shiny.title = paste0(project_name, "_Lab Data Analysis"),
   shiny.footnotes = citation,
   shiny.prefix = c("sc1", "sc2"),
-
   shiny.headers = c("Gene Accessibility", "Peak/Motifs"),
   shiny.dir = "./shinyApp"
 )
@@ -1872,10 +1832,6 @@ makeShinyCodesMulti(
 sc1def <- readRDS("/root/shinyApp/sc1def.rds")
 sc2def <- readRDS("/root/shinyApp/sc2def.rds")
 
-find_samples_name <- function(lst) {
-
-  sapply(seq_along(lst), function(i) unique(lst[[i]]@meta.data$Sample))
-}
 samples <- find_samples_name(all)
 
 D00 <- list()
@@ -1942,10 +1898,6 @@ sc2def$dimred[3] <- paste0(names(combined_m@reductions)[1], "_1")
 sc2def$dimred[4] <- paste0(names(combined_m@reductions)[1], "_2")
 sc2def$dimred[5] <- paste0(names(combined_m@reductions)[2], "_1")
 sc2def$dimred[6] <- paste0(names(combined_m@reductions)[2], "_2")
-
-treatment <- names(getCellColData(proj))[
-  grep("condition_", names(getCellColData(proj)))
-]
 
 if (length(unique(proj$Condition)) > 1) {
   for (i in seq_along(treatment)) {

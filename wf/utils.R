@@ -22,7 +22,7 @@ build_atlas_seurat_object <- function(
   # Prepare and combine gene matrix, metadata, and image for seurat object
   # for runs within a project.
 
-  image <- Read10X_Image(
+  image <- Seurat::Read10X_Image(
     image.dir = spatial_path,
     filter.matrix = TRUE
   )
@@ -30,15 +30,15 @@ build_atlas_seurat_object <- function(
 
   matrix <- matrix[, c(grep(pattern = run_id, colnames(matrix)))]
   matrix@Dimnames[[2]] <- metadata@rownames
-  matrix <- CreateAssayObject(matrix)
+  matrix <- Seurat::CreateAssayObject(matrix)
 
-  object <- CreateSeuratObject(
+  object <- Seurat::CreateSeuratObject(
     counts = matrix,
     assay  = "Spatial",
     meta.data = as.data.frame(metadata)
   )
-  image <- image[Cells(x = object)]
-  DefaultAssay(object = image) <- "Spatial"
+  image <- image[Seurat::Cells(x = object)]
+  Seurat::DefaultAssay(object = image) <- "Spatial"
   object[["slice1"]] <- image
   return(object)
 }
@@ -46,7 +46,7 @@ build_atlas_seurat_object <- function(
 plot_feature <- function(seurat_obj, feature, name) {
   # Wrapper of Seurat's SpatialFeaturePlot with specific aesthetics
 
-  SpatialFeaturePlot(
+  Seurat::SpatialFeaturePlot(
     object = seurat_obj,
     features = feature,
     alpha = c(0.2, 1),
@@ -65,9 +65,9 @@ plot_spatial <- function(seurat_object, name) {
   # Wrapper of Seurat's SpatialDimPlot with specific aesthetics
 
   clusters <- sort(unique(seurat_object$Clusters))
-  colors <- ArchRPalettes$stallion2[seq_len(length(clusters))]
+  colors <- ArchR::ArchRPalettes$stallion2[seq_len(length(clusters))]
   names(colors) <- clusters
-  SpatialDimPlot(
+  Seurat::SpatialDimPlot(
     seurat_object,
     group.by = "Clusters",
     pt.size.factor = 1,
@@ -85,15 +85,15 @@ plot_spatial <- function(seurat_object, name) {
 }
 
 plot_geneset <- function(seurat_obj, marker_genes, name, title) {
-  # Return a Seurat SpatialFeaturePlot of the average expression score for a
-  # set of genes.
+  #' Return a Seurat SpatialFeaturePlot of the average expression score for a
+  #' set of genes.
 
-  seurat_obj <- AddModuleScore(
+  seurat_obj <- Seurat::AddModuleScore(
     object = seurat_obj,
     features = marker_genes,
     name = name
   )
-  plot <- SpatialFeaturePlot(
+  plot <- Seurat::SpatialFeaturePlot(
     object = seurat_obj,
     pt = 1,
     features = paste0(name, 1),
@@ -104,7 +104,7 @@ plot_geneset <- function(seurat_obj, marker_genes, name, title) {
 }
 
 plot_umap <- function(archrproj, name) {
-  p <- plotEmbedding(
+  p <- ArchR::plotEmbedding(
     ArchRProj = archrproj,
     colorBy = "cellColData",
     name = name,
@@ -184,20 +184,59 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
 
 add_motif_annotations <- function(proj, genome) {
   if (genome == "hg38" || genome == "mm10") {
-    proj <- addMotifAnnotations(
+    proj <- ArchR::addMotifAnnotations(
       ArchRProj = proj,
       motifSet = "cisbp",
       name = "Motif",
       force = TRUE
     )
   } else {
-    proj <- addMotifAnnotations(
+    proj <- ArchR::addMotifAnnotations(
       ArchRProj = proj,
       motifSet = "encode",
       name = "Motif",
       force = TRUE,
-      species = getGenome(ArchRProj = proj)
+      species = ArchR::getGenome(ArchRProj = proj)
     )
   }
   return(proj)
+}
+
+addclust <- function(archrproj, resolution, reduceddims_name, min_cells) {
+  #' Ensure all clusters >= min_cells; if less than min_cells, decrease
+  #' clustering resolution by 0.1 and repeat clustering until resoultion = 0.
+  #'  Return an ArhcRProject.
+
+  cluster_df <- as.data.frame(table(archrproj$Clusters))
+
+  while (min(cluster_df$Freq) <= min_cells && resolution > 0) {
+
+    # Update the value in each step
+    resolution <- resolution - 0.1
+    print(paste("Changing the resolution to", resolution))
+
+    archrproj <- ArchR::addClusters(
+      input = archrproj,
+      reducedDims = reduceddims_name,
+      method = "Seurat",
+      name = "Clusters",
+      resolution = resolution,
+      force = TRUE
+    )
+
+    cluster_df <- as.data.frame(table(archrproj$Clusters))
+
+    print(paste("With resolution equal to", resolution))
+    print(cluster_df)
+  }
+  return(archrproj)
+}
+
+find_samples_name <- function(seurat_lst) {
+  # Extract list of sample names from list of SeuratObjs.
+  sapply(
+    seq_along(seurat_lst), function(i) {
+      unique(seurat_lst[[i]]@meta.data$Sample)
+    }
+  )
 }
