@@ -200,6 +200,9 @@ makeShinyFiles <- function(
     obj[[gex.assay[1]]]$data[(i * chk + 1) : gex.matdim[1], ]
   )
 
+  sc1gexpr$close_all()
+
+
   # Make XXXgenes.rds
   sc1gene <- seq(gex.matdim[1])
   names(gene.mapping) <- NULL
