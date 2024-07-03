@@ -73,6 +73,10 @@ RUN R -e "renv::restore()"
 RUN python3 -m pip install numpy==1.26.2
 RUN python3 -m pip install MACS2==2.2.6
 
+# Install BPCells
+RUN R -e "remotes::install_github('bnprks/BPCells/r', upgrade = 'never')"
+RUN R -e "remotes::install_github('mojaveazure/seurat-disk', upgrade = 'never')"
+
 # Copy output files for Shiny app
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
 COPY makeShinyFiles.R /root/makeShinyFiles.R
