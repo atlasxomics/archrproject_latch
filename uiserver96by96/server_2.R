@@ -538,13 +538,17 @@ scProp <- function(inpConf, inpMeta, inp1, inp2, inpsub1, inpsub2,inpsub3,
 } 
  
 # Get gene list 
-scGeneList <- function(inp, inpGene){ 
-  geneList = data.table(gene = unique(trimws(strsplit(inp, ",|;|
-")[[1]])), 
-                        present = TRUE) 
-  geneList[!gene %in% names(inpGene)]$present = FALSE 
-  return(geneList) 
-} 
+scGeneList <- function(inp, inpGene) {
+  geneList <- data.table::data.table(
+    gene = unique(trimws(strsplit(inp, ",|;| ")[[1]])),
+    present = TRUE
+  )
+  geneList[!gene %in% names(inpGene)]$present <- FALSE
+
+  print(geneList)
+
+  return(geneList)
+}
 
 
 ###################### Plot gene expression bubbleplot / heatmap for genes #############################################################
@@ -2653,18 +2657,6 @@ output$sc2d1oupTxt <- renderUI({
            content = c("Input motifs to plot",
                        "- Maximum 50 motifs (due to ploting space limitations)",
                        "- Motifs should be separated by comma, semicolon or newline"))
-#   # geneList = scGeneList(input$sc1d1inp, sc1gene)
-#   # if(nrow(geneList) > 50){
-#   #   HTML("More than 50 input genes! Please reduce the gene list!")
-#   # } else {
-#   #   oup = paste0(nrow(geneList[present == TRUE]), "genes OK and will be plotted")
-#   #   if(nrow(geneList[present == FALSE]) > 0){
-#   #     oup = paste0(oup, "<br/>",
-#   #                  nrow(geneList[present == FALSE]), "genes not found (",
-#   #                  paste0(geneList[present == FALSE]$gene, collapse = ", "), ")")
-#   #   }
-#   # HTML(oup)
-#   # }
 })
 
 output$sc2d1oup <- renderPlot({
