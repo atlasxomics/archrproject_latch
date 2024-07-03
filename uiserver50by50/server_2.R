@@ -1594,10 +1594,11 @@ shinyServer(function(input, output, session) {
   }) 
   
   
-  output$sc1b2oupTxt <- renderUI({ 
+  output$sc1b2oupTxt <- renderUI({
+    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
-                  value = paste0(sc1def$genes, collapse = ", ")
+                  value = paste0(sc1def[[x]], collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",
@@ -1753,29 +1754,15 @@ output$sc1c2oup.png <- downloadHandler(
 
   output$sc1d1oupTxt <- renderUI({ 
     x <- input$sc1d1grp
-    # # updateTextAreaInput(session, "sc1d1inp", value = paste0(sc1def[[x]], collapse = ", "))
     textAreaInput("sc1d1inp", HTML("List of gene names (Max 50 genes, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
                   value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
           helper(type = "inline", size = "m", fade = TRUE,
                  title = "List of genes to plot on bubbleplot / heatmap",
                  content = c("Input genes to plot",
                              "- Maximum 50 genes (due to ploting space limitations)",
                              "- Genes should be separated by comma, semicolon or newline"))
-    # geneList = scGeneList(input$sc1d1inp, sc1gene)
-    # if(nrow(geneList) > 50){
-    #   HTML("More than 50 input genes! Please reduce the gene list!")
-    # } else {
-    #   oup = paste0(nrow(geneList[present == TRUE]), "genes OK and will be plotted")
-    #   if(nrow(geneList[present == FALSE]) > 0){
-    #     oup = paste0(oup, "<br/>",
-    #                  nrow(geneList[present == FALSE]), "genes not found (",
-    #                  paste0(geneList[present == FALSE]$gene, collapse = ", "), ")")
-    #   }
-    # HTML(oup)
-    # }
   })
   
   output$sc1d1oup <- renderPlot({ 
@@ -2671,29 +2658,15 @@ observeEvent(input$sc2d1sub1all, {
 
 output$sc2d1oupTxt <- renderUI({
   x <- input$sc2d1grp
-  # # updateTextAreaInput(session, "sc1d1inp", value = paste0(sc1def[[x]], collapse = ", "))
   textAreaInput("sc2d1inp", HTML("List of motif names (Max 50 motifs, separated by , or ; or newline):"),
                 height = "110px",width = "600px",
                 value = paste0(sc2def[[x]], collapse = ", ")
-                # value = paste0(sc1def$genes, collapse = ", ")
   ) %>%
     helper(type = "inline", size = "m", fade = TRUE,
            title = "List of motifs to plot on heatmap",
            content = c("Input motifs to plot",
                        "- Maximum 50 motifs (due to ploting space limitations)",
                        "- Motifs should be separated by comma, semicolon or newline"))
-#   # geneList = scGeneList(input$sc1d1inp, sc1gene)
-#   # if(nrow(geneList) > 50){
-#   #   HTML("More than 50 input genes! Please reduce the gene list!")
-#   # } else {
-#   #   oup = paste0(nrow(geneList[present == TRUE]), "genes OK and will be plotted")
-#   #   if(nrow(geneList[present == FALSE]) > 0){
-#   #     oup = paste0(oup, "<br/>",
-#   #                  nrow(geneList[present == FALSE]), "genes not found (",
-#   #                  paste0(geneList[present == FALSE]$gene, collapse = ", "), ")")
-#   #   }
-#   # HTML(oup)
-#   # }
 })
 
 output$sc2d1oup <- renderPlot({

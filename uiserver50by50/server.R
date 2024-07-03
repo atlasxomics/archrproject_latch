@@ -1924,7 +1924,6 @@ shinyServer(function(input, output, session) {
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
                   value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",
@@ -2910,7 +2909,6 @@ shinyServer(function(input, output, session) {
     textAreaInput("sc2d1inp", HTML("List of motif names (Max 50 motifs, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
                   value = paste0(sc2def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of motifs to plot on heatmap",
