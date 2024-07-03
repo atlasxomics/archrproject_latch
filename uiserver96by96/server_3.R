@@ -42,11 +42,9 @@ sc2meta = readRDS("sc2meta.rds")
 
 # for genes heatmap
 seMarker_cluster <-  readRDS("markersGS_clusters.rds")
-seMarker_sample <-  readRDS("markersGS_sample.rds")
 
 # for motif heatmap
 seEnrich_cluster <-  readRDS("enrichMotifs_clusters.rds")
-seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
 
 # for conditions
 treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
