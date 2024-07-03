@@ -27,22 +27,17 @@ library("S4Vectors")
 tempdir <- getwd()
 ArchRobj <- system(paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), intern = TRUE)
 
-
 proj <- loadArchRProject(path = ArchRobj, force = FALSE, showLogo = TRUE)
-
 
 sc1conf = readRDS("sc1conf.rds")
 sc1def  = readRDS("sc1def.rds")
 sc1gene = readRDS("sc1gene.rds")
 sc1meta = readRDS("sc1meta.rds")
 
-
-
 sc2conf = readRDS("sc2conf.rds")
 sc2def  = readRDS("sc2def.rds")
 sc2gene = readRDS("sc2gene.rds")
 sc2meta = readRDS("sc2meta.rds")
-
 
 # for genes heatmap
 seMarker_cluster <-  readRDS("markersGS_clusters.rds")
@@ -57,13 +52,13 @@ treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(
 
 combined <- readRDS('combined.rds')
 
-### Useful stuff 
-# Colour palette 
-cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84", 
-               "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"), 
-             c("#4575B4","#74ADD1","#ABD9E9","#E0F3F8","#FFFFBF", 
-               "#FEE090","#FDAE61","#F46D43","#D73027")[c(1,1:9,9)], 
-             c("#FDE725","#AADC32","#5DC863","#27AD81","#21908C", 
+### Useful stuff
+# Colour palette
+cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84",
+               "#FC8D59","#EF6548","#D7301F","#B30000","#7F0000"),
+             c("#4575B4","#74ADD1","#ABD9E9","#E0F3F8","#FFFFBF",
+               "#FEE090","#FDAE61","#F46D43","#D73027")[c(1,1:9,9)],
+             c("#FDE725","#AADC32","#5DC863","#27AD81","#21908C",
                "#2C728E","#3B528B","#472D7B","#440154"),
              c("#E6E7E8","#3A97FF","#8816A7","black"),
              c('#352A86','#343DAE','#0262E0','#1389D2','#2DB7A3','#A5BE6A','#F8BA43','#F6DA23','#F8FA0D')
@@ -72,7 +67,7 @@ cList = list(c("grey85","#FFF7EC","#FEE8C8","#FDD49E","#FDBB84",
 names(cList) = c("White-Red", "Blue-Yellow-Red", "Yellow-Green-Purple","comet","blueYellow") 
  
 # Panel sizes 
-pList = c("400px", "600px", "800px") 
+pList = c("400px", "600px", "800px")
 names(pList) = c("Small", "Medium", "Large") 
 pList2 = c("500px", "700px", "900px") 
 names(pList2) = c("Small", "Medium", "Large") 
@@ -87,10 +82,10 @@ names(lList) = c("Small", "Medium", "Large")
 g_legend <- function(a.gplot){  
   tmp <- ggplot_gtable(ggplot_build(a.gplot))  
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")  
-  legend <- tmp$grobs[[leg]]  
+  legend <- tmp$grobs[[leg]] 
   legend 
-}  
- 
+} 
+
 # Plot theme 
 sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){ 
   oupTheme = theme( 
@@ -172,10 +167,6 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
       ggData3 = ggData[, .(X = mean(X), Y = mean(Y)), by = "val"] 
       lListX = min(nchar(paste0(ggData3$val, collapse = "")), 200) 
       lListX = lList - (0.25 * floor(lListX/50)) 
-      # ggOut = ggOut + 
-      #   geom_text_repel(data = ggData3, aes(X, Y, label = val), 
-      #                   color = "grey10", bg.color = "grey95", bg.r = 0.15, 
-      #                   size = lListX[inpfsz], seed = 42) 
     } 
   } 
   if(inpasp == "Square") { 
@@ -183,8 +174,6 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
   } else if(inpasp == "Fixed") { 
     ggOut = ggOut + coord_fixed()
   }
-  
-    
     p <- ggOut
 
       for(i in names(sc1def$limits)){
@@ -685,28 +674,19 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
 
     }
-    # 
 
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
 
-
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-
 
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
 
-
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+ 
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
-  
-  } else if (inpGrp=="Sample") {
-    
-    
+
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
+
       seMarker <- seMarker_sample 
       
       for(iGene in geneList$gene){
@@ -744,23 +724,16 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
 
       out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
 
-
       out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Sample==y),]$X,1,each=n2)), out,samples)
-
 
       out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Sample",nrow(x))))
 
-
       out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,samples)
 
-      
       h5data <- as.data.frame(do.call("rbind", out))
-    
-    
     
   } else {
   
-    
     idx = as.integer(unlist(strsplit(inpGrp,"_"))[2])
     
     
@@ -892,9 +865,7 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
     rowAnnotation(foo = anno_mark(at= customRowLabelIDs, labels = customRowLabel
                                      ,labels_gp = gpar(fontsize = fontSizeLabels)
     )))
-    
   }
-  
 
   return(ggOut)
 }
@@ -974,7 +945,6 @@ Creat_matrix_motif <- function(
     returnMatrix = TRUE
 ){
   
-  
   mat <- assays(seEnrich)[["mlog10Padj"]]
   
   keep <- lapply(seq_len(ncol(mat)), function(x){
@@ -1016,8 +986,7 @@ Creat_matrix_motif <- function(
   req_motifs1 <- gsub(" ","",req_motifs1)
   
   rownames(mat2) <- req_motifs1
-  
-  
+
   if(nrow(mat2) > 1 & ncol(mat2) > 1){
     if(binaryClusterRows){
       #       cn <- order(colMeans(mat2), decreasing=TRUE)
@@ -1038,23 +1007,13 @@ Creat_matrix_motif <- function(
   }else{
     borderColor <- TRUE
   }
-  
-  #   if(transpose){
-  
-  #     if(!is.null(clusterCols)){
-  #       mat2 <- t(mat2[,clusterCols$order,drop=FALSE])
-  #     }else{
-  #       mat2 <- t(mat2)
-  #     }
-  
+
   if(returnMatrix){
     return(mat2)
     #     }
   }
 }
 # =========================
-
-
 
 scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt, 
                        inpsub1, inpsub2, inpH5, inpGene, inpScl, inpRow, inpCol, 
@@ -1063,9 +1022,7 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
   # Identify motifs that are in our dataset 
   geneList = scGeneList(inp, inpGene) 
   geneList = geneList[present == TRUE] 
-  #shiny::validate(need(nrow(geneList) <= 50, "More than 50 genes to plot! Please reduce the gene list!"))
   shiny::validate(need(nrow(geneList) > 1, "Please input at least 2 genes to plot!"))
-  
   
   # Prepare ggData 
   # ======================================
@@ -1104,28 +1061,18 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
-    # 
-    
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
-    
     
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
     
-    
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
     
-    
-    
-  } else if (inpGrp=="Sample") {
-    
-    
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
+
     seEnrich <- seEnrich_sample
     
     for(iGene in geneList$gene){
@@ -1618,11 +1565,9 @@ shinyServer(function(input, output, session) {
   
   
   output$sc1b2oupTxt <- renderUI({ 
-    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
-                  value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
+                  value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",

@@ -41,9 +41,11 @@ sc2meta <- readRDS("sc2meta.rds")
 
 # for genes heatmap
 seMarker_cluster <- readRDS("markersGS_clusters.rds")
+seMarker_sample <-  readRDS("markersGS_sample.rds")
 
 # for motif heatmap
 seEnrich_cluster <- readRDS("enrichMotifs_clusters.rds")
+seEnrich_sample <-  readRDS("markersGS_sample.rds")
 
 # for conditions
 treatment <- names(
@@ -95,10 +97,10 @@ g_legend <- function(a.gplot){
   legend 
 }
 
-# Plot theme 
-sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){ 
-  oupTheme = theme( 
-    text =             element_text(size = base_size, family = "Helvetica"), 
+# Plot theme
+sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
+  oupTheme = theme(
+    text = element_text(size = base_size, family = "Helvetica"), 
     panel.background = element_rect(fill = "white", colour = NA), 
     axis.line =   element_line(colour = "black"), 
     axis.ticks =  element_line(colour = "black", size = base_size / 20), 
@@ -107,14 +109,14 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5){
     axis.text.x = element_text(angle = Xang, hjust = XjusH), 
     legend.position = "bottom", 
     legend.key =      element_rect(colour = NA, fill = NA) 
-  ) 
-  if(!XYval){ 
+  )
+  if(!XYval) {
     oupTheme = oupTheme + theme( 
-      axis.text.x = element_blank(), axis.ticks.x = element_blank(), 
-      axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
-  } 
-  return(oupTheme) 
-} 
+      axis.text.x = element_blank(), axis.ticks.x = element_blank(),
+      axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  }
+  return(oupTheme)
+}
 
 ### Common plotting functions 
 # Plot cell information on dimred 
@@ -174,10 +176,6 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
       ggData3 = ggData[, .(X = mean(X), Y = mean(Y)), by = "val"] 
       lListX = min(nchar(paste0(ggData3$val, collapse = "")), 200) 
       lListX = lList - (0.25 * floor(lListX/50)) 
-      # ggOut = ggOut + 
-      #   geom_text_repel(data = ggData3, aes(X, Y, label = val), 
-      #                   color = "grey10", bg.color = "grey95", bg.r = 0.15, 
-      #                   size = lListX[inpfsz], seed = 42) 
     } 
   } 
   if(inpasp == "Square") { 
@@ -185,8 +183,7 @@ scDRcell <- function(inpConf, inpMeta, inpdrX, inp1, inpsub1, inpsub2, inpsub3,
   } else if(inpasp == "Fixed") { 
     ggOut = ggOut + coord_fixed()
   }
-  
-  
+    
   p <- ggOut
   
   for(i in names(sc1def$limits)){
@@ -514,7 +511,6 @@ scProp <- function(inpConf, inpMeta, inp1, inp2, inpsub1, inpsub2,inpsub3,
   .SD[,.(pctCells = 100 * sum(nCells) / tot, 
          nCells = nCells), by = "grp"]}, by = "X"] 
   
-
   ggCol <- inpsub3
   
   names(ggCol) = levels(ggData$grp) 
@@ -688,7 +684,7 @@ scBubbHeat <- function(
     
     h5data <- as.data.frame(do.call("rbind", out))  
     
-  } else if (inpGrp=="Sample") {
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seMarker <- seMarker_sample 
     
@@ -1072,27 +1068,18 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
-    # 
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
     
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-    
     
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
-    
-  } else if (inpGrp=="Sample") {
-    
+
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seEnrich <- seEnrich_sample
     
@@ -2061,11 +2048,9 @@ shinyServer(function(input, output, session) {
   
   
   output$sc1b2oupTxt <- renderUI({ 
-    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
-                  value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
+                  value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",

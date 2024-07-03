@@ -41,9 +41,11 @@ sc2meta <- readRDS("sc2meta.rds")
 
 # for genes heatmap
 seMarker_cluster <- readRDS("markersGS_clusters.rds")
+seMarker_sample <-  readRDS("markersGS_sample.rds")
 
 # for motif heatmap
 seEnrich_cluster <- readRDS("enrichMotifs_clusters.rds")
+seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
 
 # for conditions
 treatment <- names(
@@ -626,11 +628,11 @@ scVioBox <- function(
 
   # Actual ggplot
   if(inptyp == "violin") {
-    ggOut = ggplot(ggData, aes(X, val, fill = X))
-      + geom_violin(scale = "width")
+    ggOut = ggplot(ggData, aes(X, val, fill = X)) +
+      geom_violin(scale = "width")
   } else { 
-    ggOut = ggplot(ggData, aes(X, val, fill = X))
-      + geom_boxplot()
+    ggOut = ggplot(ggData, aes(X, val, fill = X)) +
+      geom_boxplot()
   }
   if (inppts) {
     ggOut <- ggOut +
@@ -706,11 +708,12 @@ scProp <- function(
 
 # Get gene list 
 scGeneList <- function(inp, inpGene) {
-  geneList = data.table(
-    gene = unique(trimws(strsplit(inp, ",|;|")[[1]])),
+  geneList <- data.table(
+    gene = unique(strsplit(inp, ", |;")[[1]]),
     present = TRUE
   )
-  geneList[!gene %in% names(inpGene)]$present = FALSE
+  geneList[!gene %in% names(inpGene)]$present <- FALSE
+  print(geneList)
   return(geneList)
 } 
 
@@ -841,7 +844,7 @@ scBubbHeat <- function(
   treatment <- names(getCellColData(proj))[
     grep('condition_',names(getCellColData(proj)))
   ]
-  if(inpGrp == "Clusters") {
+  if (inpGrp == "Clusters") {
     seMarker <- seMarker_cluster
 
     for (iGene in geneList$gene) {
@@ -868,39 +871,44 @@ scBubbHeat <- function(
     
     for (i in seq_along(1:nClust)) {
       
-      d[[i]] <- ggData1[, c(1, i + 1)]
-      cluster[[i]] <- paste0("C", i)
-      n1[[i]] = nrow(
-        req_meta_data[which(req_meta_data$Clusters == cluster[[i]]), ]
+      d[[i]] <- ggData1[, c(1, i + 1)] # subset ggData1 for Cluster i as df in list
+      cluster[[i]] <- paste0("C", i) # store cluster id
+      n1[[i]] = nrow( # record number of cells in cluster i
+        req_meta_data[which(req_meta_data$Clusters == cluster[[i]]), ] 
       ) 
     }
-    out <- mapply(
+    
+    out <- mapply( # transform d from list of s3.dataframe to s4Vector::Dframe
       function(x, y) DataFrame(
         geneName = rep(x[, 1], y), val = rep(x[, 2], y)
       ),
       d,
       n1
     )
-    out <- mapply(
-      function(x,y) DataFrame(
+    out <- mapply( # add sample ID to out
+      function(x, y) S4Vectors::DataFrame(
         x,
         sampleID = rep(
           req_meta_data[which(req_meta_data$Clusters == y), ]$X, 1, each = n2
-        ),
-        out,
-        cluster
-      )
+        )
+      ),
+      out,
+      cluster
     )
-    out <- lapply(
+    
+    out <- lapply( # add column grpBy w value 'Clusters' to each df
       out, function(x) DataFrame(x, grpBy = rep("Clusters", nrow(x)))
     )
-    out <- mapply(
-      function(x, y) DataFrame(x, sub = rep(y, nrow(x))), out, cluster
+    
+    out <- mapply( # add column 'sub' with cluster value
+      function(x, y) DataFrame(x, sub = rep(y, nrow(x))),
+      out,
+      cluster
     )
+    
+    h5data <- as.data.frame(do.call("rbind", out))
 
-    h5data <- as.data.frame(do.call("rbind", out))  
-
-  } else if (inpGrp == "Sample") {
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seMarker <- seMarker_sample
     
@@ -1278,7 +1286,7 @@ scBubbHeat2 <- function(
     grep("condition_", names(getCellColData(proj)))
   ]
   
-  if(inpGrp == "Clusters"){
+  if (inpGrp == "Clusters") {
     seEnrich <- seEnrich_cluster
     
     for(iGene in geneList$gene){
@@ -1305,10 +1313,10 @@ scBubbHeat2 <- function(
     n2 = nrow(ggData1)
     cluster <-  list()
     
-    for (i in seq_along(1:nClust)){
+    for (i in seq_along(1:nClust)) {
       
-      d[[i]] <- ggData1[,c(1,i+1)]
-      cluster[[i]] <- paste0("C",i)
+      d[[i]] <- ggData1[, c(1, i + 1)]
+      cluster[[i]] <- paste0("C", i)
       n1[[i]] = nrow(
         req_meta_data[which(req_meta_data$Clusters==cluster[[i]]), ]
       ) 
@@ -1335,7 +1343,7 @@ scBubbHeat2 <- function(
   
     h5data <- as.data.frame(do.call("rbind", out))
     
-  } else if (inpGrp=="Sample") {
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
 
     seEnrich <- seEnrich_sample
 
@@ -2435,7 +2443,6 @@ shinyServer(function(input, output, session) {
   }) 
   
   output$sc1b2oupTxt <- renderUI({ 
-    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
                   value = paste0(sc1def[[x]], collapse = ", ")
@@ -2688,10 +2695,10 @@ shinyServer(function(input, output, session) {
     
   }, priority = 200)
   
-  sctrack <- function(x,y,z,g){
+  sctrack <- function(x, y, z, g) {
     # Prepare tracks
-    upstream <- -min(z)*1000
-    downstream <- max(g)*1000
+    upstream <- -min(z) * 1000
+    downstream <- max(g) * 1000
     
     p <- plotBrowserTrack(
       ArchRProj = proj,
@@ -2703,18 +2710,17 @@ shinyServer(function(input, output, session) {
     )
     # Observe the inputs for ATAC-Seq  Co-accessibility
     grid::grid.newpage()
-    
     grid::grid.draw(p[[x]])
-    
   }
   
   output$sc1trackoup <- renderPlot({
     
-    sctrack(input$sc1trackinp
-            ,input$sc1trackgrp
-            ,input$range_min_1,input$range_max_1
+    sctrack(
+      input$sc1trackinp,
+      input$sc1trackgrp,
+      input$range_min_1,
+      input$range_max_1
     )
-    
   }, height = 550, width = 850)
   
   output$sc1trackoup.ui <- renderUI({
@@ -2722,9 +2728,10 @@ shinyServer(function(input, output, session) {
   })
   
   output$sc1trackoup.pdf <- downloadHandler(
-    filename = function() { paste0("sc1","_","tracks",".pdf") },
+    filename = function() {
+      paste0("sc1","_","tracks",".pdf")
+    },
     content = function(file) {
-      
       pdf(file, height = input$sc1trackoup.h, width = input$sc1trackoup.w)
       print(
         sctrack(
@@ -2734,12 +2741,14 @@ shinyServer(function(input, output, session) {
         )
       )
       dev.off()
-    })
+    }
+  )
   output$sc1trackoup.png <- downloadHandler(
-    filename = function() { paste0("sc1","_","tracks",".png") },
+    filename = function() {
+      paste0("sc1", "_", "tracks", ".png")
+    },
     content = function(file) {
-      
-      png(file,  width = 465, height = 225, units='mm', res = 300)
+      png(file,  width = 465, height = 225, units="mm", res = 300)
       print(
         sctrack(
           input$sc1trackinp,
@@ -2751,7 +2760,7 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  optCrt="{ option_create: function(data,escape) {return('<div class=\"create\"><strong>' + '</strong></div>');} }" 
+  optCrt <- "{ option_create: function(data,escape) {return('<div class=\"create\"><strong>' + '</strong></div>');} }" 
   updateSelectizeInput(session, "sc2a1inp2", choices = names(sc2gene), server = TRUE,
                        selected = sc2def$gene1, options = list(
                          maxOptions = 7, create = TRUE, persist = TRUE, render = I(optCrt)))

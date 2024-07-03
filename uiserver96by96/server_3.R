@@ -30,25 +30,23 @@ ArchRobj <- system(paste0("find ", tempdir, " -name '*_ArchRProject' -type d"), 
 
 proj <- loadArchRProject(path = ArchRobj, force = FALSE, showLogo = TRUE)
 
-
 sc1conf = readRDS("sc1conf.rds")
 sc1def  = readRDS("sc1def.rds")
 sc1gene = readRDS("sc1gene.rds")
 sc1meta = readRDS("sc1meta.rds")
-
-
 
 sc2conf = readRDS("sc2conf.rds")
 sc2def  = readRDS("sc2def.rds")
 sc2gene = readRDS("sc2gene.rds")
 sc2meta = readRDS("sc2meta.rds")
 
-
 # for genes heatmap
 seMarker_cluster <-  readRDS("markersGS_clusters.rds")
+seMarker_sample <-  readRDS("markersGS_sample.rds")
 
 # for motif heatmap
 seEnrich_cluster <-  readRDS("enrichMotifs_clusters.rds")
+seEnrich_sample <-  readRDS("enrichMotifs_sample.rds")
 
 # for conditions
 treatment <- names(getCellColData(proj))[grep('condition_',names(getCellColData(proj)))]
@@ -682,29 +680,19 @@ scBubbHeat <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       d[[i]] <- ggData1[,c(1,i+1)]
       cluster[[i]] <- paste0("C",i)
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
-
     }
-    # 
 
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
 
-
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-
 
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
 
-
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+ 
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
   
-  } else if (inpGrp=="Sample") {
-    
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
       seMarker <- seMarker_sample 
       
@@ -1103,27 +1091,18 @@ scBubbHeat2 <- function(inpConf, inpMeta, inp, inpGrp, inpPlt,
       n1[[i]] = nrow(req_meta_data[which(req_meta_data$Clusters==cluster[[i]]),])
       
     }
-    # 
     
     out <- mapply(function(x,y) DataFrame(geneName=rep(x[,1],y),val=rep(x[,2],y)),d,n1)
     
-    
     out <- mapply(function(x,y) DataFrame(x,sampleID=rep(req_meta_data[which(req_meta_data$Clusters==y),]$X,1,each=n2)), out,cluster)
-    
-    
+        
     out <- lapply(out, function(x) DataFrame(x,grpBy=rep("Clusters",nrow(x))))
     
-    
     out <- mapply(function(x,y) DataFrame(x,sub=rep(y,nrow(x))),out,cluster)
-    # 
-    # 
+
     h5data <- as.data.frame(do.call("rbind", out))
-    #  
-    
-    
-    
-  } else if (inpGrp=="Sample") {
-    
+
+  } else if (inpGrp == "Sample" || inpGrp == "SampleName") {
     
     seEnrich <- seEnrich_sample
     
@@ -1857,11 +1836,9 @@ shinyServer(function(input, output, session) {
   
   
   output$sc1b2oupTxt <- renderUI({ 
-    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
-                  value = paste0(sc1def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
+                  value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",
