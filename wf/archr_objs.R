@@ -1884,7 +1884,7 @@ if (max_number_of_pixle <= 2500) {
     file.copy("/root/uiserver96by96/ui.R", "/root/ui.R", overwrite = TRUE)
     file.copy(
       "/root/uiserver96by96/server.R", "/root/server.R", overwrite = TRUE
-  )
+    )
     unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
   }
 }

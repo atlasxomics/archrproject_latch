@@ -122,6 +122,11 @@ def archr_task(
 
     subprocess.run(_mv_figures_cmd)
 
+    bp_dirs = glob.glob('*_BP')
+    if bp_dirs:
+        _mv_bps_cmd = ['mv'] + bp_dirs + [out_dir]
+        subprocess.run(_mv_bps_cmd)
+
     return LatchDir(
         f'/root/{out_dir}',
         f'latch:///ArchRProjects/{out_dir}'

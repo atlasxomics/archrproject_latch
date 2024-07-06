@@ -349,7 +349,7 @@ combine_objs <- function(seurat_lst, umap_embedding, samples, spatial) {
       meta.data = meta.data
     )
 
-    combined <- Seurat::JoinLayers(combined)
+    combined <- SeuratObject::JoinLayers(combined)
   }
 
   # Normalize and calculate variable features
