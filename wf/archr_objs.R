@@ -1403,7 +1403,7 @@ if (length(unique(proj$Condition)) > 1) {
     lst <- list()
 
     for (i in 1:nrow(distr)) {
-      row <- distr[i,]
+      row <- distr[i, ]
       if (
         sum(unname(unlist(row)) >= 0.90) == 1) {
         rownames(row) -> lst[[i]]
@@ -1645,8 +1645,8 @@ spatial <- lapply(all, function(x) {
   df
 })
 
-combined <- combine_objs(all, UMAPHarmony, samples, spatial)
-combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial)
+combined <- combine_objs(all, UMAPHarmony, samples, spatial, project_name)
+combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial, project_name)
 
 saveRDS(combined, "combined.rds", compress = FALSE)
 saveRDS(combined_m, "combined_m.rds", compress = FALSE)

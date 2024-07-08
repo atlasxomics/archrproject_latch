@@ -47,6 +47,9 @@ def archr_task(
     max_clusters: int
 ) -> LatchDir:
 
+    out_dir = project_name
+    subprocess.run(['mkdir', f'{out_dir}'])
+
     _archr_cmd = [
         'Rscript',
         '/root/wf/archr_objs.R',
@@ -79,9 +82,6 @@ def archr_task(
 
     _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd)
-
-    out_dir = project_name
-    subprocess.run(['mkdir', f'{out_dir}'])
 
     project_dirs = glob.glob(f'{project_name}_*')
     www = glob.glob('www')
@@ -121,11 +121,6 @@ def archr_task(
     _mv_figures_cmd = ['mv'] + figures + [str(figures_dir)]
 
     subprocess.run(_mv_figures_cmd)
-
-    bp_dirs = glob.glob('*_BP')
-    if bp_dirs:
-        _mv_bps_cmd = ['mv'] + bp_dirs + [out_dir]
-        subprocess.run(_mv_bps_cmd)
 
     return LatchDir(
         f'/root/{out_dir}',

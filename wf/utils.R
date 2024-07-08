@@ -245,7 +245,9 @@ find_samples_name <- function(seurat_lst) {
   )
 }
 
-combine_objs <- function(seurat_lst, umap_embedding, samples, spatial) {
+combine_objs <- function(
+  seurat_lst, umap_embedding, samples, spatial, project_name
+) {
 
   # ----------- Filter SeuratObjs  -----------
   # Remove cell with NA counts from each SeuratObj
@@ -324,7 +326,7 @@ combine_objs <- function(seurat_lst, umap_embedding, samples, spatial) {
     counts_mat <- c()
     for (i in seq_along(filtered)) {
 
-      path <- paste0(samples[[i]], "_BP")
+      path <- paste0(project_name, "/", samples[[i]], "_BP")
 
       BPCells::write_matrix_dir(
         mat = filtered[[i]]@assays[["Spatial"]]@counts,
@@ -332,14 +334,6 @@ combine_objs <- function(seurat_lst, umap_embedding, samples, spatial) {
         overwrite = TRUE
       )
       counts_mat[[i]] <- BPCells::open_matrix_dir(dir = path)
-    }
-
-    # Recreate SeuratObjs as BPCells
-    bpc_obs <- c()
-    for (i in seq_along(counts_mat)) {
-      bpc_obs[[i]] <- CreateSeuratObject(
-        counts = counts_mat[[i]], assay = "Spatial"
-      )
     }
 
     # Create combiend SeuratObject
