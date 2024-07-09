@@ -391,7 +391,8 @@ shinyUI(
                       "Plot order:",
                       choices = c("Max-1st", "Min-1st", "Original", "Random"),
                       selected = "Original",
-                      inline = TRUE),
+                      inline = TRUE
+                    ),
                     checkboxInput(
                       "sc1a2lab1", "Show cell info labels", value = TRUE
                     )
@@ -472,7 +473,9 @@ shinyUI(
                     "sc1a2drX2",
                     "Dimension Reduction",
                     choices = sc1conf[
-                      -c(which(sc1conf$dimred==TRUE & grepl("_2",sc1conf$UI))),
+                      -c(
+                        which(sc1conf$dimred == TRUE & grepl("_2", sc1conf$UI))
+                      ),
                     ][dimred == TRUE]$UI,
                     selected = sc1def$dimred[3]
                   ),
@@ -482,19 +485,19 @@ shinyUI(
                     choices = sc1conf$UI,
                     selected = sc1def$meta1
                   ) %>% helper(
-                      type = "inline",
-                      size = "m",
-                      fade = TRUE,
-                      title = "Cell information to colour cells by",
-                      content = c(
-                        "Select cell information to colour cells",
-                        "- Categorical covariates have a fixed colour palette",
-                        paste0(
-                          "- Continuous covariates are coloured in a ",
-                          "Blue-Yellow-Red colour scheme, which can be ",
-                          "changed in the plot controls"
-                        )
+                    type = "inline",
+                    size = "m",
+                    fade = TRUE,
+                    title = "Cell information to colour cells by",
+                    content = c(
+                      "Select cell information to colour cells",
+                      "- Categorical covariates have a fixed colour palette",
+                      paste0(
+                        "- Continuous covariates are coloured in a ",
+                        "Blue-Yellow-Red colour scheme, which can be ",
+                        "changed in the plot controls"
                       )
+                    )
                   ),
                   actionButton("sc1a2tog2", "Toggle plot controls"),
                   conditionalPanel(
@@ -983,7 +986,8 @@ shinyUI(
                 "sc1c1inp1",
                 "Cell information (X-axis):",
                 choices = sc1conf[grp == TRUE]$UI,
-                selected = sc1def$grp1) %>%
+                selected = sc1def$grp1
+              ) %>%
                 helper(
                   type = "inline",
                   size = "m",
@@ -995,11 +999,11 @@ shinyUI(
                     "- Plotted as the X-axis of the violin plot / box plot"
                   )
                 ),
-                selectInput(
-                  "sc1c1inp2",
-                  "Cell Info / Gene name (Y-axis):",
-                  choices = NULL
-                ) %>%
+              selectInput(
+                "sc1c1inp2",
+                "Cell Info / Gene name (Y-axis):",
+                choices = NULL
+              ) %>%
                 helper(
                   type = "inline",
                   size = "m",
@@ -1116,7 +1120,8 @@ shinyUI(
                 "sc1c2inp1",
                 "Cell information to plot (X-axis):",
                 choices = sc1conf[grp == TRUE]$UI,
-                selected = sc1def$grp2) %>%
+                selected = sc1def$grp2
+              ) %>%
                 helper(
                   type = "inline",
                   size = "m",
@@ -1131,7 +1136,8 @@ shinyUI(
                 "sc1c2inp2",
                 "Cell information to group / colour by:",
                 choices = sc1conf[grp == TRUE]$UI,
-                selected = sc1def$grp1) %>%
+                selected = sc1def$grp1
+              ) %>%
                 helper(
                   type = "inline",
                   size = "m",
@@ -1179,9 +1185,12 @@ shinyUI(
               actionButton("sc1c2tog", "Toggle graphics controls"),
               conditionalPanel(
                 condition = "input.sc1c2tog % 2 == 1",
-                radioButtons("sc1c2psz", "Plot size:",
-                choices = c("Small", "Medium", "Large"),
-                selected = "Small", inline = TRUE),
+                radioButtons(
+                  "sc1c2psz", "Plot size:",
+                  choices = c("Small", "Medium", "Large"),
+                  selected = "Small",
+                  inline = TRUE
+                ),
                 radioButtons(
                   "sc1c2fsz",
                   "Font size:",
@@ -1195,7 +1204,7 @@ shinyUI(
               downloadButton("sc1c2oup.png", "Download PNG"),
               br(),
               div(
-                style="display:inline-block",
+                style = "display:inline-block",
                 numericInput(
                   "sc1c2oup.h",
                   "PDF / PNG height:",
@@ -1244,14 +1253,14 @@ shinyUI(
               br(),
               div(
                 style = "display:inline-block",
-                  numericInput(
-                    "sc1de1oup.h",
-                    "PDF / PNG height:",
-                    width = "138px",
-                    min = 4,
-                    max = 20,
-                    value = 8,
-                    step = 0.5
+                numericInput(
+                  "sc1de1oup.h",
+                  "PDF / PNG height:",
+                  width = "138px",
+                  min = 4,
+                  max = 20,
+                  value = 8,
+                  step = 0.5
                 )
               ),
               div(
@@ -1290,7 +1299,8 @@ shinyUI(
                 "sc1d1grp",
                 "Group by:",
                 choices = sc1conf[grp == TRUE]$UI[1:4],
-                selected = sc1conf[grp == TRUE]$UI[3]) %>%
+                selected = sc1conf[grp == TRUE]$UI[3]
+              ) %>%
                 helper(
                   type = "inline",
                   size = "m",
@@ -1402,7 +1412,7 @@ shinyUI(
           )
         )    # End of fluidPage
       ),     # End of tab
-      ### Tab1.a3: MotifEnr vs MotifEnr on dimRed 
+      ### Tab1.a3: MotifEnr vs MotifEnr on dimRed
       tabPanel(
         HTML("MotifEnr vs MotifEnr"),
         h4("Motif enrichment vs motif enrichment on dimension reduction"),
@@ -1412,7 +1422,7 @@ shinyUI(
         br(),
         fluidRow(
           column(
-            6, 
+            6,
             fluidPage(
               sidebarLayout(
                 sidebarPanel(
@@ -1421,25 +1431,27 @@ shinyUI(
                     "sc2a3drX",
                     "Dimension Reduction",
                     choices = sc2conf[
-                      -c(which(sc2conf$dimred==TRUE & grepl("_2",sc2conf$UI))),
+                      -c(
+                        which(sc2conf$dimred == TRUE & grepl("_2", sc2conf$UI))
+                      ),
                     ][dimred == TRUE]$UI,
                     selected = sc2def$dimred[3]
                   ),
-                  selectInput("sc2a3inp1", "Motif name:", choices=NULL) %>%
-                  helper(
-                    type = "inline",
-                    size = "m",
-                    fade = TRUE,
-                    title = "Motif enrichment to colour cells by",
-                    content = c(
-                      "Select motif to colour cells by motif enrichment",
-                      paste0(
-                        "- Motif enrichment are coloured in a ",
-                        "White-Red colour scheme which can be ",
-                        "changed in the plot controls"
+                  selectInput("sc2a3inp1", "Motif name:", choices = NULL) %>%
+                    helper(
+                      type = "inline",
+                      size = "m",
+                      fade = TRUE,
+                      title = "Motif enrichment to colour cells by",
+                      content = c(
+                        "Select motif to colour cells by motif enrichment",
+                        paste0(
+                          "- Motif enrichment are coloured in a ",
+                          "White-Red colour scheme which can be ",
+                          "changed in the plot controls"
+                        )
                       )
-                    )
-                  ),
+                    ),
                   actionButton("sc2a3tog1", "Toggle plot controls"),
                   conditionalPanel(
                     condition = "input.sc2a3tog1 % 2 == 1",
@@ -1498,7 +1510,7 @@ shinyUI(
                   ),
                   br(),
                   div(
-                    style="display:inline-block",
+                    style = "display:inline-block",
                     numericInput(
                       "sc2a3oup1.h",
                       "PDF / PNG height:",
@@ -1510,7 +1522,7 @@ shinyUI(
                     )
                   ),
                   div(
-                    style="display:inline-block",
+                    style = "display:inline-block",
                     numericInput(
                       "sc2a3oup1.w",
                       "PDF / PNG width:",
@@ -1522,7 +1534,7 @@ shinyUI(
                     )
                   )
                 ),
-                mainPanel = mainPanel(width = 6,uiOutput("sc2a3oup1.ui"))
+                mainPanel = mainPanel(width = 6, uiOutput("sc2a3oup1.ui"))
               )
             )
           ), # End of column
@@ -1543,20 +1555,20 @@ shinyUI(
                     selected = sc1def$dimred[5]
                   ),
                   selectInput("sc2a3inp2", "Motif name:", choices = NULL) %>%
-                  helper(
-                    type = "inline",
-                    size = "m",
-                    fade = TRUE,
-                    title = "Motif enrichment to colour cells by",
-                    content = c(
-                      "Select motif to colour cells by motif enrichment",
-                      paste0(
-                        "- Motif enrichment are coloured in a ",
-                        "White-Red colour scheme which can be ",
-                        "changed in the plot controls"
+                    helper(
+                      type = "inline",
+                      size = "m",
+                      fade = TRUE,
+                      title = "Motif enrichment to colour cells by",
+                      content = c(
+                        "Select motif to colour cells by motif enrichment",
+                        paste0(
+                          "- Motif enrichment are coloured in a ",
+                          "White-Red colour scheme which can be ",
+                          "changed in the plot controls"
+                        )
                       )
-                    )
-                  ),
+                    ),
                   actionButton("sc2a3tog2", "Toggle plot controls"),
                   conditionalPanel(
                     condition = "input.sc2a3tog2 % 2 == 1",
@@ -1638,7 +1650,7 @@ shinyUI(
                   ),
                   br(),
                   div(
-                    style="display:inline-block",
+                    style = "display:inline-block",
                     numericInput(
                       "sc2a3oup2.h",
                       "PDF / PNG height:",
@@ -1650,7 +1662,7 @@ shinyUI(
                     )
                   ),
                   div(
-                    style="display:inline-block",
+                    style = "display:inline-block",
                     numericInput(
                       "sc2a3oup2.w",
                       "PDF / PNG width:",
@@ -1660,7 +1672,7 @@ shinyUI(
                       value = 8,
                       step = 0.5
                     )
-                  )  
+                  )
                 ),
                 mainPanel = mainPanel(width = 6, uiOutput("sc2a3oup2.ui"))
               )
@@ -1685,7 +1697,8 @@ shinyUI(
                 "sc2d1grp",
                 "Group by:",
                 choices = sc2conf[grp == TRUE]$UI[1:4],
-                selected = sc2conf[grp == TRUE]$UI[3]) %>%
+                selected = sc2conf[grp == TRUE]$UI[3]
+              ) %>%
                 helper(
                   type = "inline",
                   size = "m",
@@ -1826,7 +1839,7 @@ shinyUI(
                 )
               ),
               div(
-                style="display:inline-block",
+                style = "display:inline-block",
                 numericInput(
                   "sc2de1oup.w",
                   "PDF / PNG width:",

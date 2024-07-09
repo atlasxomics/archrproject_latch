@@ -537,13 +537,17 @@ scProp <- function(inpConf, inpMeta, inp1, inp2, inpsub1, inpsub2,inpsub3,
 } 
 
 # Get gene list 
-scGeneList <- function(inp, inpGene){ 
-  geneList = data.table(gene = unique(trimws(strsplit(inp, ",|;|
-")[[1]])), 
-                        present = TRUE) 
-  geneList[!gene %in% names(inpGene)]$present = FALSE 
-  return(geneList) 
-} 
+scGeneList <- function(inp, inpGene) {
+  geneList <- data.table::data.table(
+    gene = unique(trimws(strsplit(inp, ",|;| ")[[1]])),
+    present = TRUE
+  )
+  geneList[!gene %in% names(inpGene)]$present <- FALSE
+
+  print(geneList)
+
+  return(geneList)
+}
 
 # Plot gene expression bubbleplot / heatmap for genes #########################
 # create heatmap matrix
@@ -2047,10 +2051,11 @@ shinyServer(function(input, output, session) {
   }) 
   
   
-  output$sc1b2oupTxt <- renderUI({ 
+  output$sc1b2oupTxt <- renderUI({
+    x <- "Clusters"
     textAreaInput("sc1b2inp", HTML("List of gene names (genes list, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
-                  value = paste0(sc1def$genes, collapse = ", ")
+                  value = paste0(sc1def[[x]], collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of genes to plot on selected spatial/UMAP plot",
@@ -2974,11 +2979,9 @@ shinyServer(function(input, output, session) {
   
   output$sc2d1oupTxt <- renderUI({
     x <- input$sc2d1grp
-    # # updateTextAreaInput(session, "sc1d1inp", value = paste0(sc1def[[x]], collapse = ", "))
     textAreaInput("sc2d1inp", HTML("List of motif names (Max 50 motifs, separated by , or ; or newline):"),
                   height = "110px",width = "600px",
                   value = paste0(sc2def[[x]], collapse = ", ")
-                  # value = paste0(sc1def$genes, collapse = ", ")
     ) %>%
       helper(type = "inline", size = "m", fade = TRUE,
              title = "List of motifs to plot on heatmap",
