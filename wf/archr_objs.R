@@ -507,7 +507,7 @@ if (length(unique(proj$Condition)) > 1) {
 }
 
 # Volcano plots for genes
-if (length(unique(proj$Condition) ) >1) {
+if (length(unique(proj$Condition)) > 1) {
   for (j in seq_along(treatment)) {
 
     ncells <- length(proj$cellNames)
