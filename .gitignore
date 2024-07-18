@@ -22,6 +22,7 @@ wf/*.pdf
 wf/spatial
 wf/shinyApp
 wf/combined*.rds
+wf/test_main.R
 
 **/.RData
 **/.Rhistory

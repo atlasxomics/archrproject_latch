@@ -12,7 +12,6 @@ library("GenomicRanges")
 library("gridExtra")
 library("harmony")
 library("plyr")
-library("purrr")
 library("qdap")
 library("readr")
 library("Seurat")
@@ -508,7 +507,7 @@ if (length(unique(proj$Condition)) > 1) {
 }
 
 # Volcano plots for genes
-if (length(unique(proj$Condition) ) >1) {
+if (length(unique(proj$Condition)) > 1) {
   for (j in seq_along(treatment)) {
 
     ncells <- length(proj$cellNames)
@@ -525,15 +524,14 @@ if (length(unique(proj$Condition) ) >1) {
     req_DF <- as.data.frame(getCellColData(proj))
     df1 <- table(req_DF$Clusters, req_DF[, treatment[j]])
     distr <- as.data.frame.matrix(round(prop.table(as.matrix(df1), 1), 2))
+
     lst <- list()
-
-
-    for(i in 1:nrow(distr)) {
+    for (i in 1:nrow(distr)) {
       row <- distr[i, ]
       if (
         sum(unname(unlist(row)) >= 0.90) == 1
       ) {
-        rownames(row) -> lst[[i]]
+        lst[[i]] <- rownames(row)
       }
     }
     not_req_list <- unlist(lst)
@@ -655,12 +653,14 @@ if (length(unique(proj$Condition) ) >1) {
       markersGS_merged_df[[conds]] <- na.omit(markersGS_merged_df[[conds]])
 
       # remove FDR equal to 0
-      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(!markersGS_merged_df[[conds]]$p_val_adj == 0), ]
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][
+        which(!markersGS_merged_df[[conds]]$p_val_adj == 0),
+      ]
 
       # make logfc limiation between 1 and -1
-      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(
-        abs(markersGS_merged_df[[conds]]$avg_log2FC) < 1.2
-      ), ]
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][
+        which(abs(markersGS_merged_df[[conds]]$avg_log2FC) < 1.2),
+      ]
 
       markersGS_merged_df[[conds]]$Significance <- ifelse(
         markersGS_merged_df[[conds]]$p_val < 10^-2,
@@ -671,6 +671,7 @@ if (length(unique(proj$Condition) ) >1) {
         ),
         "Not siginficant"
       )
+
       de <- list()
       de[[conds]] <- markersGS_merged_df[[conds]]
 
@@ -1404,7 +1405,7 @@ if (length(unique(proj$Condition)) > 1) {
     lst <- list()
 
     for (i in 1:nrow(distr)) {
-      row <- distr[i,]
+      row <- distr[i, ]
       if (
         sum(unname(unlist(row)) >= 0.90) == 1) {
         rownames(row) -> lst[[i]]
@@ -1634,162 +1635,26 @@ lapply(ProbMatrices, colSums) %>% range
 
 saveRDS(ProbMatrices, "seqlogo.rds")
 
-######creating combimed.rds files ########
+##############------------- Combined SeuratObjs ---------------################
 
-main_func <- function(seurat_lst, umap_embedding) {
+samples <- find_samples_name(all)
 
-  samples <- find_samples_name(seurat_lst)
+# extract image coordinates as -(imagecols) | imagerow
+spatial <- lapply(all, function(x) {
+  df <- as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
+  colnames(df) <- paste0("Spatial_", 1:2)
+  df$Spatial_2 <- -df$Spatial_2
+  df
+})
 
-  D00_fun <- function(seurat_lst) {
-    # Remove samples without "counts" from list of SeuratObjs
-    toRemove <- lapply(
-      seurat_lst, function(x) {
-        names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
-      }
-    )
-    mapply(function(x, y) x[, !colnames(x) %in% y], seurat_lst, toRemove)
-  }
-
-  D00 <- D00_fun(seurat_lst)
-
-  Spatial_D00_fun <- function(D00) {
-
-    Spatial_D00 <- lapply(D00, function(x) {
-      as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
-    })
-    Spatial_D00 <- lapply(Spatial_D00, function(x) {
-      colnames(x) <- paste0("Spatial_", 1:2)
-      x
-    })
-    lapply(Spatial_D00, function(x) {
-      x$Spatial_2 <- -(x$Spatial_2)
-      x
-    })
-  }
-
-  Spatial_D00 <- Spatial_D00_fun(D00)
-
-  Spatial_D00_all_fun <- function(Spatial_D00) {
-
-    tmp <- lapply(seq_along(Spatial_D00), function(i) {
-      bind_rows(Spatial_D00[-i])
-    })
-    tmp <- lapply(tmp, function(x) {
-      x$Spatial_1 <- 0
-      x
-    })
-    tmp <- lapply(tmp, function(x) {
-      x$Spatial_2 <- 0
-      x
-    })
-    tmp <- lapply(seq_along(Spatial_D00), function(i) {
-      as.matrix(rbind(Spatial_D00[[i]], tmp[[i]]))
-    })
-  }
-
-  Spatial_D00_all <- Spatial_D00_all_fun(Spatial_D00)
-
-  temp_fun <- function(D00) {
-    # Convert list of SeuratObjs to list of Assay counts as dataframes.
-    temp <- lapply(D00, function(x) {
-      df <- as.data.frame(x@assays[[1]]@counts)
-      colnames(df) <- Seurat::Cells(x)
-      return(df)
-    })
-    temp <- lapply(temp, function(x) {
-      x$region <- rownames(x)
-      x
-    })
-  }
-
-  temp <- temp_fun(D00)
-
-  # merge seurat objects
-  combined_mat <- purrr::reduce(temp, full_join, by = "region")
-
-  rownames(combined_mat) <- combined_mat$region
-  combined_mat$region <- NULL
-
-  # remove extra cells
-  extra_cells <- setdiff(colnames(combined_mat), rownames(Spatial_D00_all[[1]]))
-  combined_mat <- combined_mat[
-    , which(!colnames(combined_mat) %in% extra_cells)
-  ]
-  combined_mat <- as.matrix(combined_mat)
-
-  # clean columns of metadata per sample attached to sample's name before rbind
-  l <- D00
-  l <- lapply(l, function(x) {
-    colnames(x@meta.data) <- gsub(
-      paste0("_", Seurat::Assays(x)),
-      "",
-      colnames(x@meta.data)
-    )
-    x
-  })
-  D00 <- l
-
-  # first get the list of meta data
-  list_of_metadata <- lapply(D00, function(x) {
-    x@meta.data
-  })
-
-  # # rbind meta data per samples
-  meta.data <- do.call("rbind", list_of_metadata)
-  write.csv(meta.data, "req_meta_data.csv", row.names = TRUE)
-
-  combined <- Seurat::CreateSeuratObject(
-    counts = as.data.frame(combined_mat),
-    assay = "scATAC",
-    meta.data = meta.data
-  )
-  combined@meta.data$Clusters <- factor(
-    combined@meta.data$Clusters,
-    levels = c(paste0("C", seq_along(unique(combined@meta.data$Clusters))))
-  )
-  Spatial_D00 <- list()
-  for (i in seq_along(samples)) {
-    Spatial_D00[[i]] <- Spatial_D00_all[[i]][colnames(combined), ]
-    combined[[samples[i]]] <- Seurat::CreateDimReducObject(
-      embeddings = Spatial_D00[[i]],
-      key = samples[i],
-      assay = Seurat::DefaultAssay(combined)
-    )
-  }
-  # we need to run Variable Features
-  combined <- Seurat::NormalizeData(
-    combined, normalization.method = "LogNormalize", scale.factor = 10000
-  )
-  combined <- Seurat::FindVariableFeatures(
-    combined, selection.method = "vst", nfeatures = 2000
-  )
-  combined[["UMAP"]] <- Seurat::CreateDimReducObject(
-    embeddings = as.matrix(umap_embedding),
-    key = "UMAP",
-    assay = Seurat::DefaultAssay(combined)
-  )
-  return(combined)
-}
-
-combined <- main_func(all, UMAPHarmony)
-combined_m <- main_func(all_m, UMAPHarmony)
-
-# remove nFeature and nCounts
-combined@meta.data$nCount_scATAC <- NULL
-combined@meta.data$nCount <- NULL
-combined@meta.data$nFeature_scATAC <- NULL
-combined@meta.data$nFeature <- NULL
-
-combined_m@meta.data$nCount_scATAC <- NULL
-combined_m@meta.data$nCount <- NULL
-combined_m@meta.data$nFeature_scATAC <- NULL
-combined_m@meta.data$nFeature <- NULL
+combined <- combine_objs(all, UMAPHarmony, samples, spatial, project_name)
+combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial, project_name)
 
 saveRDS(combined, "combined.rds", compress = FALSE)
 saveRDS(combined_m, "combined_m.rds", compress = FALSE)
 
-# =================================
-print("Shiny App starting ...")
+##############------------- Shiny app files ---------------################
+print("Shiny App starting...")
 
 scConf1 <- createConfig(combined)
 makeShinyFiles(
@@ -1816,7 +1681,6 @@ makeShinyFiles(
   default.gene2 = "NEUROG2-1580",
   default.dimred = c("UMAP_1", "UMAP_2")
 )
-
 citation <- list(
   title <- paste0(project_name, " Data Analysis")
 )
@@ -1832,31 +1696,11 @@ makeShinyCodesMulti(
 sc1def <- readRDS("/root/shinyApp/sc1def.rds")
 sc2def <- readRDS("/root/shinyApp/sc2def.rds")
 
-samples <- find_samples_name(all)
-
-D00 <- list()
-for (i in seq_along(samples)) {
-  D00[[i]] <- all[[i]]
-  nal_cols <- which(colSums(is.na(D00[[i]]@assays[[1]]@counts)) > 0)
-  toRemove <- names(nal_cols)
-  D00[[i]] <- D00[[i]][, !colnames(D00[[i]]) %in% toRemove]
-}
-
-Spatial_D00 <- list()
-for (i in seq_along(samples)) {
-  Spatial_D00[[i]] <- as.data.frame(
-    D00[[i]]@images[[1]]@coordinates[, c(5, 4)]
-  )
-  colnames(Spatial_D00[[i]]) <- paste0("Spatial_", 1:2)
-  Spatial_D00[[i]]$Spatial_2 <- -(Spatial_D00[[i]]$Spatial_2)
-}
-
-l <- Spatial_D00
-xlim <- lapply(l, function(x) {
+xlim <- lapply(spatial, function(x) {
   xlim <- c(min(x[, 1]), max(x[, 1]))
   xlim
 })
-ylim <- lapply(l, function(y) {
+ylim <- lapply(spatial, function(y) {
   ylim <- c(min(y[, 2]), max(y[, 2]))
   ylim
 })
@@ -2042,7 +1886,7 @@ if (max_number_of_pixle <= 2500) {
     file.copy("/root/uiserver96by96/ui.R", "/root/ui.R", overwrite = TRUE)
     file.copy(
       "/root/uiserver96by96/server.R", "/root/server.R", overwrite = TRUE
-  )
+    )
     unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
   }
 }
