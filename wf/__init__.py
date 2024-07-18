@@ -3,6 +3,7 @@ objects for downstream analysis; additionally, generates UMAP and
 SpatialDimPlots for a list of lsi_varfeatures.
 '''
 import glob
+import json
 import subprocess
 
 from enum import Enum
@@ -29,7 +30,42 @@ class Genome(Enum):
     rnor6 = 'rnor6'
 
 
-@custom_task(cpu=62, memory=750, storage_gib=4949)
+def allocate_mem(
+    runs: List[Run],
+    project_name: str,
+    genome: Genome,
+    tile_size: int,
+    min_TSS: float,
+    min_frags: int,
+    lsi_iterations: int,
+    lsi_resolution: float,
+    lsi_varfeatures: int,
+    clustering_resolution: float,
+    umap_mindist: float,
+    num_threads: int,
+    min_cells_cluster: int,
+    max_clusters: int
+) -> int:
+    '''Dynamic memory allocation for archr_task; counts total channels in
+    execution, if total channels greater than one 220 (48,400) use 750 GiB RAM,
+    otherwise use 384 GiB RAM.
+    '''
+
+    channels = []
+    for run in runs:
+        spatial_dir = run.spatial_dir.local_path
+        metadata_json = f'{spatial_dir}/metadata.json'
+
+        with open(metadata_json, 'r') as f:
+            metadata = json.load(f)
+            channels.append(metadata['numChannels'])
+
+    total_channels = sum([channel ** 2 for channel in channels])
+
+    return 750 if total_channels > 48400 else 384
+
+
+@custom_task(cpu=62, memory=allocate_mem, storage_gib=4949)
 def archr_task(
     runs: List[Run],
     project_name: str,

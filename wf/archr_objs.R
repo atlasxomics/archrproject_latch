@@ -524,15 +524,14 @@ if (length(unique(proj$Condition)) > 1) {
     req_DF <- as.data.frame(getCellColData(proj))
     df1 <- table(req_DF$Clusters, req_DF[, treatment[j]])
     distr <- as.data.frame.matrix(round(prop.table(as.matrix(df1), 1), 2))
+
     lst <- list()
-
-
-    for(i in 1:nrow(distr)) {
+    for (i in 1:nrow(distr)) {
       row <- distr[i, ]
       if (
         sum(unname(unlist(row)) >= 0.90) == 1
       ) {
-        rownames(row) -> lst[[i]]
+        lst[[i]] <- rownames(row)
       }
     }
     not_req_list <- unlist(lst)
@@ -654,12 +653,14 @@ if (length(unique(proj$Condition)) > 1) {
       markersGS_merged_df[[conds]] <- na.omit(markersGS_merged_df[[conds]])
 
       # remove FDR equal to 0
-      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(!markersGS_merged_df[[conds]]$p_val_adj == 0), ]
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][
+        which(!markersGS_merged_df[[conds]]$p_val_adj == 0),
+      ]
 
       # make logfc limiation between 1 and -1
-      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][which(
-        abs(markersGS_merged_df[[conds]]$avg_log2FC) < 1.2
-      ), ]
+      markersGS_merged_df[[conds]] <- markersGS_merged_df[[conds]][
+        which(abs(markersGS_merged_df[[conds]]$avg_log2FC) < 1.2),
+      ]
 
       markersGS_merged_df[[conds]]$Significance <- ifelse(
         markersGS_merged_df[[conds]]$p_val < 10^-2,
@@ -670,6 +671,7 @@ if (length(unique(proj$Condition)) > 1) {
         ),
         "Not siginficant"
       )
+
       de <- list()
       de[[conds]] <- markersGS_merged_df[[conds]]
 
