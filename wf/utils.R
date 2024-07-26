@@ -18,6 +18,14 @@ find_func <- function(tempdir, pattern) {
   )
 }
 
+fun_n <- function(lst, n) {
+  sapply(lst, `[`, n)
+}
+
+fun1 <- function(list) {
+  sapply(list, `[`, 1)
+}
+
 build_atlas_seurat_object <- function(
     run_id,
     matrix,
@@ -105,6 +113,8 @@ plot_geneset <- function(seurat_obj, marker_genes, name, title) {
   ) +
     ggtitle(title) +
     theme(plot.title = element_text(hjust = 0.5))
+
+  return(plot)
 }
 
 plot_umap <- function(archrproj, name) {
@@ -337,7 +347,7 @@ combine_objs <- function(
     }
 
     # Create combiend SeuratObject
-    combined <- CreateSeuratObject(
+    combined <- Seurat::CreateSeuratObject(
       counts = counts_mat,
       assay = "scATAC",
       meta.data = meta.data
@@ -390,4 +400,25 @@ combine_objs <- function(
   combined@meta.data$nFeature <- NULL
 
   return(combined)
+}
+
+rename_cells <- function(seurat_list) {
+  #' For each SeuratObj is a array of SeuratObjs, rename the cells from barcode
+  #' to run_id#barcode-1; ensures cell names are unique when combining
+  #' SeuratObjs
+
+  all <-  list()
+  for (i in seq_along(seurat_list)) {
+    all[[i]] <- seurat_list[[i]]
+    all[[i]] <- Seurat::RenameCells(
+      all[[i]],
+      new.names = paste0(
+        unique(all[[i]]@meta.data$Sample),
+        "#",
+        colnames(all[[i]]),
+        "-1"
+      )
+    )
+  }
+  return(all)
 }
