@@ -66,6 +66,7 @@ genome_sizes <- list("hg38" = 3.3e+09, "mm10" = 3.0e+09, "rnor6" = 2.9e+09)
 genome_size <- genome_sizes[[genome]]
 
 tempdir <- "/root"
+archrproj_dir <- paste0(project_name, "_ArchRProject")
 
 # Create ArchRProject ---------------------------------------------------------
 addArchRThreads(threads = 50)
@@ -107,17 +108,14 @@ treatment <- names(ArchR::getCellColData(proj))[
   grep("condition_", names(ArchR::getCellColData(proj)))
 ]
 
-print("++++ What treatments are in this project? ++++")
-treatment
+print(paste("Treatments:", treatment))
 
 # Set global values for project data -----
 n_samples <- length(unique(proj$Sample))
 n_cond <- length(unique(proj$Condition))
 n_cells <- length(proj$cellNames)
 
-saveArchRProject(
-  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-)
+saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Dimensionality reduction and clustering -------------------------------------
 proj <- addIterativeLSI(
@@ -173,9 +171,7 @@ proj <- ArchR::addUMAP(
 
 proj <- ArchR::addImputeWeights(proj)
 
-saveArchRProject(
-  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-)
+saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Plot UMAP embedding colored by Cluster, Sample, Treatment ----- *plot*
 save_umap(proj, c("Clusters", "Sample", treatment))
@@ -222,8 +218,7 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
-print("Available SeuratObjects...")
-seurat_objs
+print(paste("Available SeuratObjects:", seurat_objs))
 
 # Plot clusters ontop of spatial coordinates -----
 print("Creating spatial cluster plots...")
@@ -234,9 +229,7 @@ print("Creating QC plots...")
 save_qc_plots(seurat_objs, c("TSSEnrichment", "nFrags", "log10_nFrags"))
 
 # Save ArchR object -----
-saveArchRProject(
-  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-)
+saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Identify marker genes -------------------------------------------------------
 
@@ -311,7 +304,7 @@ if (n_cond > 1) {
   print("There are not enough Conditions to be compared with!")
 }
 
-# Initiate heatmaps list and plot marker gene per cluster heatmap -----
+# Initiate heatmaps list and plot marker gene per cluster heatmap ----- *plots*
 heatmaps <- list()
 
 # Recompute cluster gs heatmap for plotting (transpose, plotLog2FC different)
@@ -446,9 +439,7 @@ UMAPHarmony <- getEmbedding(
 )
 write.csv(UMAPHarmony, "UMAPHarmony.csv")
 
-saveArchRProject(
-  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-)
+saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Peak calling and motif enrichment for clusters ------------------------------
 
@@ -456,66 +447,17 @@ saveArchRProject(
 # decrease theads here, per specification from input parameters
 addArchRThreads(threads = num_threads)
 
-proj <- addGroupCoverages(
-  ArchRProj = proj,
-  groupBy = "Clusters",
-  maxCells = 1500,
-  force = TRUE
-)
+proj <- get_annotated_peaks(proj, "Clusters", genome_size, genome)
 
-pathToMacs2 <- findMacs2()
-proj <- addReproduciblePeakSet(
-  ArchRProj = proj,
-  groupBy = "Clusters",
-  pathToMacs2 = pathToMacs2,
-  genomeSize = genome_size,
-  maxPeaks = 300000,
-  force = TRUE
-)
-proj <- addPeakMatrix(proj, force = TRUE)
+saveArchRProject(ArchRProj = proj, archrproj_dir)
 
-# Save run metrics in medians.csv ---------------------------------------------
-medians <- getCellColData(ArchRProj = proj)
-tss <- aggregate(
-  medians@listData$TSSEnrichment,
-  by = list(medians@listData$Sample),
-  FUN = median
-)
-nfrags <- aggregate(
-  medians@listData$nFrags,
-  by = list(medians@listData$Sample),
-  FUN = median
-)
-conditions <- aggregate(
-  medians@listData$Condition,
-  by = list(medians@listData$Sample),
-  FUN = max
-)
-frip <- aggregate(
-  medians@listData$FRIP,
-  by = list(medians@listData$Sample),
-  FUN = median
-)
-frip$x <- round(frip$x, 4)
-list_dfs <- list(tss, nfrags, frip, conditions)
-merged_df <- Reduce(
-  function(x, y) merge(x, y, by = "Group.1", all = TRUE), list_dfs
-)
-names(merged_df) <- c(
-  "run_id", "median_TSS", "median_fragments", "median_FRIP", "condition"
-)
-write.csv(merged_df, file = "medians.csv", row.names = FALSE)
+# Save run metrics in medians.csv -----
+medians <- get_proj_medians(proj)
+write.csv(medians, file = "medians.csv", row.names = FALSE)
 
-# Add motif annotations -------------------------------------------------------
-proj <- add_motif_annotations(proj, genome) # from utils
+# Get marker peaks for clusters, samples, treatments; save as csv -------------
 
-saveArchRProject(
-  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-)
-
-# Get marker peaks for clusters, genes, treatments; save as csv ---------------
-
-# Initialize  base data frame -----
+# Initialize base data frame -----
 peak_data <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
 
 # Marker peaks per clusters -----
@@ -572,6 +514,8 @@ write.csv(
 
 # Marker peaks per treatment -----
 if (n_cond > 1) {
+
+  treatment_marker_peaks <- list()
   for (i in seq_along(treatment)) {
 
     marker_peaks_t <- getMarkerFeatures(
@@ -582,6 +526,7 @@ if (n_cond > 1) {
       k = 100,
       testMethod = "wilcoxon"
     )
+    treatment_marker_peaks[treatment[i]] <- marker_peaks_t
 
     # Write significant marker peaks to csv -----
     peak_marker_list_t <- getMarkers(
@@ -607,7 +552,7 @@ if (n_cond > 1) {
 
 # Plot peak, motif heatmaps by cluster, generate heatmaps .pdf ----------------
 
-# Create peak heatmap by cluster -----
+# Create peak heatmap by cluster ---------
 peak_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_peaks <- plotMarkerHeatmap(
   seMarker = markers_peaks_c,
@@ -625,71 +570,42 @@ peak_hm <- ComplexHeatmap::draw(
 
 heatmaps[[2]] <- peak_hm
 
-# Find enriched motifs per cluster, plot as heatmap -----
-motifs_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
-enrichMotifs <- peakAnnoEnrichment(
-  seMarker = markers_peaks_c,
-  ArchRProj = proj,
-  peakAnnotation = "Motif",
-  cutOff = motifs_cutoff
+# Create motif heatmap by cluster ----------
+
+# Get enriched motif data, write to disk -----
+enriched_motifs_c <- get_enriched_motifs(
+  proj, markers_peaks_c, "Pval <= 0.05 & Log2FC >= 0.1"
 )
 
-motifs_df_c <- data.frame(enrichMotifs@assays@data)
-write.csv(motifs_df_c, file = "enrichedMotifs_cluster.csv")
+write.csv(enriched_motifs_c$enrich_df, "enrichedMotifs_cluster.csv")
+saveRDS(enriched_motifs_c$enrich_motifs, "enrichMotifs_clusters.rds")
+write.csv(enriched_motifs_c$heatmap_em, "motif_per_cluster_hm.csv")
 
-heatmapEM <- plotEnrichHeatmap(
-  enrichMotifs,
+# Remake motifs heatmap for plotting, plot -----
+heatmap_plot <- plotEnrichHeatmap(
+  enriched_motifs_c$enrich_motifs,
   transpose = TRUE,
   n = 50,
   cutOff = 2
 )
 
 heatmap_motifs <- ComplexHeatmap::draw(
-  heatmapEM,
+  heatmap_plot,
   heatmap_legend_side = "bottom",
-  column_title = paste0("Marker motifs (", motifs_cutoff),
+  column_title = "Marker motifs (Pval <= 0.05 & Log2FC >= 0.1)",
   column_title_gp = gpar(fontsize = 12)
 )
 
 heatmaps[[3]] <- heatmap_motifs
 
 # Save heatmaps to disk as pdf (per cluster: genes, peaks, motifs) -----
-print("+++++++++++creating heatmap plots++++++++++++++")
+print("Saving heatmap plots...")
 
 pdf("heatmaps_all.pdf")
 for (i in seq_along(heatmaps)) {
   print(heatmaps[[i]])
 }
 dev.off()
-
-# Per cluster: save enriched motifs, motif heatmap as .rds, .csv's -----
-motif_lst <- unique(rownames(enrichMotifs))
-split_string <- strsplit(motif_lst, split = "\\(")
-
-req_motifs1 <- gsub("_", "-", extract_nth_ele(split_string))
-req_motifs1 <- gsub(" ", "", req_motifs1)
-
-rownames(enrichMotifs) <- req_motifs1
-
-saveRDS(enrichMotifs, "enrichMotifs_clusters.rds")
-
-heatmapEM <- plotEnrichHeatmap(
-  enrichMotifs,
-  n = 50,
-  transpose = FALSE,
-  returnMatrix = TRUE,
-  cutOff = 2
-)
-
-motif_lst <- unique(rownames(heatmapEM))
-split_string <- strsplit(motif_lst, split = "\\(")
-
-req_motifs1 <- gsub("_", "-", extract_nth_ele(split_string))
-req_motifs1 <- gsub(" ", "", req_motifs1)
-
-rownames(heatmapEM) <- req_motifs1
-
-write.csv(heatmapEM, "motif_per_cluster_hm.csv")
 
 # Save top 5 marker motifs for cluster for ShinyApp  -----
 
@@ -772,77 +688,23 @@ for (run in runs) {
   seurat_objs_m <- c(seurat_objs_m, obj)
 }
 
-print("These are the available seurat_objMotifs.")
-seurat_objs_m
+print(paste("Available seurat_objMotifs:", seurat_objs_m))
 
 # Peak calling and motifs for Sample ------------------------------------------
 if (n_samples > 1) {
 
-  proj <- addGroupCoverages(
-    ArchRProj = proj,
-    groupBy = "Sample",
-    maxCells = 1500,
-    force = TRUE
+  proj <- get_annotated_peaks(proj, "Sample", genome_size, genome)
+
+  saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
+
+  # Get Enriched motifs per sample -----
+  enriched_motifs_s <- get_enriched_motifs(
+    proj, markers_peaks_s, "Pval <= 0.05 & Log2FC >= 0.1"
   )
 
-  proj <- addReproduciblePeakSet(
-    ArchRProj = proj,
-    groupBy = "Sample",
-    pathToMacs2 = pathToMacs2,
-    genomeSize = genome_size,
-    maxPeaks = 300000,
-    force = TRUE
-  )
-  proj <- addPeakMatrix(proj, force = TRUE)
-
-  # Add motif annotation, save proj -----
-  proj <- add_motif_annotations(proj, genome) # from utils
-
-  saveArchRProject(
-    ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-  )
-
-  # Get marker peaks and Enriched motifs per sample -----
-  markersPeaks <- getMarkerFeatures(
-    ArchRProj = proj,
-    useMatrix = "PeakMatrix",
-    groupBy = "Sample",
-    bias = c("TSSEnrichment", "log10(nFrags)"),
-    k = 100,
-    testMethod = "wilcoxon"
-  )
-  enrichMotifs <- peakAnnoEnrichment(
-    seMarker = markersPeaks,
-    ArchRProj = proj,
-    peakAnnotation = "Motif",
-    cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
-  )
-
-  motifs_df_s <- data.frame(enrichMotifs@assays@data)
-  write.csv(motifs_df_s, file = "enrichedMotifs_sample.csv")
-
-  motif_lst <- unique(rownames(enrichMotifs))
-  split_string <- strsplit(motif_lst, split = "\\(")
-
-  req_motifs3 <- gsub("_", "-", extract_nth_ele(split_string))
-  req_motifs3 <- gsub(" ", "", req_motifs3)
-
-  rownames(enrichMotifs) <- req_motifs3
-
-  saveRDS(enrichMotifs, "enrichMotifs_sample.rds")
-
-  heatmapEM <- plotEnrichHeatmap(
-    enrichMotifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
-  )
-
-  motif_lst <- unique(rownames(heatmapEM))
-  split_string <- strsplit(motif_lst, split = "\\(")
-
-  req_motifs3 <- gsub("_", "-", extract_nth_ele(split_string))
-  req_motifs3 <- gsub(" ", "", req_motifs3)
-
-  rownames(heatmapEM) <- req_motifs3
-  write.csv(heatmapEM, "motif_per_sample_hm.csv")
+  write.csv(enriched_motifs_s$enrich_df, "enrichedMotifs_sample.csv")
+  saveRDS(enriched_motifs_s$enrich_motifs, "enrichMotifs_sample.rds")
+  write.csv(enriched_motifs_s$heatmap_em, "motif_per_sample_hm.csv")
 
   # Save top 10 marker motifs for sample for ShinyApp  -----
 
@@ -858,79 +720,34 @@ if (n_samples > 1) {
 
 # Peak calling and motif enrichment per treatment ----------------------
 if (n_cond > 1) {
+
   for (i in seq_along(treatment)) {
 
-    proj <- addGroupCoverages(
-      ArchRProj = proj,
-      groupBy = treatment[i],
-      maxCells = 1500,
-      force = TRUE
-    )
-
-    proj <- addReproduciblePeakSet(
-      ArchRProj = proj,
-      groupBy = treatment[i],
-      pathToMacs2 = pathToMacs2,
-      genomeSize = genome_size,
-      maxPeaks = 300000,
-      force = TRUE
-    )
-    proj <- addPeakMatrix(proj, force = TRUE)
-
-    # Add motif annotation, save proj -----
-    proj <- add_motif_annotations(proj, genome) # from utils
+    proj <- get_annotated_peaks(proj, treatment[i], genome_size, genome)
 
     # save ArchR object
-    saveArchRProject(
-      ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-    )
+    saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
   }
 
   # Get marker peaks and Enriched motifs per treatment -----
   for (i in seq_along(treatment)) {
 
-    markersPeaks <- getMarkerFeatures(
-      ArchRProj = proj,
-      useMatrix = "PeakMatrix",
-      groupBy = treatment[i],
-      bias = c("TSSEnrichment", "log10(nFrags)"),
-      k = 100,
-      testMethod = "wilcoxon"
+    enriched_motifs_t <- get_enriched_motifs(
+      proj, treatment_marker_peaks[treatment[i]], "Pval <= 0.05 & Log2FC >= 0.1"
     )
 
-    enrichMotifs <- peakAnnoEnrichment(
-      seMarker = markersPeaks,
-      ArchRProj = proj,
-      peakAnnotation = "Motif",
-      cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
-    )
-
-    motifs_df_t <- data.frame(enrichMotifs@assays@data)
     write.csv(
-      motifs_df_t, file = paste0("enrichedMotifs_condition_", i, ".csv")
+      enriched_motifs_t$enrich_df,
+      paste0("enrichedMotifs_condition_", i, ".csv")
     )
-
-    motif_lst <- unique(rownames(enrichMotifs))
-    split_string <- strsplit(motif_lst, split = "\\(")
-
-    req_motifs2 <- gsub("_", "-", extract_nth_ele(split_string))
-    req_motifs2 <- gsub(" ", "", req_motifs2)
-
-    rownames(enrichMotifs) <- req_motifs2
-    saveRDS(enrichMotifs, paste0("enrichMotifs_condition_", i, ".rds"))
-
-    heatmapEM <- plotEnrichHeatmap(
-      enrichMotifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
+    saveRDS(
+      enriched_motifs_t$enrich_motifs,
+      paste0("enrichMotifs_condition_", i, ".rds")
     )
-
-    motif_lst <- unique(rownames(heatmapEM))
-    split_string <- strsplit(motif_lst, split = "\\(")
-
-    req_motifs2 <- gsub("_", "-", extract_nth_ele(split_string))
-    req_motifs2 <- gsub(" ", "", req_motifs2)
-
-    rownames(heatmapEM) <- req_motifs2
-    write.csv(heatmapEM, paste0("motif_per_condition_", i, "_hm.csv"))
+    write.csv(
+      enriched_motifs_t$heatmap_em,
+      paste0("motif_per_condition_", i, "_hm.csv")
+    )
   }
 
   # Save top 5 marker motifs for treatment for ShinyApp  -----
@@ -1015,9 +832,7 @@ for (i in req_conditions) {
   bws <- getGroupBW(ArchRProj = proj, groupBy = i)
 }
 
-saveArchRProject(
-  ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
-)
+saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Motif Logo ------------------------------------------------------------------
 pwms <- getPeakAnnotation(proj, "Motif")$motifs

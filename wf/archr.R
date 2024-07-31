@@ -10,6 +10,7 @@ library("SummarizedExperiment")
 library("S4Vectors")
 
 source("/root/getDeviation_ArchR.R")
+source("/root/wf/utils.R")
 
 add_motif_annotations <- function(proj, genome) {
   #' Wrapper for ArchR::addMotifAnnotations()
@@ -79,6 +80,43 @@ create_archrproject <- function(
   )
 
   return(proj)
+}
+
+get_enriched_motifs <- function(proj, marker_peaks, cutoff) {
+
+  enrich_motifs <- ArchR::peakAnnoEnrichment(
+    seMarker = marker_peaks,
+    ArchRProj = proj,
+    peakAnnotation = "Motif",
+    cutOff = cutoff
+  )
+  enrich_df <- data.frame(enrich_motifs@assays@data)
+
+  motif_lst <- unique(rownames(enrich_motifs))
+  split_string <- strsplit(motif_lst, split = "\\(")
+
+  req_motifs1 <- gsub("_", "-", extract_nth_ele(split_string)) # from utils.R
+  req_motifs1 <- gsub(" ", "", req_motifs1)
+
+  rownames(enrich_motifs) <- req_motifs1
+
+  heatmap_em <- ArchR::plotEnrichHeatmap(
+    enrich_motifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
+  )
+
+  motif_lst <- unique(rownames(heatmap_em))
+  split_string <- strsplit(motif_lst, split = "\\(")
+
+  req_motifs1 <- gsub("_", "-", extract_nth_ele(split_string))  # from utils.R
+  req_motifs1 <- gsub(" ", "", req_motifs1)
+
+  rownames(heatmap_em) <- req_motifs1
+
+  return(list(
+    enrich_df = enrich_df,
+    enrich_motifs = enrich_motifs,
+    heatmap_em = heatmap_em
+  ))
 }
 
 get_marker_df <- function(
@@ -228,6 +266,31 @@ get_marker_genes <- function(
       heatmap_gs = heatmap_gs
     )
   )
+}
+
+get_annotated_peaks <- function(proj, group_by, genome_size, genome) {
+
+  proj <- ArchR::addGroupCoverages(
+    ArchRProj = proj,
+    groupBy = group_by,
+    maxCells = 1500,
+    force = TRUE
+  )
+
+  proj <- ArchR::aaddReproduciblePeakSet(
+    ArchRProj = proj,
+    groupBy = group_by,
+    pathToMacs2 = ArchR::findMacs2(),
+    genomeSize = genome_size,
+    maxPeaks = 300000,
+    force = TRUE
+  )
+  proj <- ArchR::addPeakMatrix(proj, force = TRUE)
+
+  # Add motif annotations -----
+  proj <- add_motif_annotations(proj, genome)
+
+  return(proj)
 }
 
 get_proj_medians <- function(proj) {
