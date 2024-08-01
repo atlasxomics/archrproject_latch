@@ -11,10 +11,11 @@ library("Seurat")
 library("SeuratDisk")
 
 build_atlas_seurat_object <- function(
-    run_id,
-    matrix,
-    metadata,
-    spatial_path) {
+  run_id,
+  matrix,
+  metadata,
+  spatial_path
+) {
   # Prepare and combine gene matrix, metadata, and image for seurat object
   # for runs within a project.
 

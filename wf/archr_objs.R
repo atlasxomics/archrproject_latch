@@ -218,7 +218,8 @@ for (run in runs) {
   seurat_objs <- c(seurat_objs, obj)
 }
 
-print(paste("Available SeuratObjects:", seurat_objs))
+print("Available SeuratObjects:")
+seurat_objs
 
 # Plot clusters ontop of spatial coordinates -----
 print("Creating spatial cluster plots...")
@@ -688,7 +689,8 @@ for (run in runs) {
   seurat_objs_m <- c(seurat_objs_m, obj)
 }
 
-print(paste("Available seurat_objMotifs:", seurat_objs_m))
+print("Available seurat_objMotifs:")
+seurat_objs_m
 
 # Peak calling and motifs for Sample ------------------------------------------
 if (n_samples > 1) {
