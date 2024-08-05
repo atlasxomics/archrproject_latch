@@ -12,6 +12,7 @@ library("S4Vectors")
 source("/root/getDeviation_ArchR.R")
 source("/root/wf/utils.R")
 
+
 add_motif_annotations <- function(proj, genome) {
   #' Wrapper for ArchR::addMotifAnnotations()
 
@@ -82,6 +83,31 @@ create_archrproject <- function(
   return(proj)
 }
 
+get_annotated_peaks <- function(proj, group_by, genome_size, genome) {
+
+  proj <- ArchR::addGroupCoverages(
+    ArchRProj = proj,
+    groupBy = group_by,
+    maxCells = 1500,
+    force = TRUE
+  )
+
+  proj <- ArchR::addReproduciblePeakSet(
+    ArchRProj = proj,
+    groupBy = group_by,
+    pathToMacs2 = ArchR::findMacs2(),
+    genomeSize = genome_size,
+    maxPeaks = 300000,
+    force = TRUE
+  )
+  proj <- ArchR::addPeakMatrix(proj, force = TRUE)
+
+  # Add motif annotations -----
+  proj <- add_motif_annotations(proj, genome)
+
+  return(proj)
+}
+
 get_enriched_motifs <- function(proj, marker_peaks, cutoff) {
 
   enrich_motifs <- ArchR::peakAnnoEnrichment(
@@ -95,10 +121,10 @@ get_enriched_motifs <- function(proj, marker_peaks, cutoff) {
   motif_lst <- unique(rownames(enrich_motifs))
   split_string <- strsplit(motif_lst, split = "\\(")
 
-  req_motifs1 <- gsub("_", "-", extract_nth_ele(split_string)) # from utils.R
-  req_motifs1 <- gsub(" ", "", req_motifs1)
+  req_motifs <- gsub("_", "-", extract_nth_ele(split_string)) # from utils.R
+  req_motifs <- gsub(" ", "", req_motifs)
 
-  rownames(enrich_motifs) <- req_motifs1
+  rownames(enrich_motifs) <- req_motifs
 
   heatmap_em <- ArchR::plotEnrichHeatmap(
     enrich_motifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
@@ -107,10 +133,10 @@ get_enriched_motifs <- function(proj, marker_peaks, cutoff) {
   motif_lst <- unique(rownames(heatmap_em))
   split_string <- strsplit(motif_lst, split = "\\(")
 
-  req_motifs1 <- gsub("_", "-", extract_nth_ele(split_string))  # from utils.R
-  req_motifs1 <- gsub(" ", "", req_motifs1)
+  req_motifs <- gsub("_", "-", extract_nth_ele(split_string))  # from utils.R
+  req_motifs <- gsub(" ", "", req_motifs)
 
-  rownames(heatmap_em) <- req_motifs1
+  rownames(heatmap_em) <- req_motifs
 
   return(list(
     enrich_df = enrich_df,
@@ -268,29 +294,27 @@ get_marker_genes <- function(
   )
 }
 
-get_annotated_peaks <- function(proj, group_by, genome_size, genome) {
+get_marker_peaks <- function(proj, group_by, peak_data, cut_off) {
 
-  proj <- ArchR::addGroupCoverages(
+  marker_peaks <- ArchR::getMarkerFeatures(
     ArchRProj = proj,
+    useMatrix = "PeakMatrix",
     groupBy = group_by,
-    maxCells = 1500,
-    force = TRUE
+    bias = c("TSSEnrichment", "log10(nFrags)"),
+    k = 100,
+    testMethod = "wilcoxon"
   )
 
-  proj <- ArchR::aaddReproduciblePeakSet(
-    ArchRProj = proj,
-    groupBy = group_by,
-    pathToMacs2 = ArchR::findMacs2(),
-    genomeSize = genome_size,
-    maxPeaks = 300000,
-    force = TRUE
-  )
-  proj <- ArchR::addPeakMatrix(proj, force = TRUE)
+  marker_peak_list <- ArchR::getMarkers(marker_peaks, cutOff = cut_off)
 
-  # Add motif annotations -----
-  proj <- add_motif_annotations(proj, genome)
+  # Merge all peaks with significant marker peaks, write to csv -----
+  total_peaks <- merge(peak_data, marker_peak_list, by = c("start", "end"))
 
-  return(proj)
+  return(list(
+    marker_peaks = marker_peaks,
+    marker_peak_list = marker_peak_list,
+    total_peaks = total_peaks
+  ))
 }
 
 get_proj_medians <- function(proj) {
