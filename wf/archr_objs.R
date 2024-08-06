@@ -171,10 +171,14 @@ proj <- ArchR::addUMAP(
 
 proj <- ArchR::addImputeWeights(proj)
 
-saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
-
 # Plot UMAP embedding colored by Cluster, Sample, Treatment ----
 save_umap(proj, c("Clusters", "Sample", treatment))
+
+# Save UMAP embedding to csv ----
+umap_harmony <- getEmbedding(proj)
+write.csv(umap_harmony, "UMAPHarmony.csv")
+
+saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Create SeuratObjects for gene matrix ----------------------------------------
 # Extract metadata for Seurat object ----
@@ -374,12 +378,7 @@ if (n_cond > 1) {
         quote = FALSE,
         row.names = FALSE
       )
-
-      print(
-        paste0(
-          "writing volcanoMarkers_genes_", j, "_", cond, ".txt is done!"
-        )
-      )
+      print(paste0("volcanoMarkers_genes_", j, "_", cond, ".txt is done!"))
 
       features <- unique(volcano_table$cluster)
       others <- paste(conditions[conditions != cond], collapse = "|")
@@ -400,12 +399,6 @@ if (n_cond > 1) {
 } else {
   print("There are not enough conditions to be compared with!")
 }
-
-# Save UMAP embedding to csv, save ArchRProject -------------------------------
-UMAPHarmony <- getEmbedding(
-  ArchRProj = proj, embedding = "UMAP", returnDF = TRUE
-)
-write.csv(UMAPHarmony, "UMAPHarmony.csv")
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
@@ -823,8 +816,8 @@ spatial <- lapply(all, function(x) {
   df
 })
 
-combined <- combine_objs(all, UMAPHarmony, samples, spatial, project_name)
-combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial, project_name)
+combined <- combine_objs(all, umap_harmony, samples, spatial, project_name)
+combined_m <- combine_objs(all_m, umap_harmony, samples, spatial, project_name)
 
 saveRDS(combined, "combined.rds", compress = FALSE)
 saveRDS(combined_m, "combined_m.rds", compress = FALSE)
