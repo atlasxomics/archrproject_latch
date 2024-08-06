@@ -117,7 +117,7 @@ n_cells <- length(proj$cellNames)
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-# Dimensionality reduction and clustering -------------------------------------
+# Dimensionality reduction and clustering ----
 proj <- addIterativeLSI(
   ArchRProj = proj,
   useMatrix = "TileMatrix",
@@ -133,7 +133,7 @@ proj <- addIterativeLSI(
   force = TRUE
 )
 
-# Batch correction with Harmony if more than one run ----
+# Batch correction with Harmony if more than one run --
 if (n_samples > 1) {
   proj <- addHarmony(
     ArchRProj = proj,
@@ -171,20 +171,22 @@ proj <- ArchR::addUMAP(
 
 proj <- ArchR::addImputeWeights(proj)
 
-# Plot UMAP embedding colored by Cluster, Sample, Treatment ----
+# Plot UMAP embedding colored by Cluster, Sample, Treatment --
 save_umap(proj, c("Clusters", "Sample", treatment))
 
-# Save UMAP embedding to csv ----
+# Save UMAP embedding to csv --
 umap_harmony <- getEmbedding(proj)
 write.csv(umap_harmony, "UMAPHarmony.csv")
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-# Create SeuratObjects for gene matrix ----------------------------------------
-# Extract metadata for Seurat object ----
+# Gene Expression Analysis ----------------------------------------------------
+
+# Create SeuratObjects for gene matrix ----
+# Extract metadata for Seurat object --
 metadata <- getCellColData(ArchRProj = proj)
 
-# Set metadata rownames to barcodes --
+# Set metadata rownames to barcodes
 rownames(metadata) <- str_split_fixed(
   str_split_fixed(
     row.names(metadata),
@@ -195,10 +197,10 @@ rownames(metadata) <- str_split_fixed(
   2
 )[, 1]
 
-# Create col for log10 of fragment counts --
+# Create col for log10 of fragment counts
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-# Extract gene matrix for SeuratObject ----
+# Extract gene matrix for SeuratObject --
 gene_matrix <- getMatrixFromProject(
   ArchRProj = proj,
   useMatrix = "GeneScoreMatrix"
@@ -210,7 +212,7 @@ matrix <- imputeMatrix(
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
 
-# Create and save SeuratObjects ----
+# Create and save SeuratObjects --
 print("Creating SeuratObjects...")
 
 seurat_objs <- c()
@@ -241,8 +243,8 @@ save_qc_plots(seurat_objs, c("TSSEnrichment", "nFrags", "log10_nFrags"))
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-# Identify marker genes -------------------------------------------------------
-# Marker genes per cluster, save marker gene rds, csv, heatmap.csv ----
+# Identify marker genes ----
+# Marker genes per cluster, save marker gene rds, csv, heatmap.csv --
 n_clust <- length(unique(proj$Clusters))
 
 cluster_marker_genes <- get_marker_genes( # from archr.R
@@ -261,13 +263,13 @@ write.csv(
 )
 write.csv(cluster_marker_genes$heatmap_gs, "genes_per_cluster_hm.csv")
 
-# Save top 5 marker genes by cluster for ShinyApp (req_genes1.csv) --
-# Read hm back into memory as df with feats as column --
+# Save top 5 marker genes by cluster for ShinyApp (req_genes1.csv)
+# Read hm back into memory as df with feats as column
 hm_per_cluster <- read.csv("genes_per_cluster_hm.csv")
 req_genes1 <- get_topn_hm_feats(hm_per_cluster, n_clust, 5) # archr.R
 write.csv(req_genes1, "req_genes1.csv")
 
-# Marker genes per sample, save marker gene rds, csv, heatmap.csv ----
+# Marker genes per sample, save marker gene rds, csv, heatmap.csv --
 if (n_samples > 1) {
 
   sample_marker_genes <- get_marker_genes(
@@ -286,8 +288,8 @@ if (n_samples > 1) {
   )
   write.csv(sample_marker_genes$heatmap_gs, "genes_per_sample_hm.csv")
 
-  # Save top 10 marker genes per sample for ShinyApp (req_genes3.csv) --
-  # Read hm back into memory as df with feats as column --
+  # Save top 10 marker genes per sample for ShinyApp (req_genes3.csv)
+  # Read hm back into memory as df with feats as column
   hm_per_sample <- read.csv("genes_per_sample_hm.csv")
   req_genes3 <- get_topn_hm_feats(hm_per_sample, n_samples, 10)
   write.csv(req_genes3, "req_genes3.csv")
@@ -296,7 +298,7 @@ if (n_samples > 1) {
   req_genes3 <- "There are not enough samples to be compared with!"
 }
 
-# Marker genes per treatment, save marker gene rds, csv, heatmap.csv----
+# Marker genes per treatment, save marker gene rds, csv, heatmap.csv --
 if (n_cond > 1) {
 
   for (i in seq_along(treatment)) {
@@ -323,8 +325,8 @@ if (n_cond > 1) {
       paste0("genes_per_conditions", i, "_hm.csv")
     )
 
-    # Save top 20 marker genes per treatment for ShinyApp (req_genes3.csv) --
-    # Get vector of all gene condition heatmap csv's --
+    # Save top 20 marker genes per treatment for ShinyApp (req_genes3.csv)
+    # Get vector of all gene condition heatmap csv's
     hms_per_cond <- find_func(tempdir, "genes_per_condition_*")
 
     for (j in seq_along(hms_per_cond)) {
@@ -340,11 +342,11 @@ if (n_cond > 1) {
   req_genes2 <- "There are not enough condition to be compared with!"
 }
 
-# Volcano plots for genes -----------------------------------------------------
+# Volcano plots for genes ----
 if (n_cond > 1) {
   for (j in seq_along(treatment)) {
 
-    # Get gene markers df for all clusters together -----
+    # Get gene markers df for all clusters together --
     marker_genes_df <- get_marker_df(
       proj = proj,
       group_by = treatment[j],
@@ -355,13 +357,13 @@ if (n_cond > 1) {
     )
 
     # Create a merged marker genes df for clusters for which no condition is
-    # >90% of all cells ----
+    # >90% of all cells --
     req_clusters <- get_required_clusters(proj, treatment[j])
     marker_genes_by_cluster_df <- get_marker_df_clusters(
       proj, req_clusters, treatment[j]
     )
 
-    # Per condition, merge dfs and cleanup data ----
+    # Per condition, merge dfs and cleanup data --
     conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
     for (cond in conditions) {
 
@@ -402,25 +404,28 @@ if (n_cond > 1) {
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-# Peak calling and motif enrichment for clusters ------------------------------
+# Peak and motif analysis -----------------------------------------------------
+
 # Due to mcapply bug, too many threads in peak calling can lead to OOM error;
-# decrease theads here, per specification from input parameters
+# decrease theads here, per specification from input parameters ----
 addArchRThreads(threads = num_threads)
 
+# Peak calling and motif enrichment for clusters ----
 proj <- get_annotated_peaks(proj, "Clusters", genome_size, genome)
 
 saveArchRProject(ArchRProj = proj, archrproj_dir)
 
-# Save run metrics in medians.csv -----
+# Save run metrics in medians.csv ----
 medians <- get_proj_medians(proj)
 write.csv(medians, file = "medians.csv", row.names = FALSE)
 
-# Get marker peaks for clusters, samples, treatments; save as csv -------------
-# Initialize base data frame, set significance cutoff -----
+# Get marker peaks for clusters, samples, treatments; save as csv ----
+
+# Initialize base data frame, set significance cutoff --
 peak_data <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
 cut_off <- "Pval <= 0.05 & Log2FC >= 0.1"
 
-# Marker peaks per clusters -----
+# Marker peaks per clusters --
 marker_peaks_c <- get_marker_peaks(proj, "Clusters", peak_data, cut_off)
 
 write.csv(
@@ -435,7 +440,7 @@ write.csv(
   row.names = FALSE
 )
 
-# Marker peaks per sample -----
+# Marker peaks per sample --
 marker_peaks_s <- get_marker_peaks(proj, "Sample", peak_data, cut_off)
 
 write.csv(
@@ -450,7 +455,7 @@ write.csv(
   row.names = FALSE
 )
 
-# Marker peaks per treatment -----
+# Marker peaks per treatment --
 if (n_cond > 1) {
 
   for (i in seq_along(treatment)) {
@@ -472,7 +477,7 @@ if (n_cond > 1) {
   }
 }
 
-# Get enriched motif data, write to disk -----
+# Get enriched motif data for clusters, write to disk ----
 enriched_motifs_c <- get_enriched_motifs(
   proj, marker_peaks_c$marker_peaks, cut_off
 )
@@ -481,16 +486,15 @@ write.csv(enriched_motifs_c$enrich_df, "enrichedMotifs_cluster.csv")
 saveRDS(enriched_motifs_c$enrich_motifs, "enrichMotifs_clusters.rds")
 write.csv(enriched_motifs_c$heatmap_em, "motif_per_cluster_hm.csv")
 
-# Save top 5 marker motifs for cluster for ShinyApp  -----
-
+# Save top 5 marker motifs for cluster for ShinyApp  --
 # Read hm back into memory as df with feats as column
 hm_motif_per_clust <- read.csv("motif_per_cluster_hm.csv")
 
 req_motifs1 <- get_topn_hm_feats(hm_motif_per_clust, n_clust, 5)
 write.csv(req_motifs1, "req_motifs1.csv")
 
-# Create motif SeuratObjects --------------------------------------------------
-# Create motif count matrix -----
+# Create motif SeuratObjects ----
+# Create motif count matrix --
 proj <- addBgdPeaks(proj, force = TRUE)
 
 proj <- addDeviationsMatrix(
@@ -499,7 +503,7 @@ proj <- addDeviationsMatrix(
   force = TRUE
 )
 
-markersMotifs <- getMarkerFeatures(
+markers_motifs <- getMarkerFeatures(
   ArchRProj = proj,
   useMatrix = "MotifMatrix",
   groupBy = "Clusters",
@@ -508,15 +512,15 @@ markersMotifs <- getMarkerFeatures(
   useSeqnames = "z"
 )
 
-# Get deviation matrix for significant motifs -----
-markerMotifsList <- getMarkers(
-  markersMotifs, cutOff = "FDR < 0.9 & MeanDiff >= 0"
+# Get deviation matrix for significant motifs --
+marker_motifs_list <- getMarkers(
+  markers_motifs, cutOff = "FDR < 0.9 & MeanDiff >= 0"
 )
 
 motifs <- list()
-for (i in seq_len(length(markerMotifsList))) {
-  if (length(markerMotifsList[[i]]$name) > 1) {
-    motifs <- c(motifs, markerMotifsList[[i]]$name)
+for (i in seq_len(length(marker_motifs_list))) {
+  if (length(marker_motifs_list[[i]]$name) > 1) {
+    motifs <- c(motifs, marker_motifs_list[[i]]$name)
   }
 }
 
@@ -539,14 +543,14 @@ if (length(motifs) > 1) {
 dev_score2 <- dev_score[!is.infinite(rowSums(dev_score)), ]
 colnames(dev_score2) <- rownames(getCellColData(proj))
 
-# remove 0 deviations per All samples -----
+# Remove 0 deviations per All samples --
 all_zero <- names(which(rowSums(dev_score2) == 0))
 dev_score2 <- dev_score2[which(!rownames(dev_score2) %in% c(all_zero)), ]
 
-# convert to dgCmatrix -----
+# Convert to dgCmatrix --
 dev_score3 <- Matrix(as.matrix(dev_score2), sparse = TRUE)
 
-# create motif seurat objects -----
+# Create motif seurat objects --
 seurat_objs_m <- c()
 for (run in runs) {
 
@@ -564,14 +568,14 @@ for (run in runs) {
 print("Available seurat_objMotifs:")
 seurat_objs_m
 
-# Peak calling and motifs for Sample ------------------------------------------
+# Peak calling and motifs for Sample ----
 if (n_samples > 1) {
 
   proj <- get_annotated_peaks(proj, "Sample", genome_size, genome)
 
   saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-  # Repeat getMarkerPeaks for new peak-set, enriched motifs per sample -----
+  # Repeat getMarkerPeaks for new peak-set, enriched motifs per sample --
   sample_marker_peaks <- getMarkerFeatures(
     ArchRProj = proj,
     useMatrix = "PeakMatrix",
@@ -589,11 +593,9 @@ if (n_samples > 1) {
   saveRDS(enriched_motifs_s$enrich_motifs, "enrichMotifs_sample.rds")
   write.csv(enriched_motifs_s$heatmap_em, "motif_per_sample_hm.csv")
 
-  # Save top 10 marker motifs for sample for ShinyApp  -----
-
+  # Save top 10 marker motifs for sample for ShinyApp  --
   # Read hm back into memory as df with feats as column
   hm_per_sample <- read.csv("motif_per_sample_hm.csv")
-
   req_motifs3 <- get_topn_hm_feats(hm_motif_per_clust, n_samples, 10)
   write.csv(req_motifs3, "req_motifs3.csv")
 
@@ -601,7 +603,7 @@ if (n_samples > 1) {
   req_motifs3 <- "There are not enough samples to be compared with!"
 }
 
-# Peak calling and motif enrichment per treatment ----------------------
+# Peak calling and motif enrichment per treatment ----
 if (n_cond > 1) {
 
   for (i in seq_along(treatment)) {
@@ -610,7 +612,7 @@ if (n_cond > 1) {
 
     saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-    # Get marker peaks and Enriched motifs per treatment -----
+    # Get marker peaks and Enriched motifs per treatment --
     treatment_marker_peaks <- getMarkerFeatures(
       ArchRProj = proj,
       useMatrix = "PeakMatrix",
@@ -637,14 +639,13 @@ if (n_cond > 1) {
     )
   }
 
-  # Save top 5 marker motifs for treatment for ShinyApp  -----
+  # Save top 5 marker motifs for treatment for ShinyApp  --
   motifs_per_cond_hm <- find_func(tempdir, "motif_per_condition_*")
 
   for (j in seq_along(motifs_per_cond_hm)) {
 
     # Read hm back into memory as df with feats as column
     hm_per_cond <- read.csv(motifs_per_cond_hm[j])
-
     req_motifs2 <- get_topn_hm_feats(hm_per_cond, n_cond, 5)
     write.csv(req_motifs2, paste0("req_motifs2_", j, ".csv"))
   }
@@ -652,18 +653,18 @@ if (n_cond > 1) {
   req_motifs2 <- "There are not enough conditions to be compared with!"
 }
 
-# Plot gene, peak, motif heatmaps by cluster, generate heatmaps .pdf ----------
-# Initiate heatmaps list and plot marker gene per cluster heatmap -----
+# Plot gene, peak, motif heatmaps by cluster, generate heatmaps .pdf ----
+# Initiate heatmaps list and plot marker gene per cluster heatmap --
 heatmaps <- list()
 
-# Recompute gene heatmap for plotting (transpose, plotLog2FC different) -----
+# Recompute gene heatmap for plotting (transpose, plotLog2FC different) --
 heatmap_gs_plotting <- plotMarkerHeatmap(
   seMarker = cluster_marker_genes$markers_gs,
   cutOff = cut_off,
   transpose = TRUE
 )
 
-# Save for plotting with peaks and motifs -----
+# Save for plotting with peaks and motifs --
 gene_hm <- ComplexHeatmap::draw(
   heatmap_gs_plotting,
   heatmap_legend_side = "bot",
@@ -673,7 +674,7 @@ gene_hm <- ComplexHeatmap::draw(
 )
 heatmaps[[1]] <- gene_hm
 
-# Create peak heatmap by cluster ---------
+# Create peak heatmap by cluster --
 heatmap_peaks <- plotMarkerHeatmap(
   seMarker = marker_peaks_c$marker_peaks,
   cutOff = cut_off,
@@ -690,7 +691,7 @@ peak_hm <- ComplexHeatmap::draw(
 
 heatmaps[[2]] <- peak_hm
 
-# Create motif heatmap by cluster ----------
+# Create motif heatmap by cluster --
 heatmap_plot <- plotEnrichHeatmap(
   enriched_motifs_c$enrich_motifs,
   transpose = TRUE,
@@ -707,7 +708,7 @@ heatmap_motifs <- ComplexHeatmap::draw(
 
 heatmaps[[3]] <- heatmap_motifs
 
-# Save heatmaps to disk as pdf (per cluster: genes, peaks, motifs) -----
+# Save heatmaps to disk as pdf (per cluster: genes, peaks, motifs) --
 print("Saving heatmap plots...")
 
 pdf("heatmaps_all.pdf")
@@ -716,11 +717,11 @@ for (i in seq_along(heatmaps)) {
 }
 dev.off()
 
-# Volcano plots for motifs -----------------------------------------------------
+# Volcano plots for motifs ----
 if (n_cond > 1) {
   for (j in seq_along(treatment)) {
 
-    # Get motif markers for all clusters together -----
+    # Get motif markers for all clusters together --
     marker_motifs_df <- get_marker_df( # from archr.R
       proj = proj,
       group_by = treatment[j],
@@ -731,13 +732,13 @@ if (n_cond > 1) {
     )
 
     # Create a data from of marker genes for clusters for which no condition is
-    # >90% of all cells
+    # >90% of all cells --
     req_clusters <- get_required_clusters(proj, treatment[j]) # from archr.R
     marker_motifs_by_cluster_df <- get_marker_df_clusters(
       proj, req_clusters, treatment[j]
     )
 
-    # Merge and cleanup data -----
+    # Merge and cleanup data --
     conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
     for (cond in conditions) {
 
@@ -776,7 +777,7 @@ if (n_cond > 1) {
   print("There are not enough conditions to be compared with!")
 }
 
-# Save bigwig files for clustersXtreatment -------------------------------------
+# Save bigwig files for clustersXtreatment ----
 req_conditions <- c("Clusters", treatment)
 
 for (i in req_conditions) {
@@ -785,7 +786,7 @@ for (i in req_conditions) {
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-# Motif Logo ------------------------------------------------------------------
+# Motif Logo ----
 pwms <- getPeakAnnotation(proj, "Motif")$motifs
 
 pw_matrix_to_prob_matrix <- function(x) {
@@ -800,15 +801,17 @@ lapply(prob_matrices, colSums) %>% range
 
 saveRDS(prob_matrices, "seqlogo.rds")
 
-# Create combined SeuratObjs --------------------------------------------------
+# Create Shiny app files ------------------------------------------------------
+print("Shiny App starting...")
 
-# Rename SeuratObj cells with run_id to ensure unique when combining -----
+# Create combined SeuratObjs ----
+# Rename SeuratObj cells with run_id to ensure unique when combining --
 all <- rename_cells(seurat_objs)
 all_m <- rename_cells(seurat_objs_m)
 
 samples <- find_sample_names(all)
 
-# extract image coordinates as -(imagecols) | imagerow -----
+# extract image coordinates as -(imagecols) | imagerow --
 spatial <- lapply(all, function(x) {
   df <- as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
   colnames(df) <- paste0("Spatial_", 1:2)
@@ -822,10 +825,7 @@ combined_m <- combine_objs(all_m, umap_harmony, samples, spatial, project_name)
 saveRDS(combined, "combined.rds", compress = FALSE)
 saveRDS(combined_m, "combined_m.rds", compress = FALSE)
 
-# Create Shiny app files ------------------------------------------------------
-print("Shiny App starting...")
-
-# Create ShinyApp/ files for genes (sc1) and motifs (sc2) -----
+# Create ShinyApp/ files for genes (sc1) and motifs (sc2) ----
 sc_conf1 <- createConfig(combined)
 makeShinyFiles(
   combined,
@@ -852,7 +852,7 @@ makeShinyFiles(
   default.dimred = c("UMAP_1", "UMAP_2")
 )
 
-# Set Shiny App defaults -----
+# Set Shiny App defaults ----
 citation <- list(
   title <- paste0(project_name, " Data Analysis")
 )
@@ -873,8 +873,8 @@ ylim <- lapply(spatial, function(y) {
   ylim
 })
 
-# Edit ShinyApp files ---------------------------------------------------------
-# scXdef.rds ----
+# Edit ShinyApp files ----
+# scXdef.rds --
 sc1def <- edit_shiny_def(
   "sc1", samples, combined, req_genes1, req_genes3, xlim, ylim
 )
@@ -892,14 +892,14 @@ if (n_cond > 1) {
 saveRDS(sc1def, "/root/shinyApp/sc1def.rds")
 saveRDS(sc2def, "/root/shinyApp/sc2def.rds")
 
-# scXconf.rds ----
+# scXconf.rds --
 sc1conf <- edit_shiny_conf("sc1", treatment)
 sc2conf <- edit_shiny_conf("sc2", treatment)
 
 saveRDS(sc1conf, "/root/shinyApp/sc1conf.rds")
 saveRDS(sc2conf, "/root/shinyApp/sc2conf.rds")
 
-# Select correct ui/server.R files ---------------------------------------------
+# Select correct ui/server.R files ----
 number_of_pixle <- c()
 for (run in runs) {
   positions <- read.csv(run[5], header = FALSE)
