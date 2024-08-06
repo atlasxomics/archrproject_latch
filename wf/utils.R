@@ -135,5 +135,5 @@ metrics_to_csv <- function(metric_list) {
     "min_cells_cluster",
     "max_clusters"
   )
-  write.csv(metric_list, file = "metadata.csv", row.names = FALSE)
+  write.csv(metric_list, file = "exe_metadata.csv", row.names = FALSE)
 }

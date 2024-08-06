@@ -50,7 +50,7 @@ print(paste("Number of threads for peak calling:", num_threads))
 runs <- strsplit(args[14:length(args)], ",")
 runs
 
-inputs <- c() # Inputs for ArrowFiles
+inputs <- c() # Inputs for ArrowFiles (run_id : fragment_file path)
 for (run in runs) {
   inputs[run[1]] <- run[3]
 }
@@ -58,10 +58,10 @@ inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
-# Save input metrics in csv -----
+# Save input metrics to csv ----
 metrics_to_csv(as.list(args[1:13])) # from utils.R
 
-# Set genome size for peak calling -----
+# Set genome size for peak calling ----
 genome_sizes <- list("hg38" = 3.3e+09, "mm10" = 3.0e+09, "rnor6" = 2.9e+09)
 genome_size <- genome_sizes[[genome]]
 
@@ -75,13 +75,13 @@ proj <- create_archrproject( # from archr.R
   inputs, genome, min_tss, min_frags, tile_size, out_dir
 )
 
-# Add Conditions, SampleName columns -----
+# Add Conditions, SampleName to CellColData ----
 for (run in runs) {
   proj$Condition[proj$Sample == run[1]] <- run[4]
   proj$SampleName[proj$Sample == run[1]] <- run[2]
 }
 
-# Filter to keep on-tissue only -----
+# Filter to keep on-tissue only ----
 all_ontissue <- c()
 for (run in runs) {
   positions <- read.csv(run[5], header = FALSE)
@@ -92,13 +92,13 @@ for (run in runs) {
 
 proj <- proj[proj$cellNames %in% all_ontissue]
 
-# Parse conditions into 'treatments', add as columns to CellColData -----
+# Parse conditions into 'treatments', add as columns to CellColData ----
 conds <- strsplit(proj$Condition, split = "\\s|-")
 
 for (i in seq_along(conds[[1]])) {
   proj <- ArchR::addCellColData(
     proj,
-    data = extract_nth_ele(conds, i),
+    data = extract_nth_ele(conds, i), # from utils.R
     name = paste0("condition_", i),
     cells = proj$cellNames,
     force = TRUE
@@ -110,7 +110,7 @@ treatment <- names(ArchR::getCellColData(proj))[
 
 print(paste("Treatments:", treatment))
 
-# Set global values for project data -----
+# Set global values for project data ----
 n_samples <- length(unique(proj$Sample))
 n_cond <- length(unique(proj$Condition))
 n_cells <- length(proj$cellNames)
@@ -133,7 +133,7 @@ proj <- addIterativeLSI(
   force = TRUE
 )
 
-# Batch correction with Harmony if more than one run -----
+# Batch correction with Harmony if more than one run ----
 if (n_samples > 1) {
   proj <- addHarmony(
     ArchRProj = proj,
@@ -173,12 +173,14 @@ proj <- ArchR::addImputeWeights(proj)
 
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
-# Plot UMAP embedding colored by Cluster, Sample, Treatment ----- *plot*
+# Plot UMAP embedding colored by Cluster, Sample, Treatment ----
 save_umap(proj, c("Clusters", "Sample", treatment))
 
 # Create SeuratObjects for gene matrix ----------------------------------------
-# Create metadata object for Seurat object -----
+# Extract metadata for Seurat object ----
 metadata <- getCellColData(ArchRProj = proj)
+
+# Set metadata rownames to barcodes --
 rownames(metadata) <- str_split_fixed(
   str_split_fixed(
     row.names(metadata),
@@ -188,9 +190,11 @@ rownames(metadata) <- str_split_fixed(
   "-",
   2
 )[, 1]
+
+# Create col for log10 of fragment counts --
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-# Extract gene matrix for SeuratObject -----
+# Extract gene matrix for SeuratObject ----
 gene_matrix <- getMatrixFromProject(
   ArchRProj = proj,
   useMatrix = "GeneScoreMatrix"
@@ -202,12 +206,13 @@ matrix <- imputeMatrix(
 gene_row_names <- gene_matrix@elementMetadata$name
 rownames(matrix) <- gene_row_names
 
+# Create and save SeuratObjects ----
 print("Creating SeuratObjects...")
 
 seurat_objs <- c()
 for (run in runs) {
 
-  obj <- build_atlas_seurat_object(
+  obj <- build_atlas_seurat_object( # from seurat.R
     run_id = run[1],
     matrix = matrix,
     metadata = metadata,
@@ -221,19 +226,21 @@ for (run in runs) {
 print("Available SeuratObjects:")
 seurat_objs
 
-# Plot clusters on top of spatial coordinates -----
+# SeuratObj plots ----
+# Plot clusters on top of spatial coordinates --
 print("Creating spatial cluster plots...")
 save_spatial_cluster_plots(seurat_objs)
 
-# Create QC plots for TSSEnrichment, nFrags, log10_nFrags -----
+# Create QC plots for TSSEnrichment, nFrags, log10_nFrags --
 print("Creating QC plots...")
 save_qc_plots(seurat_objs, c("TSSEnrichment", "nFrags", "log10_nFrags"))
 
-# Save ArchR object -----
 saveArchRProject(ArchRProj = proj, outputDirectory = archrproj_dir)
 
 # Identify marker genes -------------------------------------------------------
-# Marker genes per cluster, save marker gene rds, csv, heatmap.csv -----
+# Marker genes per cluster, save marker gene rds, csv, heatmap.csv ----
+n_clust <- length(unique(proj$Clusters))
+
 cluster_marker_genes <- get_marker_genes( # from archr.R
   proj,
   group_by = "Clusters",
@@ -250,7 +257,13 @@ write.csv(
 )
 write.csv(cluster_marker_genes$heatmap_gs, "genes_per_cluster_hm.csv")
 
-# Marker genes per sample, save marker gene rds, csv, heatmap.csv-----
+# Save top 5 marker genes by cluster for ShinyApp (req_genes1.csv) --
+# Read hm back into memory as df with feats as column --
+hm_per_cluster <- read.csv("genes_per_cluster_hm.csv")
+req_genes1 <- get_topn_hm_feats(hm_per_cluster, n_clust, 5) # archr.R
+write.csv(req_genes1, "req_genes1.csv")
+
+# Marker genes per sample, save marker gene rds, csv, heatmap.csv ----
 if (n_samples > 1) {
 
   sample_marker_genes <- get_marker_genes(
@@ -269,11 +282,17 @@ if (n_samples > 1) {
   )
   write.csv(sample_marker_genes$heatmap_gs, "genes_per_sample_hm.csv")
 
+  # Save top 10 marker genes per sample for ShinyApp (req_genes3.csv) --
+  # Read hm back into memory as df with feats as column --
+  hm_per_sample <- read.csv("genes_per_sample_hm.csv")
+  req_genes3 <- get_topn_hm_feats(hm_per_sample, n_samples, 10)
+  write.csv(req_genes3, "req_genes3.csv")
+
 } else {
-  print("There are not enough samples to be compared with!")
+  req_genes3 <- "There are not enough samples to be compared with!"
 }
 
-# Marker genes per treatment, save marker gene rds, csv, heatmap.csv-----
+# Marker genes per treatment, save marker gene rds, csv, heatmap.csv----
 if (n_cond > 1) {
 
   for (i in seq_along(treatment)) {
@@ -299,16 +318,29 @@ if (n_cond > 1) {
       treatment_marker_genes$heatmap_gs,
       paste0("genes_per_conditions", i, "_hm.csv")
     )
+
+    # Save top 20 marker genes per treatment for ShinyApp (req_genes3.csv) --
+    # Get vector of all gene condition heatmap csv's --
+    hms_per_cond <- find_func(tempdir, "genes_per_condition_*")
+
+    for (j in seq_along(hms_per_cond)) {
+
+      # Read hm back into memory as df with feats as column
+      hm_per_cond <- read.csv(hms_per_cond[j])
+
+      req_genes2 <- get_topn_hm_feats(hm_per_cond, n_cond, 20)
+      write.csv(req_genes2, paste0("req_genes2_", j, ".csv"))
+    }
   }
 } else {
-  print("There are not enough Conditions to be compared with!")
+  req_genes2 <- "There are not enough condition to be compared with!"
 }
 
 # Volcano plots for genes -----------------------------------------------------
 if (n_cond > 1) {
   for (j in seq_along(treatment)) {
 
-    # Get gene markers for all clusters together -----
+    # Get gene markers df for all clusters together -----
     marker_genes_df <- get_marker_df(
       proj = proj,
       group_by = treatment[j],
@@ -318,14 +350,14 @@ if (n_cond > 1) {
       test_method = "ttest"
     )
 
-    # Create a DF from marker genes for clusters for which no condition is
-    # >90% of all cells -----
+    # Create a merged marker genes df for clusters for which no condition is
+    # >90% of all cells ----
     req_clusters <- get_required_clusters(proj, treatment[j])
     marker_genes_by_cluster_df <- get_marker_df_clusters(
       proj, req_clusters, treatment[j]
     )
 
-    # Merge and cleanup data per condition -----
+    # Per condition, merge dfs and cleanup data ----
     conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
     for (cond in conditions) {
 
@@ -367,48 +399,6 @@ if (n_cond > 1) {
   }
 } else {
   print("There are not enough conditions to be compared with!")
-}
-
-# Save top marker genes for cluster, sample, condition for ShinyApp  ----------
-# Top 5 marker genes by cluster -----
-n_clust <- length(unique(proj$Clusters))
-
-# Read hm back into memory as df with feats as column
-hm_per_cluster <- read.csv("genes_per_cluster_hm.csv")
-
-req_genes1 <- get_topn_hm_feats(hm_per_cluster, n_clust, 5)
-write.csv(req_genes1, "req_genes1.csv")
-
-# Top 10 marker genes per sample -----
-if (n_samples > 1) {
-
-  # Read hm back into memory as df with feats as column
-  hm_per_sample <- read.csv("genes_per_sample_hm.csv")
-
-  req_genes3 <- get_topn_hm_feats(hm_per_sample, n_samples, 10)
-  write.csv(req_genes3, "req_genes3.csv")
-
-} else {
-  req_genes3 <- "There are not enough samples to be compared with!"
-}
-
-# Top 20 marker genes per treatment -----
-if (n_cond > 1) {
-
-  # Get vector of all gene condition heatmaps
-  hms_per_cond <- find_func(tempdir, "genes_per_condition_*")
-
-  for (j in seq_along(hms_per_cond)) {
-
-    # Read hm back into memory as df with feats as column
-    hm_per_cond <- read.csv(hms_per_cond[j])
-
-    req_genes2 <- get_topn_hm_feats(hm_per_cond, n_cond, 20)
-    write.csv(req_genes2, paste0("req_genes2_", j, ".csv"))
-  }
-
-} else {
-  req_genes2 <- "There are not enough condition to be compared with!"
 }
 
 # Save UMAP embedding to csv, save ArchRProject -------------------------------
