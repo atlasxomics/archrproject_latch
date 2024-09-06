@@ -60,7 +60,7 @@ def allocate_mem(
             metadata = json.load(f)
             channels.append(metadata['numChannels'])
 
-    total_channels = sum([channel ** 2 for channel in channels])
+    total_channels = sum([int(channel) ** 2 for channel in channels])
 
     return 750 if total_channels > 48400 else 384
 
