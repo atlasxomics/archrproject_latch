@@ -117,7 +117,7 @@ def archr_task(
     ]
 
     _archr_cmd.extend(runs)
-    subprocess.run(_archr_cmd)
+    subprocess.run(_archr_cmd, check=True)
 
     project_dirs = glob.glob(f'{project_name}_*')
     www = glob.glob('www')
