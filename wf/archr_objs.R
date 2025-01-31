@@ -352,7 +352,7 @@ if (n_cond > 1) {
       group_by = treatment[j],
       matrix = "GeneScoreMatrix",
       seq_names = NULL,
-      max_cells = n_cells,
+      max_cells = n_cells,  # Equals total cells in project
       test_method = "ttest"
     )
 
