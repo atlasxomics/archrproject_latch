@@ -21,7 +21,7 @@ from latch.types import (
     LatchRule
 )
 
-from wf.upload_to_registry import upload_to_registry, Run
+from wf.upload_to_registry import get_LatchFile, upload_to_registry, Run
 
 
 class Genome(Enum):
@@ -104,15 +104,13 @@ def archr_task(
         f'{max_clusters}'
     ]
 
+    position_files = {
+        run.run_id: get_LatchFile(run.spatial_dir, 'tissue_positions_list.csv')
+        for run in runs
+    }
+
     runs = [
-        (
-            f'{run.run_id},'
-            f'{run.sample_name},'
-            f'{run.fragments_file.local_path},'
-            f'{run.condition},'
-            f'{run.positions_file.local_path},'
-            f'{run.spatial_dir.local_path},'
-        )
+        f'{run.run_id},{run.sample_name},{run.fragments_file.local_path},{run.condition},{position_files[run.run_id].local_path},{run.spatial_dir.local_path},'
         for run in runs
     ]
 
@@ -178,7 +176,6 @@ metadata = LatchMetadata(
             display_name='runs',
             description='List of runs to be analyzed; each run must contain a \
                         run_id and fragments.tsv file; optional: condition, \
-                        tissue position file for filtering on/off tissue, \
                         spatial folder for SpatialDimPlot. Note that multiple \
                         Coditions must be separted by -, for example: \
                         Non_responder-post_treatment-One_month.',
@@ -337,7 +334,6 @@ def archrproject_workflow(
     [file system](https://wiki.latch.bio/wiki/data/overview).  Each run in the
     workflow takes the following parameters,
     * [fragments.tsv.gz file](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/output/fragments): A BED-like, tab-delimited file in which each row contains an ATAC-seq fragment
-    * [tissue_positions_list.csv](https://docs.atlasxomics.com/projects/AtlasXbrowser/en/latest/SpatialFolder.html): A comma-separated file in which each row contains a unique barcode, an indicator for whether the tixel is 'on-tissue' (1, 0), and a row/column index
     * [Spatial folder](https://docs.atlasxomics.com/projects/AtlasXbrowser/en/latest/SpatialFolder.html): A directory containing tissue images and experiment metadata
     * Run ID: An identifier for the run
     * Condition (_optional_):  An experimental Condition descriptor
@@ -474,9 +470,6 @@ LaunchPlan(
                 ),
                 'demo',
                 LatchDir('latch:///spatials/demo/spatial'),
-                LatchFile(
-                    'latch:///spatials/demo/spatial/tissue_positions_list.csv'
-                ),
                 )
         ],
         'project_name': 'demo',
