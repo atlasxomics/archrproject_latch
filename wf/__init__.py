@@ -62,10 +62,15 @@ def allocate_mem(
 
     total_channels = sum([channel ** 2 for channel in channels])
 
-    return 750 if total_channels > 48400 else 384
+    if total_channels < 48400:
+        return 384
+    elif total_channels < 100000:
+        return 750
+    else:
+        return 975
 
 
-@custom_task(cpu=62, memory=allocate_mem, storage_gib=4949)
+@custom_task(cpu=62, memory=975, storage_gib=4949)
 def archr_task(
     runs: List[Run],
     project_name: str,
