@@ -141,6 +141,11 @@ def archr_task(
     subprocess.run(_archr_cmd, check=True)
 
     adata_gene, adata_motif = ft.load_and_combine_data()
+    for adata in [adata_gene, adata_motif]:
+        # Rename obs columns for consistency
+        adata = utils.rename_obs_columns(adata)
+        if "X_UMAP" in adata.obsm.keys():
+            adata.obsm["X_umap"] = adata.obsm["X_UMAP"]
 
     # Run spatial analysis
     adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)

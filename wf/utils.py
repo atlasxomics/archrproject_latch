@@ -24,3 +24,18 @@ def get_groups(runs: List[Run]):
         groups.append("condition")
 
     return groups
+
+
+def rename_obs_columns(adata: anndata):
+    rename_map = {
+        "Clusters": "cluster",
+        "Condition": "condition",
+        "Sample": "sample",
+        "nFrags": "n_fragments"
+    }
+
+    for old_name, new_name in rename_map.items():
+        if old_name in adata.obs.columns:
+            adata.obs.rename(columns={old_name: new_name}, inplace=True)
+
+    return adata
