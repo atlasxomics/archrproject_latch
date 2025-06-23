@@ -25,6 +25,7 @@ source("/root/wf/utils.R")
 
 
 # globals ---------------------------------------------------------------------
+set.seed(42)
 
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
