@@ -4,6 +4,7 @@ SpatialDimPlots for a list of lsi_varfeatures.
 '''
 import glob
 import json
+import logging
 import subprocess
 
 from enum import Enum
@@ -21,7 +22,15 @@ from latch.types import (
     LatchRule
 )
 
+import wf.features as ft
+import wf.spatial as sp
+import wf.utils as utils
 from wf.upload_to_registry import get_LatchFile, upload_to_registry, Run
+
+
+logging.basicConfig(
+    format="%(levelname)s - %(asctime)s - %(message)s", level=logging.INFO
+)
 
 
 class Genome(Enum):
@@ -70,7 +79,7 @@ def allocate_mem(
         return 975
 
 
-@custom_task(cpu=62, memory=975, storage_gib=4949)
+@custom_task(cpu=62, memory=allocate_mem, storage_gib=4949)
 def archr_task(
     runs: List[Run],
     project_name: str,
@@ -88,8 +97,17 @@ def archr_task(
     max_clusters: int
 ) -> LatchDir:
 
+    groups = utils.get_groups(runs)
+    logging.info(f"Comparing features amoung groups {groups}.")
+
     out_dir = project_name
     subprocess.run(['mkdir', f'{out_dir}'])
+
+    tables_dir = Path(f'/root/{out_dir}/tables')
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    figures_dir = Path(f'/root/{out_dir}/figures')
+    figures_dir.mkdir(parents=True, exist_ok=True)
 
     _archr_cmd = [
         'Rscript',
@@ -122,10 +140,22 @@ def archr_task(
     _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd, check=True)
 
+    adata_gene, adata_motif = ft.load_and_combine_data()
+
+    # Run spatial analysis
+    adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)
+
+    # Load differential analysis results
+    ft.load_analysis_results(adata_gene, adata_motif, groups)
+
+    # Save AnnData
+    ft.save_anndata_objects(adata_gene, adata_motif, out_dir)
+
     project_dirs = glob.glob(f'{project_name}_*')
     www = glob.glob('www')
     seurat_objs = glob.glob('*.rds')
     h5_files = glob.glob('*.h5')
+    h5as_files = glob.glob('*.h5ad')
     R_files = glob.glob('*.R')
     image = glob.glob('.RData')
 
@@ -135,6 +165,7 @@ def archr_task(
         www +
         seurat_objs +
         h5_files +
+        h5as_files +
         R_files +
         image +
         [out_dir]
@@ -145,18 +176,12 @@ def archr_task(
     csv_tables = glob.glob('*.csv')
     volcanos = glob.glob('*.txt')
 
-    tables_dir = Path(f'/root/{out_dir}/tables')
-    tables_dir.mkdir(parents=True, exist_ok=True)
-
     _mv_tables_cmd = ['mv'] + csv_tables + volcanos + [str(tables_dir)]
 
     subprocess.run(_mv_tables_cmd)
 
     # Move figures into subfolder
     figures = [fig for fig in glob.glob('*.pdf') if fig != 'Rplots.pdf']
-    figures_dir = Path(f'/root/{out_dir}/figures')
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
     _mv_figures_cmd = ['mv'] + figures + [str(figures_dir)]
 
     subprocess.run(_mv_figures_cmd)
@@ -473,8 +498,8 @@ LaunchPlan(
                 LatchFile(
                     'latch:///chromap_outputs/demo/chromap_output/fragments.tsv.gz'
                 ),
-                'demo',
                 LatchDir('latch:///spatials/demo/spatial'),
+                'demo',
                 )
         ],
         'project_name': 'demo',

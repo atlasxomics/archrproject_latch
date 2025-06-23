@@ -19,8 +19,9 @@ library("seqLogo")
 library("ShinyCell")
 library("tidyverse")
 
-source("/root/makeShinyFiles.R")
 source("/root/getDeviation_ArchR.R")
+source("/root/makeShinyFiles.R")
+source("/root/wf/convert.R")
 source("/root/wf/utils.R")
 
 
@@ -683,16 +684,16 @@ if (length(unique(proj$Condition)) > 1) {
           j,
           "_",
           conds,
-          ".txt"
+          ".csv"
         ),
-        sep = "\t",
+        sep = ",",
         quote = FALSE,
         row.names = FALSE
       )
 
       print(
         paste0(
-          "writing volcanoMarkers_genes_", j, "_", conds, ".txt is done!"
+          "writing volcanoMarkers_genes_", j, "_", conds, ".csv is done!"
         )
       )
 
@@ -1560,14 +1561,14 @@ if (length(unique(proj$Condition)) > 1) {
 
       write.table(
         de[[conds]],
-        paste0("volcanoMarkers_motifs_", j, "_", conds, ".txt"),
-        sep = "\t",
+        paste0("volcanoMarkers_motifs_", j, "_", conds, ".csv"),
+        sep = ",",
         quote = FALSE,
         row.names = FALSE
       )
       print(
         paste0(
-          "writing volcanoMarkers_motifs_", j, "_", conds, ".txt is done!"
+          "writing volcanoMarkers_motifs_", j, "_", conds, ".csv is done!"
         )
       )
 
@@ -1902,3 +1903,13 @@ file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
 
 dataFiles <- dir(rawPath, "*.h5$", ignore.case = TRUE, all.files = TRUE)
 file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
+
+# Convert Seurat to h5ad and save ----
+for (obj in all) {
+  seurat_to_h5ad(obj, FALSE, paste0(unique(obj$Sample), "_g"))  # from seurat.R
+}
+
+# Convert Seurat to h5ad and save ----
+for (obj in all_m) {
+  seurat_to_h5ad(obj, FALSE, paste0(unique(obj$Sample), "_m"))  # from seurat.R
+}
