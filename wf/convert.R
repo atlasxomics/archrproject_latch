@@ -11,7 +11,7 @@ library("purrr")
 library("Seurat")
 library("SeuratDisk")
 
-source("/root/wf/R/utils.R")
+source("/root/wf/utils.R")
 
 
 convert_spatial <- function(seurat_obj) {
