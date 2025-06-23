@@ -1593,7 +1593,7 @@ if (length(unique(proj$Condition)) > 1) {
 
 ################-------------- save bigwig files -------- ######################
 
-req_conditions <- c("Clusters", treatment)
+req_conditions <- c("Clusters", "Sample", treatment)
 
 for (i in req_conditions) {
   bws <- getGroupBW(
