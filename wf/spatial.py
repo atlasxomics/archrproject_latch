@@ -56,7 +56,6 @@ def plot_neighborhoods(
             plt.close(fig)
 
 
-
 def run_squidpy_analysis(
     adata_gene: anndata.AnnData, figures_dir: Path
 ) -> anndata.AnnData:
@@ -71,7 +70,7 @@ def run_squidpy_analysis(
     group_dict = {"all": None}
 
     for group_name, group_value in group_dict.items():
-        pl.plot_neighborhoods(
+        plot_neighborhoods(
             adata_gene, group_name, group_value, outdir=str(figures_dir)
         )
 
