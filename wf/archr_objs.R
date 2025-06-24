@@ -1643,7 +1643,7 @@ samples <- find_samples_name(all)
 
 # extract image coordinates as -(imagecols) | imagerow
 spatial <- lapply(all, function(x) {
-  df <- as.data.frame(x@images[[1]]$coordinates[, c(5, 4)])
+  df <- as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
   colnames(df) <- paste0("Spatial_", 1:2)
   df$Spatial_2 <- -df$Spatial_2
   df
