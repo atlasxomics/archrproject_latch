@@ -50,6 +50,7 @@ def allocate_mem(
     lsi_resolution: float,
     lsi_varfeatures: int,
     clustering_resolution: float,
+    maximum_dims: int,
     umap_mindist: float,
     num_threads: int,
     min_cells_cluster: int,
@@ -91,6 +92,7 @@ def archr_task(
     lsi_resolution: float,
     lsi_varfeatures: int,
     clustering_resolution: float,
+    maximum_dims: int,
     umap_mindist: float,
     num_threads: int,
     min_cells_cluster: int,
@@ -121,6 +123,7 @@ def archr_task(
         f'{lsi_resolution}',
         f'{lsi_varfeatures}',
         f'{clustering_resolution}',
+        f'{maximum_dims}',
         f'{umap_mindist}',
         f'{num_threads}',
         f'{min_cells_cluster}',
@@ -278,6 +281,12 @@ metadata = LatchMetadata(
             description='resolution parameter from addClusters function.',
             batch_table_column=True
         ),
+        'maximum_dims': LatchParameter(
+            display_name='maximum LSI dimensions',
+            description='Upper limit of ArchR::addIterativeLSI.dimsToUse \
+                (i.e., 1:n); comparable to snapatac2.tl.spectral.n_comps .',
+            batch_table_column=True
+        ),
         'umap_mindist': LatchParameter(
             display_name='UMAP minimum distance',
             description='minDist parameter from addUMAP function.',
@@ -337,6 +346,7 @@ def archrproject_workflow(
     lsi_resolution: float = 0.5,
     lsi_varfeatures: int = 25000,
     clustering_resolution: float = 1.0,
+    maximum_dims: int = 30,
     umap_mindist: float = 0.0,
     num_threads: int = 50,
     min_cells_cluster: int = 20,
@@ -476,6 +486,7 @@ def archrproject_workflow(
         lsi_resolution=lsi_resolution,
         lsi_varfeatures=lsi_varfeatures,
         clustering_resolution=clustering_resolution,
+        maximum_dims=maximum_dims,
         umap_mindist=umap_mindist,
         num_threads=num_threads,
         min_cells_cluster=min_cells_cluster,

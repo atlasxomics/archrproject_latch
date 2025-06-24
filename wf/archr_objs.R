@@ -40,13 +40,14 @@ lsi_iterations <- as.integer(args[6])
 lsi_resolution <- as.numeric(args[7])
 lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
-umap_mindist <- as.numeric(args[10])
-num_threads <- as.integer(args[11])
-min_cells_cluster <- as.integer(args[12])
-max_clusters <- as.integer(args[13])
+max_dims <- as.integer(args[10])
+umap_mindist <- as.numeric(args[11])
+num_threads <- as.integer(args[12])
+min_cells_cluster <- as.integer(args[13])
+max_clusters <- as.integer(args[14])
 print(paste("Number of threads:", num_threads))
 
-runs <- strsplit(args[14:length(args)], ",")
+runs <- strsplit(args[15:length(args)], ",")
 runs
 
 inputs <- c()
@@ -58,7 +59,7 @@ inputs
 out_dir <- paste0(project_name, "_ArchRProject")
 
 # save input metrics in csv
-metrics <- as.list(args[1:13])
+metrics <- as.list(args[1:14])
 names(metrics) <- c(
   "project_name",
   "genome",
@@ -69,6 +70,7 @@ names(metrics) <- c(
   "lsi_resolution",
   "lsi_varFeatures",
   "clustering_resolution",
+  "max_dims",
   "umap_minimum_distance",
   "number_threads",
   "min_cells_cluster",
@@ -162,7 +164,7 @@ proj <- addIterativeLSI(
     n.start = 10
   ),
   varFeatures = lsi_varfeatures,
-  dimsToUse = 1:30,
+  dimsToUse = 1:max_dims,
   force = TRUE
 )
 
