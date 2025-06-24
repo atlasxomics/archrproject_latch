@@ -143,12 +143,20 @@ def archr_task(
     _archr_cmd.extend(runs)
     subprocess.run(_archr_cmd, check=True)
 
+    # Combined all converted h5ad for genes and motifs
     adata_gene, adata_motif = ft.load_and_combine_data()
+
+    # Transfer UMAP and spatial embeddings
+    ft.transfer_embedding_data(
+        adata_gene, adata_motif, "/root/UMAPHarmony.csv", "X_umap"
+    )
+    ft.transfer_embedding_data(
+        adata_gene, adata_motif, "/root/spatial.csv", "spatial"
+    )
+
     for adata in [adata_gene, adata_motif]:
         # Rename obs columns for consistency
         adata = utils.rename_obs_columns(adata)
-        if "X_UMAP" in adata.obsm.keys():
-            adata.obsm["X_umap"] = adata.obsm["X_UMAP"]
 
     # Run spatial analysis
     adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)

@@ -1648,6 +1648,8 @@ spatial <- lapply(all, function(x) {
   df$Spatial_2 <- -df$Spatial_2
   df
 })
+spatial_all <- do.call(rbind, spatial)
+write.csv(spatial_all, "spatial.csv")
 
 combined <- combine_objs(all, UMAPHarmony, samples, spatial, project_name)
 combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial, project_name)
@@ -1906,10 +1908,10 @@ file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
 
 # Convert Seurat to h5ad and save ----
 for (obj in all) {
-  seurat_to_h5ad(obj, FALSE, paste0(unique(obj$Sample), "_g"))  # from seurat.R
+  seurat_to_h5ad(obj, TRUE, paste0(unique(obj$Sample), "_g"))  # from seurat.R
 }
 
 # Convert Seurat to h5ad and save ----
 for (obj in all_m) {
-  seurat_to_h5ad(obj, FALSE, paste0(unique(obj$Sample), "_m"))  # from seurat.R
+  seurat_to_h5ad(obj, TRUE, paste0(unique(obj$Sample), "_m"))  # from seurat.R
 }

@@ -198,6 +198,28 @@ def load_volcano_plots(
     )
 
 
+def transfer_embedding_data(
+    adata_gene: anndata.AnnData,
+    adata_motif: anndata.AnnData,
+    data_path: str,
+    obsm_key: str
+) -> None:
+    """Transfer embedding data (UMAP/spatial) to AnnData objects."""
+    import pandas as pd
+
+    logging.info(f"Transferring {obsm_key}...")
+
+    try:
+        df = pd.read_csv(data_path, index_col=0)
+        aligned_data = df.loc[adata_gene.obs_names].values
+
+        adata_gene.obsm[obsm_key] = aligned_data
+        adata_motif.obsm[obsm_key] = aligned_data
+
+    except (FileNotFoundError, KeyError) as e:
+        logging.warning(f"Error loading {obsm_key} data: {e}")
+
+
 def volcano_name_transform(name: str, file: str, data_type: str) -> str:
     """Transform volcano plot file names."""
     file_name = Path(file).name
