@@ -1102,9 +1102,7 @@ for (i in seq_len(length(markerMotifsList))) {
 }
 
 if (length(motifs) > 1) {
-  motifs <- unlist(motifs)
-  motifs <- paste0("z:", motifs)
-  motifs <- unique(motifs)
+  motifs <- unique(unlist(motifs))
 
   proj <- addImputeWeights(proj)
 
@@ -1643,7 +1641,7 @@ samples <- find_samples_name(all)
 
 # extract image coordinates as -(imagecols) | imagerow
 spatial <- lapply(all, function(x) {
-  df <- as.data.frame(x@images[[1]]@coordinates[, c(5, 4)])
+  df <- as.data.frame(x@images[[1]]$coordinates[, c(5, 4)])
   colnames(df) <- paste0("Spatial_", 1:2)
   df$Spatial_2 <- -df$Spatial_2
   df

@@ -1,6 +1,7 @@
 FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/13502_wf_init_snap_workflow:0.17.25.6-5cf1a1-wip-66bb71
 
 # Copy output files for Shiny app
+RUN echo hey
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
 COPY makeShinyFiles.R /root/makeShinyFiles.R
 COPY www /root/www
