@@ -1,6 +1,5 @@
 FROM 812206152185.dkr.ecr.us-west-2.amazonaws.com/13502_wf_init_archrproject_workflow:0.27.2-cc2abe-wip-9c8f70
 
-RUN pip install latch==2.52.2
 RUN mkdir /opt/latch
 
 # Install specific version of numpy
@@ -29,7 +28,7 @@ COPY custom_ArchR_genomes_and_annotations /root/custom_ArchR_genomes_and_annotat
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
 # correctly with latch.
-# RUN python3 -m pip install --upgrade latch
+RUN python3 -m pip install --upgrade latch
 
 RUN rm -r /root/wf
 COPY wf /root/wf
