@@ -211,10 +211,11 @@ def transfer_embedding_data(
 
     try:
         df = pd.read_csv(data_path, index_col=0)
-        aligned_data = df.loc[adata_gene.obs_names].values
+        aligned_data_g = df.loc[adata_gene.obs_names].values
+        aligned_data_m = df.loc[adata_motif.obs_names].values
 
-        adata_gene.obsm[obsm_key] = aligned_data
-        adata_motif.obsm[obsm_key] = aligned_data
+        adata_gene.obsm[obsm_key] = aligned_data_g
+        adata_motif.obsm[obsm_key] = aligned_data_m
 
     except (FileNotFoundError, KeyError) as e:
         logging.warning(f"Error loading {obsm_key} data: {e}")
