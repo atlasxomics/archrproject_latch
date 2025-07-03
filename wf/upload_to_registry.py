@@ -17,10 +17,8 @@ class Run:
     run_id: str
     sample_name: str
     fragments_file: LatchFile
+    spatial_dir: LatchDir
     condition: str = "None"
-    spatial_dir: LatchDir = LatchDir(
-        "latch:///spatials/demo/spatial/"
-    )
 
 
 def get_LatchFile(directory: LatchDir, file_name: str) -> LatchFile:

@@ -19,8 +19,9 @@ library("seqLogo")
 library("ShinyCell")
 library("tidyverse")
 
-source("/root/makeShinyFiles.R")
 source("/root/getDeviation_ArchR.R")
+source("/root/makeShinyFiles.R")
+source("/root/wf/convert.R")
 source("/root/wf/utils.R")
 
 
@@ -39,13 +40,14 @@ lsi_iterations <- as.integer(args[6])
 lsi_resolution <- as.numeric(args[7])
 lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
-umap_mindist <- as.numeric(args[10])
-num_threads <- as.integer(args[11])
-min_cells_cluster <- as.integer(args[12])
-max_clusters <- as.integer(args[13])
+max_dims <- as.integer(args[10])
+umap_mindist <- as.numeric(args[11])
+num_threads <- as.integer(args[12])
+min_cells_cluster <- as.integer(args[13])
+max_clusters <- as.integer(args[14])
 print(paste("Number of threads:", num_threads))
 
-runs <- strsplit(args[14:length(args)], ",")
+runs <- strsplit(args[15:length(args)], ",")
 runs
 
 inputs <- c()
@@ -57,7 +59,7 @@ inputs
 out_dir <- paste0(project_name, "_ArchRProject")
 
 # save input metrics in csv
-metrics <- as.list(args[1:13])
+metrics <- as.list(args[1:14])
 names(metrics) <- c(
   "project_name",
   "genome",
@@ -68,6 +70,7 @@ names(metrics) <- c(
   "lsi_resolution",
   "lsi_varFeatures",
   "clustering_resolution",
+  "max_dims",
   "umap_minimum_distance",
   "number_threads",
   "min_cells_cluster",
@@ -161,7 +164,7 @@ proj <- addIterativeLSI(
     n.start = 10
   ),
   varFeatures = lsi_varfeatures,
-  dimsToUse = 1:30,
+  dimsToUse = 1:max_dims,
   force = TRUE
 )
 
@@ -683,16 +686,16 @@ if (length(unique(proj$Condition)) > 1) {
           j,
           "_",
           conds,
-          ".txt"
+          ".csv"
         ),
-        sep = "\t",
+        sep = ",",
         quote = FALSE,
         row.names = FALSE
       )
 
       print(
         paste0(
-          "writing volcanoMarkers_genes_", j, "_", conds, ".txt is done!"
+          "writing volcanoMarkers_genes_", j, "_", conds, ".csv is done!"
         )
       )
 
@@ -1101,9 +1104,7 @@ for (i in seq_len(length(markerMotifsList))) {
 }
 
 if (length(motifs) > 1) {
-  motifs <- unlist(motifs)
-  motifs <- paste0("z:", motifs)
-  motifs <- unique(motifs)
+  motifs <- unique(unlist(motifs))
 
   proj <- addImputeWeights(proj)
 
@@ -1560,14 +1561,14 @@ if (length(unique(proj$Condition)) > 1) {
 
       write.table(
         de[[conds]],
-        paste0("volcanoMarkers_motifs_", j, "_", conds, ".txt"),
-        sep = "\t",
+        paste0("volcanoMarkers_motifs_", j, "_", conds, ".csv"),
+        sep = ",",
         quote = FALSE,
         row.names = FALSE
       )
       print(
         paste0(
-          "writing volcanoMarkers_motifs_", j, "_", conds, ".txt is done!"
+          "writing volcanoMarkers_motifs_", j, "_", conds, ".csv is done!"
         )
       )
 
@@ -1592,7 +1593,7 @@ if (length(unique(proj$Condition)) > 1) {
 
 ################-------------- save bigwig files -------- ######################
 
-req_conditions <- c("Clusters", treatment)
+req_conditions <- c("Clusters", "Sample", treatment)
 
 for (i in req_conditions) {
   bws <- getGroupBW(
@@ -1647,6 +1648,8 @@ spatial <- lapply(all, function(x) {
   df$Spatial_2 <- -df$Spatial_2
   df
 })
+spatial_all <- do.call(rbind, spatial)
+write.csv(spatial_all, "spatial.csv")
 
 combined <- combine_objs(all, UMAPHarmony, samples, spatial, project_name)
 combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial, project_name)
@@ -1902,3 +1905,13 @@ file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
 
 dataFiles <- dir(rawPath, "*.h5$", ignore.case = TRUE, all.files = TRUE)
 file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
+
+# Convert Seurat to h5ad and save ----
+for (obj in all) {
+  seurat_to_h5ad(obj, TRUE, paste0(unique(obj$Sample), "_g"))  # from seurat.R
+}
+
+# Convert Seurat to h5ad and save ----
+for (obj in all_m) {
+  seurat_to_h5ad(obj, TRUE, paste0(unique(obj$Sample), "_m"))  # from seurat.R
+}
