@@ -19,10 +19,11 @@ find_func <- function(tempdir, pattern) {
 }
 
 build_atlas_seurat_object <- function(
-    run_id,
-    matrix,
-    metadata,
-    spatial_path) {
+  run_id,
+  matrix,
+  metadata,
+  spatial_path
+) {
   # Prepare and combine gene matrix, metadata, and image for seurat object
   # for runs within a project.
 
@@ -137,17 +138,20 @@ sctheme <- function(base_size = 24, XYval = TRUE, Xang = 0, XjusH = 0.5) {
   return(oupTheme)
 }
 
-scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
+scvolcano <- function(
+  inpMarkers, condition1, condition2, feature = "All", fc_col = "Log2FC"
+) {
 
-  # Prepare ggData
-  ggData <- inpMarkers[which(inpMarkers$cluster == feature), ]
+  # Subset by cluster
+  ggData <- inpMarkers[inpMarkers$cluster == feature, ]
   minfdr <- 0.09
   minfdr1 <- 10^-(1 / 6 * (-log10(min(ggData$p_val_adj))))
 
+  # Add Significance column
   ggData$Significance <- ifelse(
     ggData$p_val_adj < minfdr,
     ifelse(
-      ggData$avg_log2FC > 0.0,
+      ggData[[fc_col]] > 0.0,
       condition1,
       condition2
     ),
@@ -156,33 +160,30 @@ scvolcano <- function(inpMarkers, condition1, condition2, feature = "All") {
 
   ggData$Significance <- factor(
     ggData$Significance,
-    levels = c(
-      condition1,
-      condition2,
-      "Not siginficant"
-    )
+    levels = c(condition1, condition2, "Not siginficant")
   )
 
+  # Avoid log10(0)
   ggData[ggData$p_val_adj < 1e-300, "p_val_adj"] <- 1e-300
   ggData$log10fdr <- -log10(ggData$p_val_adj)
 
-  # Actual ggplot
-  ggOut <- ggplot(ggData, aes(avg_log2FC, log10fdr)) +
-      geom_point() +
-      sctheme() +
-      ylab("-log10(FDR)") +
-      geom_point(aes(color = Significance)) +
-      scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
-      geom_text_repel(
-        data = subset(ggData, p_val_adj < minfdr1),
-        aes(label = gene)
-      ) +
-      ggtitle(paste("Markers:", feature)) +
-      theme(
-        plot.title = element_text(hjust = 0.5, size = 20),
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 18)
-      )
+  # Make volcano plot
+  ggOut <- ggplot(ggData, aes(x = .data[[fc_col]], y = log10fdr)) +
+    geom_point() +
+    sctheme() +
+    ylab("-log10(FDR)") +
+    geom_point(aes(color = Significance)) +
+    scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
+    geom_text_repel(
+      data = subset(ggData, p_val_adj < minfdr1), aes(label = gene)
+    ) +
+    ggtitle(paste("Markers:", feature)) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 20),
+      legend.text = element_text(size = 15),
+      legend.title = element_text(size = 18)
+    )
+
   return(ggOut)
 }
 
