@@ -70,7 +70,13 @@ def allocate_mem(
             metadata = json.load(f)
             channels.append(metadata['numChannels'])
 
-    total_channels = sum([channel ** 2 for channel in channels])
+    try:
+        total_channels = sum([int(channel) ** 2 for channel in channels])
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid value in channels: {channels}. All values must be \
+            integers."
+        ) from e
 
     if total_channels < 48400:
         return 384
