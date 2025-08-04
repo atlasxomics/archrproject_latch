@@ -5,6 +5,13 @@ from typing import List
 from wf.upload_to_registry import Run
 
 
+coverage_dict = {
+    "cluster": "Clusters",
+    "sample": "Sample",
+    "condition": "condition_1"
+}
+
+
 def filter_anndata(
     adata: anndata.AnnData, group: str, subgroup: List[str]
 ) -> anndata.AnnData:

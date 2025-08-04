@@ -5,6 +5,7 @@ SpatialDimPlots for a list of lsi_varfeatures.
 import glob
 import json
 import logging
+import os
 import subprocess
 
 from enum import Enum
@@ -205,8 +206,21 @@ def archr_task(
     # Move figures into subfolder
     figures = [fig for fig in glob.glob('*.pdf') if fig != 'Rplots.pdf']
     _mv_figures_cmd = ['mv'] + figures + [str(figures_dir)]
-
     subprocess.run(_mv_figures_cmd)
+
+    logging.info("Copying group coverages from ArchRProject...")
+    for group in groups:
+        coverage_dir = f"{out_dir}/{group}_coverages"
+        os.makedirs(coverage_dir, exist_ok=True)
+        archr_path = f"{out_dir}/{project_name}_ArchRProject/GroupBigWigs/{utils.coverage_dict[group]}"
+        if os.path.exists(archr_path):
+            bws = glob.glob(f"{archr_path}/*.bw")
+            if not bws:
+                logging.warning(f"No .bw files found in {archr_path}")
+                continue
+            subprocess.run(["cp"] + bws + [coverage_dir])
+        else:
+            logging.warning(f"No coverages for {group} found in {archr_path}")
 
     return LatchDir(
         f'/root/{out_dir}',
