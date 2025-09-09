@@ -47,7 +47,7 @@ def upload_to_registry(
     archr_project: LatchDir,
     run_table_id: str = "761",
     project_table_id: str = "917",
-):
+) -> LatchDir:
     run_table = Table(run_table_id)
     project_table = Table(project_table_id)
     try:
@@ -98,9 +98,8 @@ def upload_to_registry(
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
-        return
     finally:
-        return
+        return archr_project
 
 
 if __name__ == "__main__":
