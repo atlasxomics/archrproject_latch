@@ -28,7 +28,7 @@ COPY custom_ArchR_genomes_and_annotations /root/custom_ArchR_genomes_and_annotat
 # STOP HERE:
 # The following lines are needed to ensure your build environement works
 # correctly with latch.
-RUN python3 -m pip install --upgrade latch
+RUN python3 -m pip install latch==2.66.3
 
 RUN rm -r /root/wf
 COPY wf /root/wf

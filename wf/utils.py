@@ -6,10 +6,12 @@ from wf.upload_to_registry import Run
 
 from enum import Enum
 
+
 class Genome(Enum):
     mm10 = 'mm10'
     hg38 = 'hg38'
     rnor6 = 'rnor6'
+
 
 coverage_dict = {
     "cluster": "Clusters",
