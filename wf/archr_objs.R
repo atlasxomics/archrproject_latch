@@ -1109,7 +1109,9 @@ for (i in seq_len(length(markerMotifsList))) {
 
 if (length(motifs) > 1) {
   print("Creating deviation score for motifs...")
-  motifs <- unique(unlist(motifs))
+  motifs <- unlist(motifs)
+  motifs <- paste0("z:", motifs)
+  motifs <- unique(motifs)
 
   proj <- addImputeWeights(proj)
 

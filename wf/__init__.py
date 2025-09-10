@@ -8,7 +8,6 @@ import logging
 import os
 import subprocess
 
-from enum import Enum
 from pathlib import Path
 from typing import List
 
@@ -34,16 +33,10 @@ logging.basicConfig(
 )
 
 
-class Genome(Enum):
-    mm10 = 'mm10'
-    hg38 = 'hg38'
-    rnor6 = 'rnor6'
-
-
 def allocate_mem(
     runs: List[Run],
     project_name: str,
-    genome: Genome,
+    genome: utils.Genome,
     tile_size: int,
     min_TSS: float,
     min_frags: int,
@@ -91,7 +84,7 @@ def allocate_mem(
 def archr_task(
     runs: List[Run],
     project_name: str,
-    genome: Genome,
+    genome: utils.Genome,
     tile_size: int,
     min_TSS: float,
     min_frags: int,
@@ -365,7 +358,7 @@ metadata = LatchMetadata(
 @workflow(metadata)
 def archrproject_workflow(
     runs: List[Run],
-    genome: Genome,
+    genome: utils.Genome,
     project_name: str,
     tile_size: int = 5000,
     min_TSS: float = 2.0,
@@ -521,7 +514,7 @@ def archrproject_workflow(
         max_clusters=max_clusters
     )
 
-    upload_to_registry(
+    archr_project = upload_to_registry(
         runs=runs,
         archr_project=archr_project,
         run_table_id=run_table_id,
@@ -547,8 +540,33 @@ LaunchPlan(
                 )
         ],
         'project_name': 'demo',
-        'genome': Genome.hg38,
+        'genome': utils.Genome.hg38,
         'run_table_id': '761',
         'project_table_id': '779'
     },
 )
+
+if __name__ == '__main__':
+    archr_task(
+        runs=[Run(
+                'default',
+                'default',
+                LatchFile('latch://13502.account/chromap_outputs/demo/chromap_output/fragments.tsv.gz'),
+                LatchDir('latch:///spatials/demo/spatial'),
+                'demo',
+        )],
+        genome=utils.Genome.hg38,
+        project_name="demo_fix_revert",
+        tile_size=5000,
+        min_TSS=2.0,
+        min_frags=0,
+        lsi_iterations=2,
+        lsi_resolution=0.5,
+        lsi_varfeatures=25000,
+        clustering_resolution=1.0,
+        maximum_dims=30,
+        umap_mindist=0.0,
+        num_threads=50,
+        min_cells_cluster=20,
+        max_clusters=25,
+    )
