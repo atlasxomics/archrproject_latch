@@ -4,8 +4,14 @@ library("dplyr")
 library("Seurat")
 
 
-add_def_treatments <- function(def, treatment, feature, combined) {
-  #' Edit ShinyApp scXdef.rds for Conditions.
+build_atlas_seurat_object <- function(
+  run_id,
+  matrix,
+  metadata,
+  spatial_path
+) {
+  # Prepare and combine gene matrix, metadata, and image for seurat object
+  # for runs within a project.
 
   for (i in seq_along(treatment)) {
     def[[paste0("meta", (2 + i))]] <- treatment[i]
@@ -50,24 +56,54 @@ determine_files_to_copy <- function(n_samples, n_cond, proj) {
   }
 }
 
-edit_shiny_conf <- function(prefix, treatment) {
-  #' Set default (top) values in ShinyApp/scXconf.rds files.
-
-  conf <- readRDS(paste0("/root/shinyApp/", prefix, "conf.rds"))
-
-  fav <- which(conf$ID %in% c("Clusters", "Sample", "SampleName", treatment))
-  rest <- which(!conf$ID %in% c("Clusters", "Sample", "SampleName", treatment))
-  conf <- conf[c(fav, rest), ]
-
-  return(conf)
-}
-
-edit_shiny_def <- function(
-  prefix, samples, combined, req_feats1, req_feats3, xlim, ylim
+scvolcano <- function(
+  inpMarkers, condition1, condition2, feature = "All", fc_col = "Log2FC"
 ) {
-  #' Edit default values in ShinyApp/scXdef.rds files.
 
-  def <- readRDS(paste0("/root/shinyApp/", prefix, "def.rds"))
+  # Subset by cluster
+  ggData <- inpMarkers[inpMarkers$cluster == feature, ]
+  minfdr <- 0.09
+  minfdr1 <- 10^-(1 / 6 * (-log10(min(ggData$p_val_adj))))
+
+  # Add Significance column
+  ggData$Significance <- ifelse(
+    ggData$p_val_adj < minfdr,
+    ifelse(
+      ggData[[fc_col]] > 0.0,
+      condition1,
+      condition2
+    ),
+    "Not siginficant"
+  )
+
+  ggData$Significance <- factor(
+    ggData$Significance,
+    levels = c(condition1, condition2, "Not siginficant")
+  )
+
+  # Avoid log10(0)
+  ggData[ggData$p_val_adj < 1e-300, "p_val_adj"] <- 1e-300
+  ggData$log10fdr <- -log10(ggData$p_val_adj)
+
+  # Make volcano plot
+  ggOut <- ggplot(ggData, aes(x = .data[[fc_col]], y = log10fdr)) +
+    geom_point() +
+    sctheme() +
+    ylab("-log10(FDR)") +
+    geom_point(aes(color = Significance)) +
+    scale_color_manual(values = c("#F8766D", "#619CFF", "gray")) +
+    geom_text_repel(
+      data = subset(ggData, p_val_adj < minfdr1), aes(label = gene)
+    ) +
+    ggtitle(paste("Markers:", feature)) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 20),
+      legend.text = element_text(size = 15),
+      legend.title = element_text(size = 18)
+    )
+
+  return(ggOut)
+}
 
   # Add coordinate limits --
   def$limits <- list()

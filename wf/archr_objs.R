@@ -19,13 +19,16 @@ library("seqLogo")
 library("ShinyCell")
 library("tidyverse")
 
-source("/root/wf/archr.R")
-source("/root/wf/seurat.R")
+source("/root/getDeviation_ArchR.R")
+source("/root/makeShinyFiles.R")
+source("/root/wf/convert.R")
 source("/root/wf/utils.R")
 
 source("/root/getDeviation_ArchR.R")
 source("/root/makeShinyFiles.R")
 
+# globals ---------------------------------------------------------------------
+set.seed(42)
 
 # Globals ---------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
@@ -40,14 +43,14 @@ lsi_iterations <- as.integer(args[6])
 lsi_resolution <- as.numeric(args[7])
 lsi_varfeatures <- as.integer(args[8])
 clustering_resolution <- as.numeric(args[9])
-umap_mindist <- as.numeric(args[10])
-num_threads <- as.integer(args[11])
-min_cells_cluster <- as.integer(args[12])
-max_clusters <- as.integer(args[13])
+max_dims <- as.integer(args[10])
+umap_mindist <- as.numeric(args[11])
+num_threads <- as.integer(args[12])
+min_cells_cluster <- as.integer(args[13])
+max_clusters <- as.integer(args[14])
+print(paste("Number of threads:", num_threads))
 
-print(paste("Number of threads for peak calling:", num_threads))
-
-runs <- strsplit(args[14:length(args)], ",")
+runs <- strsplit(args[15:length(args)], ",")
 runs
 
 inputs <- c() # Inputs for ArrowFiles (run_id : fragment_file path)
@@ -58,8 +61,25 @@ inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
 
-# Save input metrics to csv ----
-metrics_to_csv(as.list(args[1:13])) # from utils.R
+# save input metrics in csv
+metrics <- as.list(args[1:14])
+names(metrics) <- c(
+  "project_name",
+  "genome",
+  "tile_size",
+  "minimum_tss",
+  "minimum_fragments",
+  "lsi_iterations",
+  "lsi_resolution",
+  "lsi_varFeatures",
+  "clustering_resolution",
+  "max_dims",
+  "umap_minimum_distance",
+  "number_threads",
+  "min_cells_cluster",
+  "max_clusters"
+)
+write.csv(metrics, file = "metadata.csv", row.names = FALSE)
 
 # Set genome size for peak calling ----
 genome_sizes <- list("hg38" = 3.3e+09, "mm10" = 3.0e+09, "rnor6" = 2.9e+09)
@@ -129,7 +149,7 @@ proj <- addIterativeLSI(
     n.start = 10
   ),
   varFeatures = lsi_varfeatures,
-  dimsToUse = 1:30,
+  dimsToUse = 1:max_dims,
   force = TRUE
 )
 
@@ -365,29 +385,130 @@ if (n_cond > 1) {
 
     # Per condition, merge dfs and cleanup data --
     conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
-    for (cond in conditions) {
+    markerList_df <- list()
 
-      volcano_table <- get_volcano_table( # from archr.R
-        marker_genes_df, marker_genes_by_cluster_df, cond, "gene", gene_matrix
+    for (cond in conditions){
+      markerList_df[[cond]] <- DataFrame(
+        markerList_df1[, cond],
+        markerList_df2[, cond],
+        markerList_df3[, cond]
+      )
+      markerList_df[[cond]] <- as.data.frame(markerList_df[[cond]])
+      markerList_df[[cond]]$genes <- rowData(markerList)$name
+      markerList_df[[cond]]$cluster <- rep(
+        "All", length(rownames(markerList_df[[cond]]))
+      )
+      colnames(markerList_df[[cond]]) <- c(
+        "Log2FC", "p_val", "p_val_adj", "gene", "cluster"
+      )
+    }
+
+    # per cluster
+    markerList_df1_C <- list()
+    markerList_df2_C <- list()
+    markerList_df3_C <- list()
+    markerList_df_C <- list()
+
+    for (i in seq_along(req_clusters)) {
+
+      cluster <- req_clusters[i]
+      markerList_df1_C[[i]] <- assay(markerList_C[[i]], "Log2FC")
+      markerList_df2_C[[i]] <- assay(markerList_C[[i]], "Pval")
+      markerList_df3_C[[i]] <- assay(markerList_C[[i]], "FDR")
+
+      conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
+      markerList_df_C[[i]] <- list()
+
+      for (cond in conditions) {
+
+        markerList_df_C[[i]][[cond]] <- DataFrame(
+          markerList_df1_C[[i]][, cond],
+          markerList_df2_C[[i]][, cond],
+          markerList_df3_C[[i]][, cond]
+        )
+
+        markerList_df_C[[i]][[cond]] <- as.data.frame(
+          markerList_df_C[[i]][[cond]]
+        )
+        markerList_df_C[[i]][[cond]]$genes <- rowData(markerList_C[[i]])$name
+        markerList_df_C[[i]][[cond]]$cluster <- rep(
+          cluster, dim(markerList_df_C[[i]][[cond]])[1]
+        )
+        colnames(markerList_df_C[[i]][[cond]]) <- c(
+          "Log2FC", "p_val", "p_val_adj", "gene", "cluster"
+        )
+      }
+    }
+
+    names(markerList_df_C) <- req_clusters
+    markersGS_merged_df <- do.call(Map, c(f = rbind, markerList_df_C))
+
+    # also data frame for all clusters together needs to be added
+    for (cond in conditions) {
+      others <- paste(
+        colnames(markerList)[cond != (colnames(markerList))], collapse = "|"
+      )
+      markersGS_merged_df[[cond]] <- rbind(
+        markerList_df[[cond]], markersGS_merged_df[[cond]]
       )
 
-      write.table(
-        volcano_table,
-        paste0(
-          "volcanoMarkers_genes_", j, "_", cond, ".txt"
+      # remove empty genes
+      markersGS_merged_df[[cond]] <- markersGS_merged_df[[cond]][which(
+        !markersGS_merged_df[[cond]]$gene %in% empty_gene
+      ), ]
+
+      # remove na values
+      markersGS_merged_df[[cond]] <- na.omit(markersGS_merged_df[[cond]])
+
+      # remove FDR equal to 0
+      markersGS_merged_df[[cond]] <- markersGS_merged_df[[cond]][
+        which(!markersGS_merged_df[[cond]]$p_val_adj == 0),
+      ]
+
+      # make logfc limiation between 1 and -1
+      markersGS_merged_df[[cond]] <- markersGS_merged_df[[cond]][
+        which(abs(markersGS_merged_df[[cond]]$Log2FC) < 1.2),
+      ]
+
+      markersGS_merged_df[[cond]]$Significance <- ifelse(
+        markersGS_merged_df[[cond]]$p_val < 10^-2,
+        ifelse(
+          markersGS_merged_df[[cond]]$Log2FC > 0.0,
+          cond,
+          others
         ),
-        sep = "\t",
+        "Not siginficant"
+      )
+
+      de <- list()
+      de[[cond]] <- markersGS_merged_df[[cond]]
+
+      write.table(
+        de[[cond]],
+        paste0(
+          "volcanoMarkers_genes_",
+          j,
+          "_",
+          cond,
+          ".csv"
+        ),
+        sep = ",",
         quote = FALSE,
         row.names = FALSE
       )
       print(paste0("volcanoMarkers_genes_", j, "_", cond, ".txt is done!"))
 
-      features <- unique(volcano_table$cluster)
-      others <- paste(conditions[conditions != cond], collapse = "|")
+      print(
+        paste0(
+          "writing volcanoMarkers_genes_", j, "_", cond, ".csv is done!"
+        )
+      )
+
+      features <- unique(de[[cond]]$cluster)
       volcano_plots <- list()
       for (i in seq_along(features)) {
         volcano_plots[[i]] <- scvolcano(
-          volcano_table, cond, others, features[[i]]
+          de[[cond]], cond, others, features[[i]], fc_col = "Log2FC"
         )
       }
 
@@ -512,10 +633,13 @@ markers_motifs <- getMarkerFeatures(
   useSeqnames = "z"
 )
 
-# Get deviation matrix for significant motifs --
-marker_motifs_list <- getMarkers(
-  markers_motifs, cutOff = "FDR < 0.9 & MeanDiff >= 0"
+# create deviation score
+markerMotifsList <- getMarkers(
+  markersMotifs, cutOff = "FDR < 0.9 & MeanDiff >= 0"
 )
+print(paste0(
+  "Number of marker motifs: ", length(markerMotifsList)
+))
 
 motifs <- list()
 for (i in seq_len(length(marker_motifs_list))) {
@@ -525,6 +649,7 @@ for (i in seq_len(length(marker_motifs_list))) {
 }
 
 if (length(motifs) > 1) {
+  print("Creating deviation score for motifs...")
   motifs <- unlist(motifs)
   motifs <- paste0("z:", motifs)
   motifs <- unique(motifs)
@@ -542,10 +667,16 @@ if (length(motifs) > 1) {
 
 dev_score2 <- dev_score[!is.infinite(rowSums(dev_score)), ]
 colnames(dev_score2) <- rownames(getCellColData(proj))
+print(paste0(
+  "Number of motifs not infinite: ", nrow(dev_score2)
+))
 
 # Remove 0 deviations per All samples --
 all_zero <- names(which(rowSums(dev_score2) == 0))
 dev_score2 <- dev_score2[which(!rownames(dev_score2) %in% c(all_zero)), ]
+print(paste0(
+  "Number of motifs after removing 0 deviations: ", nrow(dev_score2)
+))
 
 # Convert to dgCmatrix --
 dev_score3 <- Matrix(as.matrix(dev_score2), sparse = TRUE)
@@ -740,29 +871,128 @@ if (n_cond > 1) {
 
     # Merge and cleanup data --
     conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
+    markersMotifs_df <- list()
+
     for (cond in conditions) {
 
-      volcano_table <- get_volcano_table( # from archr.R
-        marker_genes_df, marker_genes_by_cluster_df, cond, "gene", gene_matrix
+      markersMotifs_df[[cond]] <- DataFrame(
+        markersMotifs_df1[[cond]],
+        markersMotifs_df2[[cond]],
+        markersMotifs_df3[[cond]]
+      )
+      markersMotifs_df[[cond]] <- as.data.frame(markersMotifs_df[[cond]])
+      markersMotifs_df[[cond]]$genes <- rowData(markersMotifs)$name
+      markersMotifs_df[[cond]]$cluster <- rep(
+        "All",
+        length(rownames(markersMotifs_df[[cond]]))
+      )
+      colnames(markersMotifs_df[[cond]]) <- c(
+        "MeanDiff", "p_val", "p_val_adj", "gene", "cluster"
+      )
+    }
+
+    # percluster
+    markersMotifs_df1_C <- list()
+    markersMotifs_df2_C <- list()
+    markersMotifs_df3_C <- list()
+    markersMotifs_df_C <- list()
+
+    for (i in seq_along(req_clusters)) {
+
+      cluster <- req_clusters[i]
+
+      markersMotifs_df1_C[[i]] <- assay(markersMotifs_C[[i]], "MeanDiff")
+      markersMotifs_df2_C[[i]] <- assay(markersMotifs_C[[i]], "Pval")
+      markersMotifs_df3_C[[i]] <- assay(markersMotifs_C[[i]], "FDR")
+
+      conditions <- sort(unique(proj@cellColData[treatment[j]][, 1]))
+      markersMotifs_df_C[[i]] <- list()
+
+      for (cond in conditions){
+
+        markersMotifs_df_C[[i]][[cond]] <- DataFrame(
+          markersMotifs_df1_C[[i]][, cond],
+          markersMotifs_df2_C[[i]][, cond],
+          markersMotifs_df3_C[[i]][, cond]
+        )
+        markersMotifs_df_C[[i]][[cond]] <- as.data.frame(
+          markersMotifs_df_C[[i]][[cond]]
+        )
+        markersMotifs_df_C[[i]][[cond]]$genes <- rowData(
+          markersMotifs_C[[i]]
+        )$name
+        markersMotifs_df_C[[i]][[cond]]$cluster <- rep(
+          cluster, dim(markersMotifs_df_C[[i]][[cond]])[1]
+        )
+        colnames(markersMotifs_df_C[[i]][[cond]]) <- c(
+          "MeanDiff", "p_val", "p_val_adj", "gene", "cluster"
+        )
+      }
+    }
+    names(markersMotifs_df_C) <- req_clusters
+    markersMotifs_merged_df <- do.call(Map, c(f = rbind, markersMotifs_df_C))
+
+    # also data frame for all clusters together needs to be added
+    for (cond in conditions) {
+      others <- paste(
+        colnames(markersMotifs)[cond != (colnames(markersMotifs))],
+        collapse = "|"
       )
 
+      markersMotifs_merged_df[[cond]] <- rbind(
+        markersMotifs_df[[cond]], markersMotifs_merged_df[[cond]]
+      )
+
+      # remove empty genes
+      markersMotifs_merged_df[[cond]] <- markersMotifs_merged_df[[cond]][
+        which(!markersMotifs_merged_df[[cond]]$gene %in% empty_motif),
+      ]
+
+      # remove na values
+      markersMotifs_merged_df[[cond]] <- na.omit(
+        markersMotifs_merged_df[[cond]]
+      )
+
+      # remove FDR equal to 0
+      markersMotifs_merged_df[[cond]] <- markersMotifs_merged_df[[cond]][
+        which(!markersMotifs_merged_df[[cond]]$p_val_ad == 0),
+      ]
+
+      # make logfc limiation between 1 and -1
+      markersMotifs_merged_df[[cond]] <- markersMotifs_merged_df[[cond]][
+        which(abs(markersMotifs_merged_df[[cond]]$MeanDiff) < 1.2),
+      ]
+
+      markersMotifs_merged_df[[cond]]$Significance <- ifelse(
+        markersMotifs_merged_df[[cond]]$p_val < 10^-2,
+        ifelse(
+          markersMotifs_merged_df[[cond]]$MeanDiff > 0.0,
+          cond,
+          others
+        ),
+        "Not siginficant"
+      )
+      de <- list()
+      de[[cond]] <- markersMotifs_merged_df[[cond]]
+
       write.table(
-        volcano_table,
-        paste0("volcanoMarkers_motifs_", j, "_", cond, ".txt"),
-        sep = "\t",
+        de[[cond]],
+        paste0("volcanoMarkers_motifs_", j, "_", cond, ".csv"),
+        sep = ",",
         quote = FALSE,
         row.names = FALSE
       )
       print(
-        paste0("writing volcanoMarkers_motifs_", j, "_", cond, ".txt is done!")
+        paste0(
+          "writing volcanoMarkers_motifs_", j, "_", cond, ".csv is done!"
+        )
       )
 
-      features_m <- unique(volcano_table$cluster)
-      others <- paste(conditions[conditions != cond], collapse = "|")
+      features_m <- unique(de[[cond]]$cluster)
       volcano_plots_m <- list()
       for (i in seq_along(features_m)) {
         volcano_plots_m[[i]] <- scvolcano(
-          volcano_table,  cond, others, features_m[[i]]
+          de[[cond]], cond, others, features_m[[i]], fc_col = "MeanDiff"
         )
       }
 
@@ -777,8 +1007,9 @@ if (n_cond > 1) {
   print("There are not enough conditions to be compared with!")
 }
 
-# Save bigwig files for clustersXtreatment ----
-req_conditions <- c("Clusters", treatment)
+################-------------- save bigwig files -------- ######################
+
+req_conditions <- c("Clusters", "Sample", treatment)
 
 for (i in req_conditions) {
   bws <- getGroupBW(ArchRProj = proj, groupBy = i)
@@ -818,6 +1049,8 @@ spatial <- lapply(all, function(x) {
   df$Spatial_2 <- -df$Spatial_2
   df
 })
+spatial_all <- do.call(rbind, spatial)
+write.csv(spatial_all, "spatial.csv")
 
 combined <- combine_objs(all, umap_harmony, samples, spatial, project_name)
 combined_m <- combine_objs(all_m, umap_harmony, samples, spatial, project_name)
@@ -945,7 +1178,15 @@ copy_ui_server_files(folder, files$ui_file, files$server_file)
 raw_path <- "/root/shinyApp/"
 data_path <- "/root/"
 
-for (ext in c("*.rds$", "*.h5$")) {
-  data_files <- dir(raw_path, ext, ignore.case = TRUE, all.files = TRUE)
-  file.copy(file.path(raw_path, data_files), data_path)
+dataFiles <- dir(rawPath, "*.h5$", ignore.case = TRUE, all.files = TRUE)
+file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
+
+# Convert Seurat to h5ad and save ----
+for (obj in all) {
+  seurat_to_h5ad(obj, TRUE, paste0(unique(obj$Sample), "_g"))  # from seurat.R
+}
+
+# Convert Seurat to h5ad and save ----
+for (obj in all_m) {
+  seurat_to_h5ad(obj, TRUE, paste0(unique(obj$Sample), "_m"))  # from seurat.R
 }
