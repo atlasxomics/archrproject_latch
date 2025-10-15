@@ -168,23 +168,11 @@ def archr_task(
     ft.save_anndata_objects(adata_gene, adata_motif, out_dir)
 
     project_dirs = glob.glob(f'{project_name}_*')
-    www = glob.glob('www')
     seurat_objs = glob.glob('*.rds')
-    h5_files = glob.glob('*.h5')
-    h5as_files = glob.glob('*.h5ad')
-    R_files = glob.glob('*.R')
-    image = glob.glob('.RData')
+    h5ad_files = glob.glob('*.h5ad')
 
     _mv_cmd = (
-        ['mv'] +
-        project_dirs +
-        www +
-        seurat_objs +
-        h5_files +
-        h5as_files +
-        R_files +
-        image +
-        [out_dir]
+        ['mv'] + project_dirs + seurat_objs + h5ad_files + [out_dir]
     )
 
     subprocess.run(_mv_cmd)
@@ -202,7 +190,8 @@ def archr_task(
     subprocess.run(_mv_figures_cmd)
 
     logging.info("Copying group coverages from ArchRProject...")
-    for group in groups:
+    coverage_groups = groups if "sample" in groups else groups + ["sample"]
+    for group in coverage_groups:
         coverage_dir = f"{out_dir}/{group}_coverages"
         os.makedirs(coverage_dir, exist_ok=True)
         archr_path = f"{out_dir}/{project_name}_ArchRProject/GroupBigWigs/{utils.coverage_dict[group]}"
@@ -452,7 +441,7 @@ def archrproject_workflow(
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
     `ArchRProjects` directory.
 
-    ## Outputs (_in progress_)
+    ## Outputs
     Outputs from **create ArchRProject** are loaded into latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
     `ArchRProjects` directory.
@@ -460,35 +449,21 @@ def archrproject_workflow(
     * SeuratObj.rds
     * SeuratObjMotif.rds
     * UMAPHarmony.csv
-    * enrichMotifs_clusters.rds
-    * enrichMotifs_sample.rds
-    * enrichMotifs_condition.rds
     * genes_per_cluster_hm.csv
     * genes_per_sample_hm.csv
     * genes_per_condition_hm.csv
-    * inpMarkers.txt
-    * inpMarkers_motif.txt
-    * markersGS_clusters.rds
-    * markersGS_sample.rds
-    * markersGS_condition.rds
     * motif_per_cluster_hm.csv
     * motif_per_sample_hm.csv
     * motif_per_condition_hm.csv
-    * req_genes1.csv
-    * req_genes2.csv
-    * req_genes3.csv
-    * req_motifs1.csv
-    * req_motifs2.csv
-    * req_motifs3.csv
     * seqlogo.rds
     ## Next Steps
     Analysis can be performed locally or in a latch.bio
     [Pod](https://wiki.latch.bio/wiki/pods/overview).  For access to
     ATX-specific Pods, please contact your AtlasXomics Support Scientist.
-    Output from **create ArchRProject** can be provided to the **atlasShiny**
-    workflow to create input for a DBiT-seq-specific R Shiny App.  For access
-    to this workflow and app, please contact your AtlasXomics Support
-    Scientist.
+    Output from **create ArchRProject** can be visulized in the
+    [Latch Plots](https://wiki.latch.bio/plots/overview) module in your
+    latch.bio workspace.  For access to the AtlasXomics Plots template,
+    please contact your AtlasXomics SupportScientist.
 
     ## Support
     Questions? Comments?  Contact support@atlasxomics.com or post in
