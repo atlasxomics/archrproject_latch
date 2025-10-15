@@ -14,14 +14,9 @@ RUN pip3 install awscli
 
 # Copy output files for Shiny app
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
-COPY makeShinyFiles.R /root/makeShinyFiles.R
-COPY www /root/www
 
 COPY archrproject.Rproj /root/archrproject.Rproj
 COPY .renvignore /root/.renvignore
-
-COPY uiserver50by50 /root/uiserver50by50
-COPY uiserver96by96 /root/uiserver96by96
 
 COPY custom_ArchR_genomes_and_annotations /root/custom_ArchR_genomes_and_annotations
 
