@@ -16,11 +16,9 @@ library("qdap")
 library("readr")
 library("Seurat")
 library("seqLogo")
-library("ShinyCell")
 library("tidyverse")
 
 source("/root/getDeviation_ArchR.R")
-source("/root/makeShinyFiles.R")
 source("/root/wf/convert.R")
 source("/root/wf/utils.R")
 
@@ -370,8 +368,6 @@ markersGS <- getMarkerFeatures(
   testMethod = "ttest"
 )
 
-saveRDS(markersGS, "markersGS_clusters.rds")
-
 marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
 write.csv(
   marker_list,
@@ -435,9 +431,6 @@ if (length(unique(proj$Sample)) > 1) {
     testMethod = "ttest",
   )
 
-  # save for shiny app
-  saveRDS(markersGS, "markersGS_sample.rds")
-
   marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
   write.csv(
     marker_list,
@@ -478,8 +471,6 @@ if (length(unique(proj$Condition)) > 1) {
       bias = c("TSSEnrichment", "log10(nFrags)"),
       testMethod = "ttest",
     )
-    # save for shiny app
-    saveRDS(markersGS, paste0("markersGS_condition_", i, ".rds"))
 
     marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
     write.csv(
@@ -720,83 +711,6 @@ if (length(unique(proj$Condition)) > 1) {
   de <- "There are not enough conditions to be compared with!"
 }
 
-tempdir <- "/root"
-genes_per_cluster_hm <- find_func(tempdir, "genes_per_cluster_hm.csv")
-hm_per_clust <- read.csv(genes_per_cluster_hm)
-
-nClust <- length(unique(proj$Clusters))
-
-df <- list()
-
-for (i in seq_along(1: nClust)) {
-  df[[i]] <- hm_per_clust[, c(1, i + 1)]
-
-  #select top 5 values by group
-  df[[i]] <- df[[i]][order(df[[i]][, 2], decreasing = TRUE), ][1:5, 1]
-}
-
-final <- do.call(rbind, df)
-req_genes1 <- unlist(df)
-req_genes1 <- req_genes1[!duplicated(req_genes1)]
-req_genes1 <- na.omit(req_genes1)
-
-# save the genes for default values in shiny app
-write.csv(req_genes1, "req_genes1.csv")
-
-# per sample
-if (length(unique(proj$Sample)) > 1) {
-
-  genes_per_sample_hm <- find_func(tempdir, "genes_per_sample_hm.csv")
-  hm_per_sample <- read.csv(genes_per_sample_hm)
-
-  nSamples <- length(unique(proj$Sample))
-
-  df <- list()
-
-  for (i in seq_along(1:nSamples)) {
-    df[[i]] <- hm_per_sample[, c(1, i + 1)]
-
-    #select top 10 values by group
-    df[[i]] <- df[[i]][order(df[[i]][, 2], decreasing = TRUE), ][1:10, 1]
-  }
-  final <- do.call(rbind, df)
-
-  req_genes3 <- unlist(df)
-  req_genes3 <- req_genes3[!duplicated(req_genes3)]
-  req_genes3 <- na.omit(req_genes3)
-  write.csv(req_genes3, "req_genes3.csv")
-
-} else {
-  req_genes3 <- "There are not enough samples to be compared with!"
-}
-
-# per treatment
-if (length(unique(proj$Condition)) > 1) {
-  genes_per_cond_hm <- find_func(tempdir, "genes_per_condition_*")
-
-  for (j in seq_along(genes_per_cond_hm)) {
-
-    hm_per_cond <- read.csv(genes_per_cond_hm[j])
-    nConds <- 2
-    df <- list()
-    for (i in seq_along(1:nConds)) {
-      df[[i]] <- hm_per_cond[, c(1, i + 1)]
-
-      #select top 20 values by group
-      df[[i]] <- df[[i]][order(df[[i]][, 2], decreasing = TRUE), ][1:20, 1]
-    }
-    final <- do.call(rbind, df)
-
-    req_genes2 <- unlist(df)
-    req_genes2 <- req_genes2[!duplicated(req_genes2)]
-    req_genes2 <- na.omit(req_genes2)
-    write.csv(req_genes2, paste0("req_genes2_", j, ".csv"))
-  }
-
-} else {
-  req_genes2 <- "There are not enough condition to be compared with!"
-}
-
 UMAPHarmony <- getEmbedding(
   ArchRProj = proj, embedding = "UMAP", returnDF = TRUE
 )
@@ -1028,8 +942,6 @@ req_motifs1 <- gsub(" ", "", req_motifs1)
 
 rownames(enrichMotifs) <- req_motifs1
 
-saveRDS(enrichMotifs, "enrichMotifs_clusters.rds")
-
 # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be
 # included in the heatmap. default is 20 but we decrease that!
 
@@ -1052,28 +964,6 @@ req_motifs1 <- gsub(" ", "", req_motifs1)
 rownames(heatmapEM) <- req_motifs1
 
 write.csv(heatmapEM, "motif_per_cluster_hm.csv")
-
-tempdir <- "/root"
-motifs_per_cluster_hm <- find_func(tempdir, "motif_per_cluster_hm.csv")
-hm_per_clust <- read.csv(motifs_per_cluster_hm)
-
-nClust <- length(unique(proj$Clusters))
-
-df <- list()
-
-for (i in seq_along(1:nClust)) {
-  df[[i]] <- hm_per_clust[, c(1, i + 1)]
-
-  #select top 5 values by group
-  df[[i]] <- df[[i]][order(df[[i]][, 2], decreasing = TRUE), ][1:5, 1]
-}
-final <- do.call(rbind, df)
-req_motifs1 <- unlist(df)
-req_motifs1 <- req_motifs1[!duplicated(req_motifs1)]
-req_motifs1 <- na.omit(req_motifs1)
-
-# save the motifs for default values in shiny app
-write.csv(req_motifs1, "req_motifs1.csv")
 
 ######################## Add Motifs Matrix and Projections ####################
 
@@ -1239,8 +1129,6 @@ if (length(unique(proj$Sample)) > 1) {
 
   rownames(enrichMotifs) <- req_motifs3
 
-  saveRDS(enrichMotifs, "enrichMotifs_sample.rds")
-
   # cutOff: A numeric cutOff that indicates the minimum P-adj enrichment to be
   # included in the heatmap. default is 20 but we decrease that!
   heatmapEM <- plotEnrichHeatmap(
@@ -1260,30 +1148,9 @@ if (length(unique(proj$Sample)) > 1) {
 
   nSamples <- length(unique(proj$Sample))
 
-  df <- list()
-  tempdir <- "/root"
-  motifs_per_sample_hm <- find_func(tempdir, "motif_per_sample_hm.csv")
-  hm_per_sample <- read.csv(motifs_per_sample_hm)
-
-  for (i in seq_along(1:nSamples)){
-    df[[i]] <- hm_per_sample[, c(1, i + 1)]
-
-    #select top 5 values by group
-    df[[i]] <- df[[i]][order(df[[i]][, 2], decreasing = TRUE), ][1:10, 1]
-  }
-  final <- do.call(rbind, df)
-  req_motifs3 <- unlist(df)
-
-  req_motifs3 <- req_motifs3[!duplicated(req_motifs3)]
-
-  req_motifs3 <- na.omit(req_motifs3)
-
-  write.csv(req_motifs3, "req_motifs3.csv")
-
 } else {
   enrichMotifs <- "There are not enough samples to be compared with!"
   heatmapEM <- "There are not enough samples to be compared with!"
-  req_motifs3 <- "There are not enough samples to be compared with!"
 }
 
 # peak calling with MACS2 for treatment ---------------------------------------
@@ -1347,11 +1214,9 @@ if (length(unique(proj$Condition)) > 1) {
     req_motifs2 <- gsub(" ", "", req_motifs2)
 
     rownames(enrichMotifs) <- req_motifs2
-    saveRDS(enrichMotifs, paste0("enrichMotifs_condition_", i, ".rds"))
 
     # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to
     # be included in the heatmap. Default is 20 but we decrease that!
-
     heatmapEM <- plotEnrichHeatmap(
       enrichMotifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
     )
@@ -1367,33 +1232,9 @@ if (length(unique(proj$Condition)) > 1) {
     rownames(heatmapEM) <- req_motifs2
     write.csv(heatmapEM, paste0("motif_per_condition_", i, "_hm.csv"))
   }
-
-  nConds <- 2
-  df <- list()
-  tempdir <- "/root"
-  motifs_per_cond_hm <- find_func(tempdir, "motif_per_condition_*")
-
-  for (j in seq_along(motifs_per_cond_hm)) {
-    hm_per_cond <- read.csv(motifs_per_cond_hm[j])
-
-    for (i in seq_along(1:nConds)) {
-      df[[i]] <- hm_per_cond[, c(1, i + 1)]
-
-      #select top 5 values by group
-      df[[i]] <- df[[i]][order(df[[i]][, 2], decreasing = TRUE), ][1:5, 1]
-    }
-
-    final <- do.call(rbind, df)
-    req_motifs2 <- unlist(df)
-
-    req_motifs2 <- req_motifs2[!duplicated(req_motifs2)]
-    req_motifs2 <- na.omit(req_motifs2)
-    write.csv(req_motifs2, paste0("req_motifs2_", j, ".csv"))
-  }
 } else {
   enrichMotifs <- "There are not enough conditions to be compared with!"
   heatmapEM <- "There are not enough conditions to be compared with!"
-  req_motifs2 <- "There are not enough conditions to be compared with!"
 }
 
 # Volcano plots for motifs -----------------------------------------------------
@@ -1670,255 +1511,6 @@ combined_m <- combine_objs(all_m, UMAPHarmony, samples, spatial, project_name)
 
 saveRDS(combined, "combined.rds", compress = FALSE)
 saveRDS(combined_m, "combined_m.rds", compress = FALSE)
-
-##############------------- Shiny app files ---------------################
-print("Shiny App starting...")
-
-scConf1 <- createConfig(combined)
-makeShinyFiles(
-  combined,
-  scConf1,
-  gex.assay = "scATAC",
-  gex.slot = "data",
-  gene.mapping = TRUE,
-  shiny.prefix = "sc1",
-  default.gene1 = "Tiam1",
-  default.gene2 = "Ccbe1",
-  default.dimred = c("UMAP_1", "UMAP_2")
-)
-
-scConf2 <- createConfig(combined_m)
-makeShinyFiles(
-  combined_m,
-  scConf2,
-  gex.assay = "scATAC",
-  gex.slot = "counts",
-  gene.mapping = TRUE,
-  shiny.prefix = "sc2",
-  default.gene1 = "RFX3-1018",
-  default.gene2 = "NEUROG2-1580",
-  default.dimred = c("UMAP_1", "UMAP_2")
-)
-citation <- list(
-  title <- paste0(project_name, " Data Analysis")
-)
-makeShinyCodesMulti(
-  shiny.title = paste0(project_name, "_Lab Data Analysis"),
-  shiny.footnotes = citation,
-  shiny.prefix = c("sc1", "sc2"),
-  shiny.headers = c("Gene Accessibility", "Peak/Motifs"),
-  shiny.dir = "./shinyApp"
-)
-
-# edit some of the prepared data
-sc1def <- readRDS("/root/shinyApp/sc1def.rds")
-sc2def <- readRDS("/root/shinyApp/sc2def.rds")
-
-xlim <- lapply(spatial, function(x) {
-  xlim <- c(min(x[, 1]), max(x[, 1]))
-  xlim
-})
-ylim <- lapply(spatial, function(y) {
-  ylim <- c(min(y[, 2]), max(y[, 2]))
-  ylim
-})
-
-sc1def$limits <- list()
-for (i in seq_along(samples)) {
-  sc1def[["limits"]][[samples[i]]] <- c(
-    min(xlim[[i]]), max(xlim[[i]]), min(ylim[[i]]), max(ylim[[i]])
-  )
-}
-
-sc2def$limits <- list()
-for (i in seq_along(samples)) {
-  sc2def[["limits"]][[samples[i]]] <- c(
-    min(xlim[[i]]), max(xlim[[i]]), min(ylim[[i]]), max(ylim[[i]])
-  )
-}
-
-sc1def$meta1 <- "Clusters"
-sc1def$meta2 <- "Sample"
-sc1def$meta3 <- "SampleName"
-
-sc2def$meta1 <- "Clusters"
-sc2def$meta2 <- "Sample"
-sc2def$meta3 <- "SampleName"
-
-sc1def$Clusters <- req_genes1
-sc1def$Sample <- req_genes3
-
-sc2def$Clusters <- req_motifs1
-sc2def$Sample <- req_motifs3
-
-sc1def$dimred[3] <- paste0(names(combined@reductions)[1], "_1")
-sc1def$dimred[4] <- paste0(names(combined@reductions)[1], "_2")
-sc1def$dimred[5] <- paste0(names(combined@reductions)[2], "_1")
-sc1def$dimred[6] <- paste0(names(combined@reductions)[2], "_2")
-
-sc2def$dimred[3] <- paste0(names(combined_m@reductions)[1], "_1")
-sc2def$dimred[4] <- paste0(names(combined_m@reductions)[1], "_2")
-sc2def$dimred[5] <- paste0(names(combined_m@reductions)[2], "_1")
-sc2def$dimred[6] <- paste0(names(combined_m@reductions)[2], "_2")
-
-if (length(unique(proj$Condition)) > 1) {
-  for (i in seq_along(treatment)) {
-
-    sc1def[[paste0("meta", (2 + i))]] <- treatment[i]
-    sc1def[[treatment[i]]] <- read.csv(
-      find_func(tempdir, paste0("req_genes2_", i, ".csv"))
-    )$x
-
-    sc1def[[paste0(treatment[i], "_1")]] <- sort(
-      unique(combined@meta.data[[treatment[i]]])
-    )[1]
-
-    sc1def[[paste0(treatment[i], "_2")]] <- sort(
-      unique(combined@meta.data[[treatment[i]]])
-    )[2]
-
-    sc2def[[paste0("meta", (2 + i))]] <- treatment[i]
-
-    sc2def[[treatment[i]]] <- read.csv(
-      find_func(tempdir, paste0("req_motifs2_", i, ".csv"))
-    )$x
-
-    sc2def[[paste0(treatment[i], "_1")]] <- sort(
-      unique(combined_m@meta.data[[treatment[i]]])
-    )[1]
-
-    sc2def[[paste0(treatment[i], "_2")]] <- sort(
-      unique(combined_m@meta.data[[treatment[i]]])
-    )[2]
-  }
-} else {
-  print("There are not enough conditions to add to sc1def.rds or sc2def.rds")
-}
-
-saveRDS(sc1def, "/root/shinyApp/sc1def.rds")
-saveRDS(sc2def, "/root/shinyApp/sc2def.rds")
-
-sc1conf <- readRDS("/root/shinyApp/sc1conf.rds")
-sc2conf <- readRDS("/root/shinyApp/sc2conf.rds")
-
-fav <- which(sc1conf$ID %in% c("Clusters", "Sample", "SampleName", treatment))
-rest <- which(!sc1conf$ID %in% c("Clusters", "Sample", "SampleName", treatment))
-sc1conf <- sc1conf[c(fav, rest), ]
-
-fav <- which(sc2conf$ID %in% c("Clusters", "Sample", "SampleName", treatment))
-rest <- which(!sc2conf$ID %in% c("Clusters", "Sample", "SampleName", treatment))
-sc2conf <- sc2conf[c(fav, rest), ]
-
-saveRDS(sc1conf, "/root/shinyApp/sc1conf.rds")
-saveRDS(sc2conf, "/root/shinyApp/sc2conf.rds")
-
-number_of_pixle <- c()
-for (run in runs) {
-  positions <- read.csv(run[5], header = FALSE)
-  number_of_pixle <- c(number_of_pixle, length(positions$V1))
-}
-max_number_of_pixle <- max(number_of_pixle)
-print(paste0("Max number of pixels: ", max_number_of_pixle))
-
-print("Make sure there is no ui.R or server.R file in /root")
-file.remove(
-  list.files(
-    path = "/root",
-    pattern = "^ui.*\\.R$",
-    all.files = FALSE,
-    full.names = FALSE,
-    recursive = FALSE,
-    include.dirs = FALSE
-  )
-)
-file.remove(
-  list.files(
-    path = "/root",
-    pattern = "^server.*\\.R$",
-    all.files = FALSE,
-    full.names = FALSE,
-    recursive = FALSE,
-    include.dirs = FALSE
-  )
-)
-
-if (max_number_of_pixle <= 2500) {
-  print("use ui/server from 50by50 folder")
-  unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
-
-  if (length(unique(proj$Sample)) == 1) {
-    file.copy("/root/uiserver50by50/ui_3.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver50by50/server_3.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
-  } else if (length(unique(proj$Condition)) <= 1) {
-    file.copy("/root/uiserver50by50/ui_2.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver50by50/server_2.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
-  } else if (
-    length(unique(proj$Condition)) > 1 & length(unique(proj$condition_1)) > 2 |
-      length(unique(proj$Condition)) > 1 & length(unique(proj$condition_2)) > 2
-  ) {
-    file.copy("/root/uiserver50by50/ui_4.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver50by50/server_4.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
-  } else {
-    file.copy("/root/uiserver50by50/ui.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver50by50/server.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
-  }
-
-} else { #if it is more than 50 by 50 use ui/server from flowgel folder
-  print("use ui/server from 96by96 folder")
-  unlink("/root/uiserver50by50", recursive = TRUE) # will delete directory
-
-  if (length(unique(proj$Sample)) == 1) {
-    file.copy("/root/uiserver96by96/ui_3.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver96by96/server_3.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
-  } else if (length(unique(proj$Condition)) <= 1) {
-    file.copy("/root/uiserver96by96/ui_2.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver96by96/server_2.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
-  } else if (
-    length(unique(proj$Condition)) > 1 & length(unique(proj$condition_1)) > 2 |
-    length(unique(proj$Condition)) > 1 & length(unique(proj$condition_2)) > 2
-  ) {
-    file.copy("/root/uiserver96by96/ui_4.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver96by96/server_4.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
-  } else {
-    file.copy("/root/uiserver96by96/ui.R", "/root/ui.R", overwrite = TRUE)
-    file.copy(
-      "/root/uiserver96by96/server.R", "/root/server.R", overwrite = TRUE
-    )
-    unlink("/root/uiserver96by96", recursive = TRUE) # will delete directory
-  }
-}
-
-# copy everything in shiny app to the root
-
-rawPath <- "/root/shinyApp/"
-dataPath <- "/root/"
-
-dataFiles <- dir(rawPath, "*.rds$", ignore.case = TRUE, all.files = TRUE)
-file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
-
-dataFiles <- dir(rawPath, "*.h5$", ignore.case = TRUE, all.files = TRUE)
-file.copy(file.path(rawPath, dataFiles), dataPath, overwrite = TRUE)
 
 # Convert Seurat to h5ad and save ----
 for (obj in all) {
