@@ -12,6 +12,9 @@ RUN pip install --requirement /opt/latch/requirements.txt
 RUN pip3 uninstall -y aiobotocore botocore awscli s3transfer
 RUN pip3 install awscli
 
+RUN R -e "remotes::install_github('jpmcga/ArchR', ref = '619f75d')"
+RUN R -e 'remotes::install_version("ggplot2", version = "3.4.1", repos = "https://cran.r-project.org")'
+
 # Copy output files for Shiny app
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
 
