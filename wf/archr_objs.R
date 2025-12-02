@@ -1293,7 +1293,7 @@ if (length(unique(proj$Condition)) > 1) {
         bias = c("TSSEnrichment", "log10(nFrags)"),
         maxCells = ncells[[i]],
         normBy = "none",
-        testMethod = "ttest"
+        testMethod = "wilcoxon"
       )
     }
     names(markersMotifs_C) <- req_clusters
