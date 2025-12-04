@@ -206,8 +206,6 @@ def archr_task(
         else:
             logging.warning(f"No coverages for {group} found in {archr_path}")
 
-    print(os.listdir())
-    print(os.listdir(f"/root/{project_name}"))
     utils.copy_peak_files(project_name, dirs)
 
     return LatchDir(
