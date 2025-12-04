@@ -111,6 +111,8 @@ def archr_task(
     figures_dir = Path(f'/root/{out_dir}/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
 
+    dirs = {"tables": tables_dir, "figures": figures_dir}
+
     _archr_cmd = [
         'Rscript',
         '/root/wf/archr_objs.R',
@@ -203,6 +205,10 @@ def archr_task(
             subprocess.run(["cp"] + bws + [coverage_dir])
         else:
             logging.warning(f"No coverages for {group} found in {archr_path}")
+
+    print(os.listdir())
+    print(os.listdir(f"/root/{project_name}"))
+    utils.copy_peak_files(project_name, dirs)
 
     return LatchDir(
         f'/root/{out_dir}',

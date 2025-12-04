@@ -1,10 +1,19 @@
 import anndata
+import glob
+import logging
+import os
+import subprocess
 
-from typing import List
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List
 
 from wf.upload_to_registry import Run
 
-from enum import Enum
+
+logging.basicConfig(
+    format="%(levelname)s - %(asctime)s - %(message)s", level=logging.INFO
+)
 
 
 class Genome(Enum):
@@ -18,6 +27,29 @@ coverage_dict = {
     "sample": "Sample",
     "condition": "condition_1"
 }
+
+
+def copy_peak_files(project_name: str, dirs: Dict[str, Path]) -> None:
+
+    table_dir = f"/root/{project_name}/{project_name}_ArchRProject/PeakCalls/"
+    plot_dir = f"/root/{project_name}/{project_name}_ArchRProject/Plots/"
+    if os.path.exists(table_dir):
+        peak_csvs = glob.glob(f"{table_dir}/*.csv")
+        if not peak_csvs:
+            logging.warning(f"No peaks csv files found in {table_dir}")
+        else:
+            subprocess.run(["cp"] + peak_csvs + [str(dirs['tables'])])
+    else:
+        logging.warning(f"No {table_dir} found")
+
+    if os.path.exists(plot_dir):
+        peaks_pdfs = glob.glob(f"{plot_dir}/*.pdf")
+        if not peaks_pdfs:
+            logging.warning(f"No peaks csv files found in {plot_dir}")
+        else:
+            subprocess.run(["cp"] + peaks_pdfs + [str(dirs['figures'])])
+    else:
+        logging.warning(f"No {plot_dir} found")
 
 
 def filter_anndata(
