@@ -387,9 +387,12 @@ for (rd in names(proj@reducedDims)){
 heatmapGS <- plotMarkerHeatmap(
   seMarker = markersGS,
   cutOff = "Pval <= 0.05 & Log2FC >= 0.10",
-  plotLog2FC = TRUE,
-  transpose = FALSE,
-  returnMatrix = TRUE
+  log2Norm = TRUE,
+  scaleTo = 10^4,
+  scaleRows = TRUE,
+  plotLog2FC = FALSE,
+  returnMatrix = TRUE,
+  transpose = FALSE
 )
 
 write.csv(heatmapGS, "genes_per_cluster_hm.csv")
@@ -403,6 +406,10 @@ gene_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 heatmap_gs_plotting <- plotMarkerHeatmap(
   seMarker = markersGS,
   cutOff = gene_cutoff,
+  log2Norm = TRUE,
+  scaleTo = 10^4,
+  scaleRows = TRUE,
+  plotLog2FC = FALSE,
   transpose = TRUE
 )
 # save for plotting with peaks and motifs
