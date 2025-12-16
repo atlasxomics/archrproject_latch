@@ -1,7 +1,5 @@
 import logging
 
-from pathlib import Path
-
 from latch import small_task
 from latch.types import LatchDir, LatchFile
 from latch.registry.table import Table
@@ -15,30 +13,14 @@ logging.basicConfig(format="%(levelname)s - %(asctime)s - %(message)s")
 @dataclass
 class Run:
     run_id: str
-    sample_name: str
     fragments_file: LatchFile
-    spatial_dir: LatchDir
     condition: str = "None"
-
-
-def get_LatchFile(directory: LatchDir, file_name: str) -> LatchFile:
-    try:
-        files = [file for file in directory.iterdir()
-                 if isinstance(file, LatchFile) and
-                 Path(file.path).name == file_name]
-        if len(files) == 1:
-            return files[0]
-        elif len(files) == 0:
-            raise FileNotFoundError(
-                f"No file {file_name} found in {directory.remote_path}"
-            )
-        elif len(files) > 1:
-            raise FileNotFoundError(
-                f"Multiple files {file_name} found in {directory.remote_path}"
-            )
-    except Exception as e:
-        logging.error(f"Failed to find file '{file_name}'; error {e}")
-        return None
+    spatial_dir: LatchDir = LatchDir(
+        "latch:///spatials/demo/spatial/"
+    )
+    positions_file: LatchFile = LatchFile(
+        "latch:///spatials/demo/spatial/tissue_positions_list.csv"
+    )
 
 
 @small_task(retries=0)
@@ -47,7 +29,7 @@ def upload_to_registry(
     archr_project: LatchDir,
     run_table_id: str = "761",
     project_table_id: str = "917",
-) -> LatchDir:
+):
     run_table = Table(run_table_id)
     project_table = Table(project_table_id)
     try:
@@ -65,6 +47,7 @@ def upload_to_registry(
                     run.run_id,
                     condition=run.condition,
                     spatial_directory=run.spatial_dir,
+                    positions_file=run.positions_file,
                     archrproject_outs=archr_project
                 )
 
@@ -98,8 +81,9 @@ def upload_to_registry(
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
+        return
     finally:
-        return archr_project
+        return
 
 
 if __name__ == "__main__":
@@ -110,24 +94,28 @@ if __name__ == "__main__":
                 LatchFile('latch:///atac_outs/6bp_D01291_NG02620/outs/6bp_D01291_NG02620_fragments.tsv.gz'),
                 'old',
                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial'),
+                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial/tissue_positions_list.csv'),
             ),
             Run(
                 'D1292',
                 LatchFile('latch:///cleaned/Babayev_cleaned/cleaned_D01292_NG02621_fragments.tsv.gz'),
                 'old',
                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial'),
+                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial/tissue_positions_list.csv')
             ),
             Run(
                 'D1293',
                 LatchFile('latch:///atac_outs/6bp_D01293_NG02622/outs/6bp_D01293_NG02622_fragments.tsv.gz'),
                 'young',
                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial'),
+                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial/tissue_positions_list.csv')
             ),
             Run(
                 'D1294',
                 LatchFile('latch:///atac_outs/D01294_NG02624/outs/D01294_NG02624_fragments.tsv.gz'),
                 'young',
                 LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial'),
+                LatchFile('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial/tissue_positions_list.csv')
             )
         ],
         archr_project=LatchDir("latch://13502.account/ArchRProjects/Babeyev"),

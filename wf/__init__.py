@@ -1,13 +1,11 @@
-''' Workflow for converting ATAC fragments (fragments.tsv.gz) into ArchR
+''' Workflow for converting ATAC fragments (fragments.tss.gz) into ArchR
 objects for downstream analysis; additionally, generates UMAP and
 SpatialDimPlots for a list of lsi_varfeatures.
 '''
 import glob
-import json
-import logging
-import os
 import subprocess
 
+from enum import Enum
 from pathlib import Path
 from typing import List
 
@@ -22,69 +20,19 @@ from latch.types import (
     LatchRule
 )
 
-import wf.features as ft
-import wf.spatial as sp
-import wf.utils as utils
-from wf.upload_to_registry import get_LatchFile, upload_to_registry, Run
+from wf.upload_to_registry import upload_to_registry, Run
 
 
-logging.basicConfig(
-    format="%(levelname)s - %(asctime)s - %(message)s", level=logging.INFO
-)
+class Genome(Enum):
+    mm10 = 'mm10'
+    hg38 = 'hg38'
 
 
-def allocate_mem(
-    runs: List[Run],
-    project_name: str,
-    genome: utils.Genome,
-    tile_size: int,
-    min_TSS: float,
-    min_frags: int,
-    lsi_iterations: int,
-    lsi_resolution: float,
-    lsi_varfeatures: int,
-    clustering_resolution: float,
-    maximum_dims: int,
-    umap_mindist: float,
-    num_threads: int,
-    min_cells_cluster: int,
-    max_clusters: int
-) -> int:
-    '''Dynamic memory allocation for archr_task; counts total channels in
-    execution, if total channels greater than one 220 (48,400) use 750 GiB RAM,
-    otherwise use 384 GiB RAM.
-    '''
-
-    channels = []
-    for run in runs:
-        spatial_dir = run.spatial_dir.local_path
-        metadata_json = f'{spatial_dir}/metadata.json'
-
-        with open(metadata_json, 'r') as f:
-            metadata = json.load(f)
-            channels.append(metadata['numChannels'])
-
-    try:
-        total_channels = sum([int(channel) ** 2 for channel in channels])
-    except ValueError as e:
-        raise ValueError(
-            f"Invalid value in channels: {channels}. All values must be \
-            integers."
-        ) from e
-
-    if total_channels < 48400:
-        return 384
-    elif total_channels < 100000:
-        return 750
-    else:
-        return 975
-
-
-@custom_task(cpu=62, memory=allocate_mem, storage_gib=4949)
+@custom_task(cpu=62, memory=384, storage_gib=500)
 def archr_task(
     runs: List[Run],
     project_name: str,
-    genome: utils.Genome,
+    genome: Genome,
     tile_size: int,
     min_TSS: float,
     min_frags: int,
@@ -92,26 +40,9 @@ def archr_task(
     lsi_resolution: float,
     lsi_varfeatures: int,
     clustering_resolution: float,
-    maximum_dims: int,
     umap_mindist: float,
-    num_threads: int,
-    min_cells_cluster: int,
-    max_clusters: int
+    num_threads: int
 ) -> LatchDir:
-
-    groups = utils.get_groups(runs)
-    logging.info(f"Comparing features amoung groups {groups}.")
-
-    out_dir = project_name
-    subprocess.run(['mkdir', f'{out_dir}'])
-
-    tables_dir = Path(f'/root/{out_dir}/tables')
-    tables_dir.mkdir(parents=True, exist_ok=True)
-
-    figures_dir = Path(f'/root/{out_dir}/figures')
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    dirs = {"tables": tables_dir, "figures": figures_dir}
 
     _archr_cmd = [
         'Rscript',
@@ -125,56 +56,41 @@ def archr_task(
         f'{lsi_resolution}',
         f'{lsi_varfeatures}',
         f'{clustering_resolution}',
-        f'{maximum_dims}',
         f'{umap_mindist}',
         f'{num_threads}',
-        f'{min_cells_cluster}',
-        f'{max_clusters}'
     ]
 
-    position_files = {
-        run.run_id: get_LatchFile(run.spatial_dir, 'tissue_positions_list.csv')
-        for run in runs
-    }
-
     runs = [
-        f'{run.run_id},{run.sample_name},{run.fragments_file.local_path},{run.condition},{position_files[run.run_id].local_path},{run.spatial_dir.local_path},'
+        (
+            f'{run.run_id},'
+            f'{run.fragments_file.local_path},'
+            f'{run.condition},'
+            f'{run.positions_file.local_path},'
+            f'{run.spatial_dir.local_path},'
+        )
         for run in runs
     ]
 
     _archr_cmd.extend(runs)
-    subprocess.run(_archr_cmd, check=True)
+    subprocess.run(_archr_cmd)
 
-    # Combined all converted h5ad for genes and motifs
-    adata_gene, adata_motif = ft.load_and_combine_data()
-
-    # Transfer UMAP and spatial embeddings
-    ft.transfer_embedding_data(
-        adata_gene, adata_motif, "/root/UMAPHarmony.csv", "X_umap"
-    )
-    ft.transfer_embedding_data(
-        adata_gene, adata_motif, "/root/spatial.csv", "spatial"
-    )
-
-    for adata in [adata_gene, adata_motif]:
-        # Rename obs columns for consistency
-        adata = utils.rename_obs_columns(adata)
-
-    # Run spatial analysis
-    adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)
-
-    # Load differential analysis results
-    ft.load_analysis_results(adata_gene, adata_motif, groups)
-
-    # Save AnnData
-    ft.save_anndata_objects(adata_gene, adata_motif, out_dir)
+    out_dir = project_name
+    subprocess.run(['mkdir', f'{out_dir}'])
 
     project_dirs = glob.glob(f'{project_name}_*')
+    www = glob.glob('www')
     seurat_objs = glob.glob('*.rds')
-    h5ad_files = glob.glob('*.h5ad')
+    h5_files = glob.glob('*.h5')
+    R_files = glob.glob('*.R')
 
     _mv_cmd = (
-        ['mv'] + project_dirs + seurat_objs + h5ad_files + [out_dir]
+        ['mv'] +
+        project_dirs +
+        www +
+        seurat_objs +
+        h5_files +
+        R_files +
+        [out_dir]
     )
 
     subprocess.run(_mv_cmd)
@@ -182,31 +98,21 @@ def archr_task(
     csv_tables = glob.glob('*.csv')
     volcanos = glob.glob('*.txt')
 
+    tables_dir = Path(f'/root/{out_dir}/tables')
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
     _mv_tables_cmd = ['mv'] + csv_tables + volcanos + [str(tables_dir)]
 
     subprocess.run(_mv_tables_cmd)
 
     # Move figures into subfolder
     figures = [fig for fig in glob.glob('*.pdf') if fig != 'Rplots.pdf']
+    figures_dir = Path(f'/root/{out_dir}/figures')
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
     _mv_figures_cmd = ['mv'] + figures + [str(figures_dir)]
+
     subprocess.run(_mv_figures_cmd)
-
-    logging.info("Copying group coverages from ArchRProject...")
-    coverage_groups = groups if "sample" in groups else groups + ["sample"]
-    for group in coverage_groups:
-        coverage_dir = f"{out_dir}/{group}_coverages"
-        os.makedirs(coverage_dir, exist_ok=True)
-        archr_path = f"{out_dir}/{project_name}_ArchRProject/GroupBigWigs/{utils.coverage_dict[group]}"
-        if os.path.exists(archr_path):
-            bws = glob.glob(f"{archr_path}/*.bw")
-            if not bws:
-                logging.warning(f"No .bw files found in {archr_path}")
-                continue
-            subprocess.run(["cp"] + bws + [coverage_dir])
-        else:
-            logging.warning(f"No coverages for {group} found in {archr_path}")
-
-    utils.copy_peak_files(project_name, dirs)
 
     return LatchDir(
         f'/root/{out_dir}',
@@ -228,6 +134,7 @@ metadata = LatchMetadata(
             display_name='runs',
             description='List of runs to be analyzed; each run must contain a \
                         run_id and fragments.tsv file; optional: condition, \
+                        tissue position file for filtering on/off tissue, \
                         spatial folder for SpatialDimPlot. Note that multiple \
                         Coditions must be separted by -, for example: \
                         Non_responder-post_treatment-One_month.',
@@ -295,12 +202,6 @@ metadata = LatchMetadata(
             description='resolution parameter from addClusters function.',
             batch_table_column=True
         ),
-        'maximum_dims': LatchParameter(
-            display_name='maximum LSI dimensions',
-            description='Upper limit of ArchR::addIterativeLSI.dimsToUse \
-                (i.e., 1:n); comparable to snapatac2.tl.spectral.n_comps .',
-            batch_table_column=True
-        ),
         'umap_mindist': LatchParameter(
             display_name='UMAP minimum distance',
             description='minDist parameter from addUMAP function.',
@@ -311,24 +212,6 @@ metadata = LatchMetadata(
             display_name='number of threads',
             description='This is for peak calling step with MACS2. If you get \
                         OOMKilled Error set it to 1!',
-            batch_table_column=True,
-            hidden=True
-        ),
-        'min_cells_cluster': LatchParameter(
-            display_name='minimum cells per cluster',
-            description='Minimum number of cells in a cluster; passed to the \
-                        nOutlier parameter of ArchR::addClusters. If a \
-                        cluster falls below the minimum, it is merged into a \
-                        neighboring cluster',
-            batch_table_column=True,
-            hidden=True
-        ),
-        'max_clusters': LatchParameter(
-            display_name='maximum clusters',
-            description='Maximum number of clusters allow for the project; \
-                        passed to the maxClusters parameter of \
-                        ArchR::addClusters. If above maximum clusters, \
-                        clusters are merged.',
             batch_table_column=True,
             hidden=True
         ),
@@ -351,7 +234,7 @@ metadata = LatchMetadata(
 @workflow(metadata)
 def archrproject_workflow(
     runs: List[Run],
-    genome: utils.Genome,
+    genome: Genome,
     project_name: str,
     tile_size: int = 5000,
     min_TSS: float = 2.0,
@@ -360,11 +243,8 @@ def archrproject_workflow(
     lsi_resolution: float = 0.5,
     lsi_varfeatures: int = 25000,
     clustering_resolution: float = 1.0,
-    maximum_dims: int = 30,
     umap_mindist: float = 0.0,
     num_threads: int = 50,
-    min_cells_cluster: int = 20,
-    max_clusters: int = 25,
     run_table_id: str = "761",
     project_table_id: str = "779"
 ) -> LatchDir:
@@ -393,6 +273,7 @@ def archrproject_workflow(
     [file system](https://wiki.latch.bio/wiki/data/overview).  Each run in the
     workflow takes the following parameters,
     * [fragments.tsv.gz file](https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/output/fragments): A BED-like, tab-delimited file in which each row contains an ATAC-seq fragment
+    * [tissue_positions_list.csv](https://docs.atlasxomics.com/projects/AtlasXbrowser/en/latest/SpatialFolder.html): A comma-separated file in which each row contains a unique barcode, an indicator for whether the tixel is 'on-tissue' (1, 0), and a row/column index
     * [Spatial folder](https://docs.atlasxomics.com/projects/AtlasXbrowser/en/latest/SpatialFolder.html): A directory containing tissue images and experiment metadata
     * Run ID: An identifier for the run
     * Condition (_optional_):  An experimental Condition descriptor
@@ -445,7 +326,7 @@ def archrproject_workflow(
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
     `ArchRProjects` directory.
 
-    ## Outputs
+    ## Outputs (_in progress_)
     Outputs from **create ArchRProject** are loaded into latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
     `ArchRProjects` directory.
@@ -453,21 +334,35 @@ def archrproject_workflow(
     * SeuratObj.rds
     * SeuratObjMotif.rds
     * UMAPHarmony.csv
+    * enrichMotifs_clusters.rds
+    * enrichMotifs_sample.rds
+    * enrichMotifs_condition.rds
     * genes_per_cluster_hm.csv
     * genes_per_sample_hm.csv
     * genes_per_condition_hm.csv
+    * inpMarkers.txt
+    * inpMarkers_motif.txt
+    * markersGS_clusters.rds
+    * markersGS_sample.rds
+    * markersGS_condition.rds
     * motif_per_cluster_hm.csv
     * motif_per_sample_hm.csv
     * motif_per_condition_hm.csv
+    * req_genes1.csv
+    * req_genes2.csv
+    * req_genes3.csv
+    * req_motifs1.csv
+    * req_motifs2.csv
+    * req_motifs3.csv
     * seqlogo.rds
     ## Next Steps
     Analysis can be performed locally or in a latch.bio
     [Pod](https://wiki.latch.bio/wiki/pods/overview).  For access to
     ATX-specific Pods, please contact your AtlasXomics Support Scientist.
-    Output from **create ArchRProject** can be visulized in the
-    [Latch Plots](https://wiki.latch.bio/plots/overview) module in your
-    latch.bio workspace.  For access to the AtlasXomics Plots template,
-    please contact your AtlasXomics SupportScientist.
+    Output from **create ArchRProject** can be provided to the **atlasShiny**
+    workflow to create input for a DBiT-seq-specific R Shiny App.  For access
+    to this workflow and app, please contact your AtlasXomics Support
+    Scientist.
 
     ## Support
     Questions? Comments?  Contact support@atlasxomics.com or post in
@@ -486,14 +381,11 @@ def archrproject_workflow(
         lsi_resolution=lsi_resolution,
         lsi_varfeatures=lsi_varfeatures,
         clustering_resolution=clustering_resolution,
-        maximum_dims=maximum_dims,
         umap_mindist=umap_mindist,
-        num_threads=num_threads,
-        min_cells_cluster=min_cells_cluster,
-        max_clusters=max_clusters
+        num_threads=num_threads
     )
 
-    archr_project = upload_to_registry(
+    upload_to_registry(
         runs=runs,
         archr_project=archr_project,
         run_table_id=run_table_id,
@@ -510,42 +402,19 @@ LaunchPlan(
         'runs': [
             Run(
                 'default',
-                'default',
                 LatchFile(
                     'latch:///chromap_outputs/demo/chromap_output/fragments.tsv.gz'
                 ),
-                LatchDir('latch:///spatials/demo/spatial'),
                 'demo',
+                LatchDir('latch:///spatials/demo/spatial'),
+                LatchFile(
+                    'latch:///spatials/demo/spatial/tissue_positions_list.csv'
+                ),
                 )
         ],
         'project_name': 'demo',
-        'genome': utils.Genome.hg38,
+        'genome': Genome.hg38,
         'run_table_id': '761',
         'project_table_id': '779'
     },
 )
-
-if __name__ == '__main__':
-    archr_task(
-        runs=[Run(
-                'default',
-                'default',
-                LatchFile('latch://13502.account/chromap_outputs/demo/chromap_output/fragments.tsv.gz'),
-                LatchDir('latch:///spatials/demo/spatial'),
-                'demo',
-        )],
-        genome=utils.Genome.hg38,
-        project_name="demo_fix_revert",
-        tile_size=5000,
-        min_TSS=2.0,
-        min_frags=0,
-        lsi_iterations=2,
-        lsi_resolution=0.5,
-        lsi_varfeatures=25000,
-        clustering_resolution=1.0,
-        maximum_dims=30,
-        umap_mindist=0.0,
-        num_threads=50,
-        min_cells_cluster=20,
-        max_clusters=25,
-    )
