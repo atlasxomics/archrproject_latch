@@ -1,0 +1,14 @@
+# latch stuff
+.latch_report.tar.gz
+.logs/
+**/*_ArchRProject
+**/*ArchRSubset
+**/ArchRLogs
+wf/testing.R
+**/*SeuratObj*
+wf/tidy_tutorial.R
+wf/*.csv
+wf/*.pdf
+wf/spatial
+wf/shinyApp
+wf/combined*rds
