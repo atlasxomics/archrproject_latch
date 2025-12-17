@@ -22,3 +22,6 @@ wf/*.pdf
 wf/spatial
 wf/shinyApp
 wf/combined*.rds
+
+renv/
+.latch/
