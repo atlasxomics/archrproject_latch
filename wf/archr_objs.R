@@ -262,15 +262,30 @@ rownames(metadata) <- str_split_fixed(
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
 # create gene matrix for Seurat object
-gene_matrix <- getMatrixFromProject(
+impute_weights <- getImputeWeights(proj)
+
+gene_matrix <- ArchR::getMatrixFromProject(
   ArchRProj = proj,
-  useMatrix = "GeneScoreMatrix"
-)
-matrix <- imputeMatrix(
-  mat = assay(gene_matrix),
-  imputeWeights = getImputeWeights(proj)
+  useMatrix = "GeneScoreMatrix",
+  asMatrix = TRUE
 )
 gene_row_names <- gene_matrix@elementMetadata$name
+
+# Identify empty features for filtering volcano plots --
+print("Identifying empty features...")
+empty_feat_idx <- which(Matrix::rowSums(
+  SummarizedExperiment::assay(gene_matrix, "GeneScoreMatrix")
+) == 0)
+empty_feat <- gene_row_names[empty_feat_idx]
+print(paste("Found", length(empty_feat), "empty features"))
+
+matrix <- imputeMatrix(
+  mat = SummarizedExperiment::assay(gene_matrix),
+  imputeWeights = impute_weights
+)
+rm(gene_matrix, impute_weights)
+gc()
+
 rownames(matrix) <- gene_row_names
 
 print("++++ creating seurat objs ++++")
