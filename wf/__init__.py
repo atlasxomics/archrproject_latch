@@ -219,12 +219,12 @@ def archr_task(
                     template_id="537",
                     widgets=[
                         Widget(
-                            transform_id="130011",
+                            transform_id="133384",
                             key="data_path",
                             value=f"latch:///ArchRProjects/{out_dir}"
                         ),
                         Widget(
-                            transform_id="130002",
+                            transform_id="133383",
                             key="coverages_genome",
                             value=genome.value
                         )
