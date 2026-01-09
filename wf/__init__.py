@@ -21,6 +21,9 @@ from latch.types import (
     LatchParameter,
     LatchRule
 )
+from latch.types.plots import (
+    PlotsArtifactBindings, PlotsArtifactTemplate, PlotsArtifact, Widget
+)
 
 import wf.features as ft
 import wf.spatial as sp
@@ -208,6 +211,34 @@ def archr_task(
 
     utils.copy_peak_files(project_name, dirs)
 
+    logging.info("Making Plots Artifact...")
+    artifact = PlotsArtifact(
+        bindings=PlotsArtifactBindings(
+            plot_templates=[
+                PlotsArtifactTemplate(
+                    template_id="537",
+                    widgets=[
+                        Widget(
+                            transform_id="130011",
+                            key="data_path",
+                            value=f"latch:///ArchRProjects/{out_dir}"
+                        ),
+                        Widget(
+                            transform_id="130002",
+                            key="coverages_genome",
+                            value=genome.value
+                        )
+                    ],
+                )
+            ]
+        )
+    )
+
+    artifact_dict = artifact.asdict()
+    with open(f"{out_dir}/artifact.json", "w") as f:
+        json.dump(artifact_dict, f, indent=2)
+
+    logging.info("Uploading data to Latch...")
     return LatchDir(
         f'/root/{out_dir}',
         f'latch:///ArchRProjects/{out_dir}'
