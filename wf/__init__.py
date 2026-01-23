@@ -36,23 +36,7 @@ logging.basicConfig(
 )
 
 
-def allocate_mem(
-    runs: List[Run],
-    project_name: str,
-    genome: utils.Genome,
-    tile_size: int,
-    min_TSS: float,
-    min_frags: int,
-    lsi_iterations: int,
-    lsi_resolution: float,
-    lsi_varfeatures: int,
-    clustering_resolution: float,
-    maximum_dims: int,
-    umap_mindist: float,
-    num_threads: int,
-    min_cells_cluster: int,
-    max_clusters: int
-) -> int:
+def allocate_mem(runs: List[Run], **kwargs) -> int:
     '''Dynamic memory allocation for archr_task; counts total channels in
     execution, if total channels greater than one 220 (48,400) use 750 GiB RAM,
     otherwise use 384 GiB RAM.
