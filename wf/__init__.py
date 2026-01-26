@@ -83,19 +83,22 @@ def archr_task(
     umap_mindist: float,
     num_threads: int,
     min_cells_cluster: int,
-    max_clusters: int
+    max_clusters: int,
+    output_dir: LatchDir,
 ) -> LatchDir:
+
+    output_dir = f"{output_dir.remote_path}/{project_name}"
 
     groups = utils.get_groups(runs)
     logging.info(f"Comparing features amoung groups {groups}.")
 
-    out_dir = project_name
-    subprocess.run(['mkdir', f'{out_dir}'])
+    results_dir = project_name
+    subprocess.run(['mkdir', f'{results_dir}'])
 
-    tables_dir = Path(f'/root/{out_dir}/tables')
+    tables_dir = Path(f'/root/{results_dir}/tables')
     tables_dir.mkdir(parents=True, exist_ok=True)
 
-    figures_dir = Path(f'/root/{out_dir}/figures')
+    figures_dir = Path(f'/root/{results_dir}/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     dirs = {"tables": tables_dir, "figures": figures_dir}
@@ -154,14 +157,14 @@ def archr_task(
     ft.load_analysis_results(adata_gene, adata_motif, groups)
 
     # Save AnnData
-    ft.save_anndata_objects(adata_gene, adata_motif, out_dir)
+    ft.save_anndata_objects(adata_gene, adata_motif, results_dir)
 
     project_dirs = glob.glob(f'{project_name}_*')
     seurat_objs = glob.glob('*.rds')
     h5ad_files = glob.glob('*.h5ad')
 
     _mv_cmd = (
-        ['mv'] + project_dirs + seurat_objs + h5ad_files + [out_dir]
+        ['mv'] + project_dirs + seurat_objs + h5ad_files + [results_dir]
     )
 
     subprocess.run(_mv_cmd)
@@ -181,9 +184,9 @@ def archr_task(
     logging.info("Copying group coverages from ArchRProject...")
     coverage_groups = groups if "sample" in groups else groups + ["sample"]
     for group in coverage_groups:
-        coverage_dir = f"{out_dir}/{group}_coverages"
+        coverage_dir = f"{results_dir}/{group}_coverages"
         os.makedirs(coverage_dir, exist_ok=True)
-        archr_path = f"{out_dir}/{project_name}_ArchRProject/GroupBigWigs/{utils.coverage_dict[group]}"
+        archr_path = f"{results_dir}/{project_name}_ArchRProject/GroupBigWigs/{utils.coverage_dict[group]}"
         if os.path.exists(archr_path):
             bws = glob.glob(f"{archr_path}/*.bw")
             if not bws:
@@ -205,7 +208,7 @@ def archr_task(
                         Widget(
                             transform_id="133384",
                             key="data_path",
-                            value=f"latch:///ArchRProjects/{out_dir}"
+                            value=f"latch:///ArchRProjects/{results_dir}"
                         ),
                         Widget(
                             transform_id="133383",
@@ -217,16 +220,15 @@ def archr_task(
             ]
         )
     )
-
     artifact_dict = artifact.asdict()
-    with open(f"{out_dir}/artifact.json", "w") as f:
+
+    artifacts_dir = f"{output_dir}/Launch_Plots"
+    os.makedirs(artifacts_dir, exist_ok=True)
+    with open(f"{artifacts_dir}/artifact.json", "w") as f:
         json.dump(artifact_dict, f, indent=2)
 
     logging.info("Uploading data to Latch...")
-    return LatchDir(
-        f'/root/{out_dir}',
-        f'latch:///ArchRProjects/{out_dir}'
-    )
+    return LatchDir(f'/root/{results_dir}', output_dir)
 
 
 metadata = LatchMetadata(
@@ -347,6 +349,14 @@ metadata = LatchMetadata(
             batch_table_column=True,
             hidden=True
         ),
+        "output_dir": LatchParameter(
+            display_name="output directory",
+            description="Folder in Latch Data to save outputs; defaults to \
+                'snap_outs'. Outputs will be saved in a subfolder named with \
+                the project name defined above.",
+            batch_table_column=True,
+            hidden=True,
+        ),
         'run_table_id': LatchParameter(
             display_name='Registry Table ID',
             description='The runs will be updated in Registry with its \
@@ -380,6 +390,7 @@ def archrproject_workflow(
     num_threads: int = 50,
     min_cells_cluster: int = 20,
     max_clusters: int = 25,
+    output_dir: LatchDir = LatchDir("latch:///ArchRProjects/"),
     run_table_id: str = "761",
     project_table_id: str = "779"
 ) -> LatchDir:
@@ -505,6 +516,7 @@ def archrproject_workflow(
         umap_mindist=umap_mindist,
         num_threads=num_threads,
         min_cells_cluster=min_cells_cluster,
+        output_dir=output_dir,
         max_clusters=max_clusters
     )
 
