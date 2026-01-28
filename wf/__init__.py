@@ -203,12 +203,12 @@ def archr_task(
         bindings=PlotsArtifactBindings(
             plot_templates=[
                 PlotsArtifactTemplate(
-                    template_id="537",
+                    template_id="542",
                     widgets=[
                         Widget(
                             transform_id="133384",
                             key="data_path",
-                            value=f"latch:///ArchRProjects/{results_dir}"
+                            value=output_dir
                         ),
                         Widget(
                             transform_id="133383",
@@ -222,7 +222,7 @@ def archr_task(
     )
     artifact_dict = artifact.asdict()
 
-    artifacts_dir = f"{output_dir}/Launch_Plots"
+    artifacts_dir = f"{results_dir}/Launch_Plots"
     os.makedirs(artifacts_dir, exist_ok=True)
     with open(f"{artifacts_dir}/artifact.json", "w") as f:
         json.dump(artifact_dict, f, indent=2)
