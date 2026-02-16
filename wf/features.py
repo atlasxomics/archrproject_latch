@@ -16,6 +16,18 @@ logging.basicConfig(
 
 
 def clean_adata(adata: anndata.AnnData) -> anndata.AnnData:
+    """Prepare the AnnData object for plotting, particularly with Latch Plots.
+    We remove unnesscary obs and reduce the size of the data stored in X.
+    """
+    obs = [
+        "TSSEnrichment", "n_fragment", "log10_nFrags",  # ArchRProject
+        "frac_dup", "frac_mito", "on_off", "row",  # atx_snap
+        "col", "xcor", "ycor" "tsse"
+    ]
+
+    rm_obs = [o for o in adata.obs.keys() if o not in obs]
+
+    adata.obs.drop(rm_obs, axis=1, inplace=True)
 
     adata.varm.clear()
     adata.layers.clear()
