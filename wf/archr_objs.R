@@ -74,7 +74,7 @@ names(metrics) <- c(
   "min_cells_cluster",
   "max_clusters"
 )
-write.csv(metrics, file = "metadata.csv", row.names = FALSE)
+write.csv(metrics, file = "input_parameters.csv", row.names = FALSE)
 
 
 # create archr project --------------------------------------------------------

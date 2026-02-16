@@ -150,6 +150,9 @@ def archr_task(
         # Rename obs columns for consistency
         adata = utils.rename_obs_columns(adata)
 
+    # Save metadata
+    adata_gene.obs.to_csv("/root/obs.csv", index=True)
+
     # Run spatial analysis
     adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)
 
@@ -170,10 +173,12 @@ def archr_task(
     subprocess.run(_mv_cmd)
 
     csv_tables = glob.glob('*.csv')
+    csv_tables = [  # Exclude heatmap csv
+        f for f in csv_tables if not f.endswith("*_hm.csv")
+    ]
     volcanos = glob.glob('*.txt')
 
     _mv_tables_cmd = ['mv'] + csv_tables + volcanos + [str(tables_dir)]
-
     subprocess.run(_mv_tables_cmd)
 
     # Move figures into subfolder
@@ -203,15 +208,15 @@ def archr_task(
         bindings=PlotsArtifactBindings(
             plot_templates=[
                 PlotsArtifactTemplate(
-                    template_id="546",
+                    template_id="597",
                     widgets=[
                         Widget(
-                            transform_id="165716",
+                            transform_id="265017",
                             key="data_path",
                             value=output_dir
                         ),
                         Widget(
-                            transform_id="165695",
+                            transform_id="265012",
                             key="coverages_genome",
                             value=genome.value
                         )
