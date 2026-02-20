@@ -369,6 +369,44 @@ markersGS <- getMarkerFeatures(
 )
 
 marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+marker_pvals <- tryCatch(
+  SummarizedExperiment::assay(markersGS, "Pval"),
+  error = function(e) NULL
+)
+
+if (!is.null(marker_pvals)) {
+  marker_names <- SummarizedExperiment::rowData(markersGS)$name
+  marker_groups <- names(marker_list)
+  if (is.null(marker_groups)) {
+    marker_groups <- seq_along(marker_list)
+  }
+
+  for (group in marker_groups) {
+    marker_group <- marker_list[[group]]
+    if (nrow(marker_group) == 0) {
+      marker_list[[group]]$Pval <- numeric(0)
+      next
+    }
+
+    pval_col <- if (is.character(group)) {
+      match(group, colnames(marker_pvals))
+    } else {
+      as.integer(group)
+    }
+
+    if (is.na(pval_col)) {
+      next
+    }
+
+    marker_ids <- if ("name" %in% colnames(marker_group)) {
+      marker_group$name
+    } else {
+      rownames(marker_group)
+    }
+    marker_idx <- match(marker_ids, marker_names)
+    marker_list[[group]]$Pval <- marker_pvals[marker_idx, pval_col]
+  }
+}
 write.csv(
   marker_list,
   file = "marker_genes_per_cluster.csv",
@@ -439,6 +477,44 @@ if (length(unique(proj$Sample)) > 1) {
   )
 
   marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+  marker_pvals <- tryCatch(
+    SummarizedExperiment::assay(markersGS, "Pval"),
+    error = function(e) NULL
+  )
+
+  if (!is.null(marker_pvals)) {
+    marker_names <- SummarizedExperiment::rowData(markersGS)$name
+    marker_groups <- names(marker_list)
+    if (is.null(marker_groups)) {
+      marker_groups <- seq_along(marker_list)
+    }
+
+    for (group in marker_groups) {
+      marker_group <- marker_list[[group]]
+      if (nrow(marker_group) == 0) {
+        marker_list[[group]]$Pval <- numeric(0)
+        next
+      }
+
+      pval_col <- if (is.character(group)) {
+        match(group, colnames(marker_pvals))
+      } else {
+        as.integer(group)
+      }
+
+      if (is.na(pval_col)) {
+        next
+      }
+
+      marker_ids <- if ("name" %in% colnames(marker_group)) {
+        marker_group$name
+      } else {
+        rownames(marker_group)
+      }
+      marker_idx <- match(marker_ids, marker_names)
+      marker_list[[group]]$Pval <- marker_pvals[marker_idx, pval_col]
+    }
+  }
   write.csv(
     marker_list,
     file = "marker_genes_per_sample.csv",
@@ -480,6 +556,44 @@ if (length(unique(proj$Condition)) > 1) {
     )
 
     marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+    marker_pvals <- tryCatch(
+      SummarizedExperiment::assay(markersGS, "Pval"),
+      error = function(e) NULL
+    )
+
+    if (!is.null(marker_pvals)) {
+      marker_names <- SummarizedExperiment::rowData(markersGS)$name
+      marker_groups <- names(marker_list)
+      if (is.null(marker_groups)) {
+        marker_groups <- seq_along(marker_list)
+      }
+
+      for (group in marker_groups) {
+        marker_group <- marker_list[[group]]
+        if (nrow(marker_group) == 0) {
+          marker_list[[group]]$Pval <- numeric(0)
+          next
+        }
+
+        pval_col <- if (is.character(group)) {
+          match(group, colnames(marker_pvals))
+        } else {
+          as.integer(group)
+        }
+
+        if (is.na(pval_col)) {
+          next
+        }
+
+        marker_ids <- if ("name" %in% colnames(marker_group)) {
+          marker_group$name
+        } else {
+          rownames(marker_group)
+        }
+        marker_idx <- match(marker_ids, marker_names)
+        marker_list[[group]]$Pval <- marker_pvals[marker_idx, pval_col]
+      }
+    }
     write.csv(
       marker_list,
       file = paste0("marker_genes_per_condition_", i, ".csv"),
