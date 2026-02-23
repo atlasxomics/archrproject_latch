@@ -20,6 +20,9 @@ def clean_adata(adata: anndata.AnnData) -> anndata.AnnData:
     We remove unnesscary obs and reduce the size of the data stored in X.
     """
     obs = [
+        "sample", "condition", "sample_name", "cluster",  # atx_snap groups
+        "Sample", "SampleName", "Condition",  # ArchRProject groups
+        "Clusters", "condition_1",
         "TSSEnrichment", "n_fragment", "log10_nFrags",  # ArchRProject
         "frac_dup", "frac_mito", "on_off", "row",  # atx_snap
         "col", "xcor", "ycor" "tsse"
