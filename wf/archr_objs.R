@@ -55,6 +55,7 @@ for (run in runs) {
 inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
+output_root <- file.path("/root", project_name)
 
 # save input metrics in csv
 metrics <- as.list(args[1:14])
@@ -872,6 +873,7 @@ proj <- addReproduciblePeakSet(
   force = TRUE
 )
 proj <- addPeakMatrix(proj, force = TRUE)
+export_peak_beds_by_group(proj, "cluster", output_root)
 
 # save run data in medians.csv
 metadata <- getCellColData(ArchRProj = proj)
@@ -1215,6 +1217,7 @@ if (length(unique(proj$Sample)) > 1) {
     force = TRUE
   )
   proj <- addPeakMatrix(proj, force = TRUE)
+  export_peak_beds_by_group(proj, "sample", output_root)
 
   proj <- add_motif_annotations(proj, genome) # from utils
 
@@ -1294,6 +1297,12 @@ if (length(unique(proj$Condition)) > 1) {
       force = TRUE
     )
     proj <- addPeakMatrix(proj, force = TRUE)
+    condition_group_label <- if (length(treatment) == 1) {
+      "condition"
+    } else {
+      paste0("condition_", i)
+    }
+    export_peak_beds_by_group(proj, condition_group_label, output_root)
 
     proj <- add_motif_annotations(proj, genome) # from utils
 
