@@ -55,6 +55,7 @@ for (run in runs) {
 inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
+output_root <- file.path("/root", project_name)
 
 # save input metrics in csv
 metrics <- as.list(args[1:14])
@@ -872,6 +873,7 @@ proj <- addReproduciblePeakSet(
   force = TRUE
 )
 proj <- addPeakMatrix(proj, force = TRUE)
+export_peak_beds_by_group(proj, "cluster", output_root)
 
 # save run data in medians.csv
 metadata <- getCellColData(ArchRProj = proj)
@@ -1017,31 +1019,37 @@ peak_hm <- ComplexHeatmap::draw(
 heatmaps[[2]] <- peak_hm
 
 motifs_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
-enrichMotifs <- peakAnnoEnrichment(
-  seMarker = markers_peaks_c,
-  ArchRProj = proj,
-  peakAnnotation = "Motif",
-  cutOff = motifs_cutoff
+enriched_motifs_c <- get_enriched_motifs(
+  proj = proj,
+  marker_peaks = markers_peaks_c,
+  cutoff = motifs_cutoff
 )
 
-motifs_df_c <- data.frame(enrichMotifs@assays@data)
-write.csv(motifs_df_c, file = "enrichedMotifs_cluster.csv")
+write.csv(enriched_motifs_c$enrich_df, file = "enrichedMotifs_cluster.csv")
+write.csv(enriched_motifs_c$heatmap_em, "motif_per_cluster_hm.csv")
+if (!isTRUE(enriched_motifs_c$has_enrichment)) {
+  message("No enrichments found; wrote empty motif_per_cluster_hm.csv.")
+}
 
-heatmapEM <- plotEnrichHeatmap(
-  enrichMotifs,
-  transpose = TRUE,
-  n = 50,
-  cutOff = 2
-)
+if (isTRUE(enriched_motifs_c$has_enrichment)) {
+  heatmap_plot <- plotEnrichHeatmap(
+    enriched_motifs_c$enrich_motifs,
+    transpose = TRUE,
+    n = 50,
+    cutOff = 2
+  )
 
-heatmap_motifs <- ComplexHeatmap::draw(
-  heatmapEM,
-  heatmap_legend_side = "bottom",
-  column_title = paste0("Marker motifs (", motifs_cutoff),
-  column_title_gp = gpar(fontsize = 12)
-)
+  heatmap_motifs <- ComplexHeatmap::draw(
+    heatmap_plot,
+    heatmap_legend_side = "bottom",
+    column_title = paste0("Marker motifs (", motifs_cutoff, ")"),
+    column_title_gp = gpar(fontsize = 12)
+  )
 
-heatmaps[[3]] <- heatmap_motifs
+  heatmaps[[3]] <- heatmap_motifs
+} else {
+  message("Skipping motif heatmap plot: no enrichments found.")
+}
 
 print("+++++++++++creating heatmap plots++++++++++++++")
 
@@ -1052,39 +1060,6 @@ for (i in seq_along(heatmaps)) {
 dev.off()
 
 ###############################################################################
-
-motif_lst <- unique(rownames(enrichMotifs))
-split_string <- strsplit(motif_lst, split = "\\(")
-fun1 <- function(list, nth) {
-  sapply(list, `[`, 1)
-}
-req_motifs1 <- gsub("_", "-", fun1(split_string))
-req_motifs1 <- gsub(" ", "", req_motifs1)
-
-rownames(enrichMotifs) <- req_motifs1
-
-# cutOff A numeric cutOff that indicates the minimum P-adj enrichment to be
-# included in the heatmap. default is 20 but we decrease that!
-
-heatmapEM <- plotEnrichHeatmap(
-  enrichMotifs,
-  n = 50,
-  transpose = FALSE,
-  returnMatrix = TRUE,
-  cutOff = 2
-)
-
-motif_lst <- unique(rownames(heatmapEM))
-split_string <- strsplit(motif_lst, split = "\\(")
-fun1 <- function(list, nth) {
-  sapply(list, `[`, 1)
-}
-req_motifs1 <- gsub("_", "-", fun1(split_string))
-req_motifs1 <- gsub(" ", "", req_motifs1)
-
-rownames(heatmapEM) <- req_motifs1
-
-write.csv(heatmapEM, "motif_per_cluster_hm.csv")
 
 ######################## Add Motifs Matrix and Projections ####################
 
@@ -1215,6 +1190,7 @@ if (length(unique(proj$Sample)) > 1) {
     force = TRUE
   )
   proj <- addPeakMatrix(proj, force = TRUE)
+  export_peak_beds_by_group(proj, "sample", output_root)
 
   proj <- add_motif_annotations(proj, genome) # from utils
 
@@ -1230,42 +1206,17 @@ if (length(unique(proj$Sample)) > 1) {
     k = 100,
     testMethod = "wilcoxon"
   )
-  enrichMotifs <- peakAnnoEnrichment(
-    seMarker = markersPeaks,
-    ArchRProj = proj,
-    peakAnnotation = "Motif",
-    cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+  enriched_motifs_s <- get_enriched_motifs(
+    proj = proj,
+    marker_peaks = markersPeaks,
+    cutoff = "Pval <= 0.05 & Log2FC >= 0.1"
   )
 
-  motifs_df_s <- data.frame(enrichMotifs@assays@data)
-  write.csv(motifs_df_s, file = "enrichedMotifs_sample.csv")
-
-  motif_lst <- unique(rownames(enrichMotifs))
-  split_string <- strsplit(motif_lst, split = "\\(")
-  fun1 <- function(list, nth) {
-    sapply(list, `[`, 1)
+  write.csv(enriched_motifs_s$enrich_df, file = "enrichedMotifs_sample.csv")
+  write.csv(enriched_motifs_s$heatmap_em, "motif_per_sample_hm.csv")
+  if (!isTRUE(enriched_motifs_s$has_enrichment)) {
+    message("No enrichments found; wrote empty motif_per_sample_hm.csv.")
   }
-  req_motifs3 <- gsub("_", "-", fun1(split_string))
-  req_motifs3 <- gsub(" ", "", req_motifs3)
-
-  rownames(enrichMotifs) <- req_motifs3
-
-  # cutOff: A numeric cutOff that indicates the minimum P-adj enrichment to be
-  # included in the heatmap. default is 20 but we decrease that!
-  heatmapEM <- plotEnrichHeatmap(
-    enrichMotifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
-  )
-
-  motif_lst <- unique(rownames(heatmapEM))
-  split_string <- strsplit(motif_lst, split = "\\(")
-  fun1 <- function(list, nth) {
-    sapply(list, `[`, 1)
-  }
-  req_motifs3 <- gsub("_", "-", fun1(split_string))
-  req_motifs3 <- gsub(" ", "", req_motifs3)
-
-  rownames(heatmapEM) <- req_motifs3
-  write.csv(heatmapEM, "motif_per_sample_hm.csv")
 
   nSamples <- length(unique(proj$Sample))
 
@@ -1294,6 +1245,12 @@ if (length(unique(proj$Condition)) > 1) {
       force = TRUE
     )
     proj <- addPeakMatrix(proj, force = TRUE)
+    condition_group_label <- if (length(treatment) == 1) {
+      "condition"
+    } else {
+      paste0("condition_", i)
+    }
+    export_peak_beds_by_group(proj, condition_group_label, output_root)
 
     proj <- add_motif_annotations(proj, genome) # from utils
 
@@ -1314,44 +1271,27 @@ if (length(unique(proj$Condition)) > 1) {
       testMethod = "wilcoxon"
     )
 
-    enrichMotifs <- peakAnnoEnrichment(
-      seMarker = markersPeaks,
-      ArchRProj = proj,
-      peakAnnotation = "Motif",
-      cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
+    enriched_motifs_t <- get_enriched_motifs(
+      proj = proj,
+      marker_peaks = markersPeaks,
+      cutoff = "Pval <= 0.05 & Log2FC >= 0.1"
     )
 
-    motifs_df_t <- data.frame(enrichMotifs@assays@data)
     write.csv(
-      motifs_df_t, file = paste0("enrichedMotifs_condition_", i, ".csv")
+      enriched_motifs_t$enrich_df,
+      file = paste0("enrichedMotifs_condition_", i, ".csv")
     )
-
-    motif_lst <- unique(rownames(enrichMotifs))
-    split_string <- strsplit(motif_lst, split = "\\(")
-    fun1 <- function(list, nth) {
-      sapply(list, `[`, 1)
-    }
-    req_motifs2 <- gsub("_", "-", fun1(split_string))
-    req_motifs2 <- gsub(" ", "", req_motifs2)
-
-    rownames(enrichMotifs) <- req_motifs2
-
-    # cutOff A numeric cutOff that indicates the minimum P-adj enrichment to
-    # be included in the heatmap. Default is 20 but we decrease that!
-    heatmapEM <- plotEnrichHeatmap(
-      enrichMotifs, n = 50, transpose = FALSE, returnMatrix = TRUE, cutOff = 2
+    write.csv(
+      enriched_motifs_t$heatmap_em,
+      paste0("motif_per_condition_", i, "_hm.csv")
     )
-
-    motif_lst <- unique(rownames(heatmapEM))
-    split_string <- strsplit(motif_lst, split = "\\(")
-    fun1 <- function(list, nth) {
-      sapply(list, `[`, 1)
+    if (!isTRUE(enriched_motifs_t$has_enrichment)) {
+      message(
+        "No enrichments found; wrote empty ",
+        paste0("motif_per_condition_", i, "_hm.csv"),
+        "."
+      )
     }
-    req_motifs2 <- gsub("_", "-", fun1(split_string))
-    req_motifs2 <- gsub(" ", "", req_motifs2)
-
-    rownames(heatmapEM) <- req_motifs2
-    write.csv(heatmapEM, paste0("motif_per_condition_", i, "_hm.csv"))
   }
 } else {
   enrichMotifs <- "There are not enough conditions to be compared with!"
