@@ -207,6 +207,119 @@ add_motif_annotations <- function(proj, genome) {
   return(proj)
 }
 
+extract_nth_ele <- function(lst, n = 1) {
+  # Extract nth element for each item in a list; return as a vector.
+  sapply(lst, `[`, n)
+}
+
+get_enriched_motifs <- function(proj, marker_peaks, cutoff) {
+
+  empty_enrich_df <- data.frame(
+    group_name = character(0),
+    stringsAsFactors = FALSE
+  )
+  empty_heatmap_df <- data.frame(
+    feature = character(0),
+    value = numeric(0),
+    stringsAsFactors = FALSE
+  )
+
+  enrich_motifs <- tryCatch(
+    ArchR::peakAnnoEnrichment(
+      seMarker = marker_peaks,
+      ArchRProj = proj,
+      peakAnnotation = "Motif",
+      cutOff = cutoff
+    ),
+    error = function(e) {
+      message(
+        "peakAnnoEnrichment failed for cutoff ",
+        cutoff,
+        "; returning empty motif enrichment tables. ",
+        e$message
+      )
+      return(NULL)
+    }
+  )
+
+  if (is.null(enrich_motifs)) {
+    return(list(
+      enrich_df = empty_enrich_df,
+      enrich_motifs = NULL,
+      heatmap_em = empty_heatmap_df,
+      has_enrichment = FALSE
+    ))
+  }
+
+  enrich_df <- tryCatch(
+    data.frame(enrich_motifs@assays@data),
+    error = function(e) {
+      message(
+        "Could not extract motif enrichment assay data; returning empty table. ",
+        e$message
+      )
+      empty_enrich_df
+    }
+  )
+
+  motif_lst <- unique(rownames(enrich_motifs))
+  if (length(motif_lst) > 0) {
+    split_string <- strsplit(motif_lst, split = "\\(")
+
+    req_motifs <- gsub("_", "-", extract_nth_ele(split_string))
+    req_motifs <- gsub(" ", "", req_motifs)
+
+    rownames(enrich_motifs) <- req_motifs
+  }
+
+  heatmap_em <- tryCatch(
+    ArchR::plotEnrichHeatmap(
+      enrich_motifs,
+      n = 50,
+      transpose = FALSE,
+      returnMatrix = TRUE,
+      cutOff = 2
+    ),
+    error = function(e) {
+      if (grepl("No enrichments found", e$message, fixed = TRUE)) {
+        message(
+          "No motif enrichments found for cutoff ",
+          cutoff,
+          "; returning empty motif heatmap table."
+        )
+        return(empty_heatmap_df)
+      }
+      message(
+        "plotEnrichHeatmap failed; returning empty motif heatmap table. ",
+        e$message
+      )
+      return(empty_heatmap_df)
+    }
+  )
+
+  has_enrichment <- !is.null(heatmap_em) &&
+    nrow(heatmap_em) > 0 &&
+    ncol(heatmap_em) > 0
+
+  if (has_enrichment) {
+    motif_lst <- unique(rownames(heatmap_em))
+    split_string <- strsplit(motif_lst, split = "\\(")
+
+    req_motifs <- gsub("_", "-", extract_nth_ele(split_string))
+    req_motifs <- gsub(" ", "", req_motifs)
+
+    rownames(heatmap_em) <- req_motifs
+    heatmap_em <- as.data.frame(heatmap_em)
+  }
+
+  return(list(
+    enrich_df = enrich_df,
+    enrich_motifs = enrich_motifs,
+    heatmap_em = heatmap_em,
+    has_enrichment = has_enrichment
+  ))
+}
+
 addclust <- function(archrproj, resolution, reduceddims_name, min_cells) {
   #' Ensure all clusters >= min_cells; if less than min_cells, decrease
   #' clustering resolution by 0.1 and repeat clustering until resoultion = 0.
