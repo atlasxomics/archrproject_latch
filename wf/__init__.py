@@ -140,7 +140,7 @@ def archr_task(
         )
 
     runs = [
-        f'{run.run_id},{run.sample_name},{run.fragments_file.local_path},{run.condition},{position_files[run.run_id].local_path},{run.spatial_dir.local_path},'
+        f'{run.run_id},{run.sample_name},{run.fragments_file.local_path},{utils.sanitize_condition(run.condition)},{position_files[run.run_id].local_path},{run.spatial_dir.local_path},'
         for run in runs
     ]
 
