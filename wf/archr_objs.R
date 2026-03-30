@@ -917,6 +917,47 @@ saveArchRProject(
 
 ######################### get marker peaks, save ##############################
 
+normalize_marker_table <- function(marker_table) {
+  if (is.null(marker_table)) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+
+  if (is.data.frame(marker_table) || methods::is(marker_table, "DataFrame")) {
+    return(as.data.frame(marker_table))
+  }
+
+  if (is.list(marker_table)) {
+    marker_table <- Filter(Negate(is.null), marker_table)
+    if (length(marker_table) == 0) {
+      return(data.frame(stringsAsFactors = FALSE))
+    }
+
+    marker_table <- Map(function(group_name, x) {
+      x_df <- tryCatch(
+        as.data.frame(x),
+        error = function(e) NULL
+      )
+      if (is.null(x_df) || !isTRUE(nrow(x_df) > 0)) {
+        return(NULL)
+      }
+      x_df$group <- group_name
+      x_df
+    }, names(marker_table), marker_table)
+
+    marker_table <- Filter(Negate(is.null), marker_table)
+    if (length(marker_table) == 0) {
+      return(data.frame(stringsAsFactors = FALSE))
+    }
+
+    return(do.call(rbind, marker_table))
+  }
+
+  tryCatch(
+    as.data.frame(marker_table),
+    error = function(e) data.frame(stringsAsFactors = FALSE)
+  )
+}
+
 peak_data <- data.frame(proj@peakSet@ranges, proj@peakSet@elementMetadata)
 
 # clusters
@@ -932,13 +973,20 @@ markers_peaks_c <- getMarkerFeatures(
 peak_marker_list_c <- getMarkers(
   markers_peaks_c, cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
 )
+peak_marker_list_c <- normalize_marker_table(peak_marker_list_c)
+has_markers_c <- isTRUE(nrow(peak_marker_list_c) > 0) &&
+  all(c("start", "end") %in% colnames(peak_marker_list_c))
 write.csv(
   peak_marker_list_c,
   file = "marker_peaks_per_cluster.csv",
   row.names = FALSE
 )
 
-total_peaks_c <- merge(peak_data, peak_marker_list_c, by = c("start", "end"))
+total_peaks_c <- if (!has_markers_c) {
+  data.frame(stringsAsFactors = FALSE)
+} else {
+  merge(peak_data, peak_marker_list_c, by = c("start", "end"))
+}
 write.csv(
   total_peaks_c, file = "complete_peak_list_cluster.csv", row.names = FALSE
 )
@@ -956,6 +1004,9 @@ markers_peaks_s <- getMarkerFeatures(
 peak_marker_list_s <- getMarkers(
   markers_peaks_s, cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
 )
+peak_marker_list_s <- normalize_marker_table(peak_marker_list_s)
+has_markers_s <- isTRUE(nrow(peak_marker_list_s) > 0) &&
+  all(c("start", "end") %in% colnames(peak_marker_list_s))
 
 write.csv(
   peak_marker_list_s,
@@ -963,7 +1014,11 @@ write.csv(
   row.names = FALSE
 )
 
-total_peaks_s <- merge(peak_data, peak_marker_list_s, by = c("start", "end"))
+total_peaks_s <- if (!has_markers_s) {
+  data.frame(stringsAsFactors = FALSE)
+} else {
+  merge(peak_data, peak_marker_list_s, by = c("start", "end"))
+}
 write.csv(
   total_peaks_s, file = "complete_peak_list_sample.csv", row.names = FALSE
 )
@@ -984,15 +1039,22 @@ if (length(unique(proj$Condition)) > 1) {
     peak_marker_list_t <- getMarkers(
       marker_peaks_t, cutOff = "Pval <= 0.05 & Log2FC >= 0.1"
     )
+    peak_marker_list_t <- normalize_marker_table(peak_marker_list_t)
+    has_markers_t <- isTRUE(nrow(peak_marker_list_t) > 0) &&
+      all(c("start", "end") %in% colnames(peak_marker_list_t))
     write.csv(
       peak_marker_list_t,
       file = paste0("marker_peaks_per_condition-", i, ".csv"),
       row.names = FALSE
     )
 
-    total_peaks_t <- merge(
-      peak_data, peak_marker_list_t, by = c("start", "end")
-    )
+    total_peaks_t <- if (!has_markers_t) {
+      data.frame(stringsAsFactors = FALSE)
+    } else {
+      merge(
+        peak_data, peak_marker_list_t, by = c("start", "end")
+      )
+    }
     write.csv(
       total_peaks_t,
       file = paste0("complete_peak_list_condition-", i, ".csv"),
@@ -1002,21 +1064,29 @@ if (length(unique(proj$Condition)) > 1) {
 }
 
 peak_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
-heatmap_peaks <- plotMarkerHeatmap(
-  seMarker = markers_peaks_c,
-  cutOff = peak_cutoff,
-  transpose = TRUE
-)
+if (!has_markers_c) {
+  message(
+    "Skipping peak heatmap plot because no cluster marker peaks passed ",
+    peak_cutoff,
+    "."
+  )
+} else {
+  heatmap_peaks <- plotMarkerHeatmap(
+    seMarker = markers_peaks_c,
+    cutOff = peak_cutoff,
+    transpose = TRUE
+  )
 
-peak_hm <- ComplexHeatmap::draw(
-  heatmap_peaks,
-  heatmap_legend_side = "bot",
-  annotation_legend_side = "bot",
-  column_title = paste0("Marker peaks (", peak_cutoff, ")"),
-  column_title_gp = gpar(fontsize = 12)
-)
+  peak_hm <- ComplexHeatmap::draw(
+    heatmap_peaks,
+    heatmap_legend_side = "bot",
+    annotation_legend_side = "bot",
+    column_title = paste0("Marker peaks (", peak_cutoff, ")"),
+    column_title_gp = gpar(fontsize = 12)
+  )
 
-heatmaps[[2]] <- peak_hm
+  heatmaps[[2]] <- peak_hm
+}
 
 motifs_cutoff <- "Pval <= 0.05 & Log2FC >= 0.1"
 enriched_motifs_c <- get_enriched_motifs(
