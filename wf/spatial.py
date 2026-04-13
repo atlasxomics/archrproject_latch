@@ -6,7 +6,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from pathlib import Path
 from typing import List, Optional
 
-from wf.utils import filter_anndata
+from atx_common import filter_anndata
 
 
 def plot_neighborhoods(

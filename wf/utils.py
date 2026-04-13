@@ -1,15 +1,16 @@
-import anndata
-import glob
 import logging
-import os
-import re
-import subprocess
-
-from enum import Enum
-from pathlib import Path
-from typing import Dict, List, Optional
 
 from wf.upload_to_registry import Run
+
+# Shared AtlasXomics utilities — re-exported for `import wf.utils as utils`
+from atx_common import (  # noqa: F401
+    Genome,
+    copy_peak_files,
+    filter_anndata,
+    get_groups,
+    rename_obs_columns,
+    sanitize_condition,
+)
 
 
 logging.basicConfig(
@@ -17,85 +18,11 @@ logging.basicConfig(
 )
 
 
-class Genome(Enum):
-    mm10 = 'mm10'
-    hg38 = 'hg38'
-    rnor6 = 'rnor6'
-
-
+# ---------------------------------------------------------------------------
+# Workflow-specific reference data
+# ---------------------------------------------------------------------------
 coverage_dict = {
     "cluster": "Clusters",
     "sample": "Sample",
-    "condition": "condition_1"
+    "condition": "condition_1",
 }
-
-
-def sanitize_condition(condition: Optional[str]) -> str:
-    """Normalize condition labels for downstream grouping."""
-    if condition is None:
-        return "None"
-
-    condition_str = str(condition).strip()
-    if condition_str == "":
-        return "None"
-
-    return re.sub(r"\s+", "_", condition_str)
-
-
-def copy_peak_files(project_name: str, dirs: Dict[str, Path]) -> None:
-
-    table_dir = f"/root/{project_name}/{project_name}_ArchRProject/PeakCalls/"
-    plot_dir = f"/root/{project_name}/{project_name}_ArchRProject/Plots/"
-    if os.path.exists(table_dir):
-        peak_csvs = glob.glob(f"{table_dir}/*.csv")
-        if not peak_csvs:
-            logging.warning(f"No peaks csv files found in {table_dir}")
-        else:
-            subprocess.run(["cp"] + peak_csvs + [str(dirs['tables'])])
-    else:
-        logging.warning(f"No {table_dir} found")
-
-    if os.path.exists(plot_dir):
-        peaks_pdfs = glob.glob(f"{plot_dir}/*.pdf")
-        if not peaks_pdfs:
-            logging.warning(f"No peaks csv files found in {plot_dir}")
-        else:
-            subprocess.run(["cp"] + peaks_pdfs + [str(dirs['figures'])])
-    else:
-        logging.warning(f"No {plot_dir} found")
-
-
-def filter_anndata(
-    adata: anndata.AnnData, group: str, subgroup: List[str]
-) -> anndata.AnnData:
-    return adata[adata.obs[group] == subgroup]
-
-
-def get_groups(runs: List[Run]):
-    """Set 'groups' list for differential analysis"""
-
-    samples = [run.run_id for run in runs]
-    conditions = list({sanitize_condition(run.condition) for run in runs})
-
-    groups = ["cluster"]
-    if len(samples) > 1:
-        groups.append("sample")
-    if len(conditions) > 1:
-        groups.append("condition")
-
-    return groups
-
-
-def rename_obs_columns(adata: anndata):
-    rename_map = {
-        "Clusters": "cluster",
-        "Condition": "condition",
-        "Sample": "sample",
-        "nFrags": "n_fragment"
-    }
-
-    for old_name, new_name in rename_map.items():
-        if old_name in adata.obs.columns:
-            adata.obs.rename(columns={old_name: new_name}, inplace=True)
-
-    return adata

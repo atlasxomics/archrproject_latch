@@ -1,7 +1,4 @@
 import logging
-import time
-
-from pathlib import Path
 
 from latch import small_task
 from latch.types import LatchDir, LatchFile
@@ -9,6 +6,8 @@ from latch.registry.table import Table
 from dataclasses import dataclass
 from typing import List, Optional
 from latch.functions.messages import message
+
+from atx_common import get_LatchFile  # noqa: F401 — re-exported
 
 logging.basicConfig(format="%(levelname)s - %(asctime)s - %(message)s")
 
@@ -20,93 +19,6 @@ class Run:
     fragments_file: LatchFile
     spatial_dir: LatchDir
     condition: str = "None"
-
-
-def get_LatchFile(
-    directory: LatchDir,
-    file_name: str,
-    retries: int = 3,
-    retry_delay_s: float = 5.0
-) -> Optional[LatchFile]:
-    transient_markers = [
-        "remote end closed connection",
-        "connection aborted",
-        "connection reset",
-        "timed out",
-        "timeout",
-        "temporarily unavailable",
-        "service unavailable",
-        "too many requests",
-    ]
-
-    def _is_transient(err: Exception) -> bool:
-        cur = err
-        while cur is not None:
-            msg = f"{type(cur).__name__}: {cur}".lower()
-            if any(marker in msg for marker in transient_markers):
-                return True
-            cur = cur.__cause__ or cur.__context__
-        return False
-
-    for attempt in range(1, retries + 1):
-        try:
-            files = [
-                file for file in directory.iterdir()
-                if isinstance(file, LatchFile)
-                and Path(file.path).name == file_name
-            ]
-        except Exception as e:
-            if not _is_transient(e):
-                logging.error(
-                    "Failed to list '%s' in '%s' (non-retryable): %s",
-                    file_name,
-                    directory.remote_path,
-                    e,
-                )
-                return None
-
-            is_last_attempt = attempt == retries
-            if is_last_attempt:
-                logging.error(
-                    "Failed to list '%s' in '%s' after %d transient attempt(s): %s",
-                    file_name,
-                    directory.remote_path,
-                    retries,
-                    e,
-                )
-                return None
-
-            logging.warning(
-                "Attempt %d/%d failed to find file '%s' in '%s': %s. "
-                "Retrying in %.1f seconds.",
-                attempt,
-                retries,
-                file_name,
-                directory.remote_path,
-                e,
-                retry_delay_s,
-            )
-            time.sleep(retry_delay_s)
-            continue
-
-        if len(files) == 1:
-            return files[0]
-        if len(files) == 0:
-            logging.error(
-                "No file '%s' found in '%s'.",
-                file_name,
-                directory.remote_path,
-            )
-            return None
-
-        logging.error(
-            "Multiple files named '%s' found in '%s'.",
-            file_name,
-            directory.remote_path,
-        )
-        return None
-
-    return None
 
 
 @small_task(retries=0)

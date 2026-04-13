@@ -27,6 +27,7 @@ COPY custom_ArchR_genomes_and_annotations /root/custom_ArchR_genomes_and_annotat
 # The following lines are needed to ensure your build environement works
 # correctly with latch.
 RUN python3 -m pip install latch==2.66.3
+RUN pip install https://github.com/atlasxomics/atx-common/archive/refs/tags/v0.1.0.tar.gz
 
 RUN rm -r /root/wf
 COPY wf /root/wf

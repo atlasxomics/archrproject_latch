@@ -28,7 +28,8 @@ from latch.types.plots import (
 import wf.features as ft
 import wf.spatial as sp
 import wf.utils as utils
-from wf.upload_to_registry import get_LatchFile, upload_to_registry, Run
+from atx_common import get_LatchFile
+from wf.upload_to_registry import upload_to_registry, Run
 
 
 logging.basicConfig(
