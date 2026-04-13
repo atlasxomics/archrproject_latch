@@ -359,6 +359,8 @@ saveArchRProject(
 )
 
 ############-------------Identifying Marker Genes------------##################
+gene_ranking_cutoff <- "FDR <= 1 & Log2FC >= -Inf"
+
 # per cluster
 
 markersGS <- getMarkerFeatures(
@@ -369,7 +371,7 @@ markersGS <- getMarkerFeatures(
   testMethod = "ttest"
 )
 
-marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+marker_list <- getMarkers(markersGS, cutOff = gene_ranking_cutoff)
 marker_pvals <- tryCatch(
   SummarizedExperiment::assay(markersGS, "Pval"),
   error = function(e) NULL
@@ -410,7 +412,7 @@ if (!is.null(marker_pvals)) {
 }
 write.csv(
   marker_list,
-  file = "marker_genes_per_cluster.csv",
+  file = "ranked_genes_per_cluster.csv",
   row.names = FALSE
 )
 
@@ -477,7 +479,7 @@ if (length(unique(proj$Sample)) > 1) {
     testMethod = "ttest",
   )
 
-  marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+  marker_list <- getMarkers(markersGS, cutOff = gene_ranking_cutoff)
   marker_pvals <- tryCatch(
     SummarizedExperiment::assay(markersGS, "Pval"),
     error = function(e) NULL
@@ -518,7 +520,7 @@ if (length(unique(proj$Sample)) > 1) {
   }
   write.csv(
     marker_list,
-    file = "marker_genes_per_sample.csv",
+    file = "ranked_genes_per_sample.csv",
     row.names = FALSE
   )
   for (rd in names(proj@reducedDims)) {
@@ -556,7 +558,7 @@ if (length(unique(proj$Condition)) > 1) {
       testMethod = "ttest",
     )
 
-    marker_list <- getMarkers(markersGS, cutOff = "FDR <= 0.02")
+    marker_list <- getMarkers(markersGS, cutOff = gene_ranking_cutoff)
     marker_pvals <- tryCatch(
       SummarizedExperiment::assay(markersGS, "Pval"),
       error = function(e) NULL
@@ -597,7 +599,7 @@ if (length(unique(proj$Condition)) > 1) {
     }
     write.csv(
       marker_list,
-      file = paste0("marker_genes_per_condition_", i, ".csv"),
+      file = paste0("ranked_genes_per_condition_", i, ".csv"),
       row.names = FALSE
     )
 

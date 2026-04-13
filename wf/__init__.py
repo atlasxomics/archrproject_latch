@@ -497,9 +497,9 @@ def archrproject_workflow(
     * SeuratObj.rds
     * SeuratObjMotif.rds
     * UMAPHarmony.csv
-    * genes_per_cluster_hm.csv
-    * genes_per_sample_hm.csv
-    * genes_per_condition_hm.csv
+    * ranked_genes_per_cluster.csv
+    * ranked_genes_per_sample.csv
+    * ranked_genes_per_condition.csv
     * motif_per_cluster_hm.csv
     * motif_per_sample_hm.csv
     * motif_per_condition_hm.csv

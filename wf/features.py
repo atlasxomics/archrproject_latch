@@ -187,7 +187,7 @@ def load_marker_genes(adata_gene: anndata.AnnData) -> None:
     """Load ranked genes data."""
     logging.info("Adding ranked genes...")
     load_csv_files_to_uns(
-        "marker_genes_*.csv", adata_gene.uns, dtype_spec={"group_name": str}
+        "ranked_genes_*.csv", adata_gene.uns, dtype_spec={"group_name": str}
     )
 
 
