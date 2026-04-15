@@ -221,15 +221,15 @@ def archr_task(
         bindings=PlotsArtifactBindings(
             plot_templates=[
                 PlotsArtifactTemplate(
-                    template_id="695",
+                    template_id="760",
                     widgets=[
                         Widget(
-                            transform_id="367743",
+                            transform_id="401983",
                             key="data_path",
                             value=output_dir
                         ),
                         Widget(
-                            transform_id="367733",
+                            transform_id="401994",
                             key="coverages_genome",
                             value=genome.value
                         )
