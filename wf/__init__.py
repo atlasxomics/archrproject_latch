@@ -26,7 +26,6 @@ from latch.types.plots import (
 )
 
 import wf.features as ft
-import wf.figure_gallery as fg
 import wf.spatial as sp
 import wf.utils as utils
 from atx_common import get_LatchFile
@@ -36,13 +35,6 @@ from wf.upload_to_registry import upload_to_registry, Run
 logging.basicConfig(
     format="%(levelname)s - %(asctime)s - %(message)s", level=logging.INFO
 )
-
-
-def _move_outputs(paths: List[str], destination: Path) -> None:
-    if len(paths) == 0:
-        return
-
-    subprocess.run(["mv"] + paths + [str(destination)], check=True)
 
 
 def allocate_mem(runs: List[Run], **kwargs) -> int:
@@ -102,13 +94,12 @@ def archr_task(
     logging.info(f"Comparing features amoung groups {groups}.")
 
     results_dir = project_name
-    results_root = Path(f"/root/{results_dir}")
     subprocess.run(['mkdir', f'{results_dir}'])
 
-    tables_dir = results_root / "tables"
+    tables_dir = Path(f'/root/{results_dir}/tables')
     tables_dir.mkdir(parents=True, exist_ok=True)
 
-    figures_dir = results_root / "figures"
+    figures_dir = Path(f'/root/{results_dir}/figures')
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     dirs = {"tables": tables_dir, "figures": figures_dir}
@@ -200,15 +191,13 @@ def archr_task(
     ]
     volcanos = glob.glob('*.txt')
 
-    _move_outputs(csv_tables + volcanos, tables_dir)
+    _mv_tables_cmd = ['mv'] + csv_tables + volcanos + [str(tables_dir)]
+    subprocess.run(_mv_tables_cmd)
 
-    # Move any remaining figure outputs into their final locations.
+    # Move figures into subfolder
     figures = [fig for fig in glob.glob('*.pdf') if fig != 'Rplots.pdf']
-    figures.extend(glob.glob('*.png'))
-    _move_outputs(figures, figures_dir)
-    _move_outputs(glob.glob('*.html'), results_root)
-
-    fg.build_figure_site(results_root, figures_dir)
+    _mv_figures_cmd = ['mv'] + figures + [str(figures_dir)]
+    subprocess.run(_mv_figures_cmd)
 
     logging.info("Copying group coverages from ArchRProject...")
     coverage_groups = groups if "sample" in groups else groups + ["sample"]
@@ -257,7 +246,7 @@ def archr_task(
         json.dump(artifact_dict, f, indent=2)
 
     logging.info("Uploading data to Latch...")
-    return LatchDir(str(results_root), output_dir)
+    return LatchDir(f'/root/{results_dir}', output_dir)
 
 
 metadata = LatchMetadata(

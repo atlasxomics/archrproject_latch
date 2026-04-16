@@ -61,18 +61,44 @@ save_paginated_batches <- function(
     return(invisible(character(0)))
   }
 
+  open_png_device <- function(output_path) {
+    if (requireNamespace("ragg", quietly = TRUE)) {
+      ragg::agg_png(
+        filename = output_path,
+        width = width,
+        height = height,
+        units = "in",
+        res = res,
+        background = "white"
+      )
+      return(invisible(NULL))
+    }
+
+    if (capabilities("cairo")) {
+      grDevices::png(
+        filename = output_path,
+        width = width,
+        height = height,
+        units = "in",
+        res = res,
+        type = "cairo",
+        bg = "white"
+      )
+      return(invisible(NULL))
+    }
+
+    stop(
+      "No headless PNG device is available. Install the 'ragg' package ",
+      "or use an R build with Cairo support."
+    )
+  }
+
   paths <- c()
   batches <- split(items, ceiling(seq_along(items) / items_per_page))
 
   for (i in seq_along(batches)) {
     output_path <- sprintf("%s_%03d.png", output_stem, i)
-    grDevices::png(
-      filename = output_path,
-      width = width,
-      height = height,
-      units = "in",
-      res = res
-    )
+    open_png_device(output_path)
     renderer(batches[[i]])
     grDevices::dev.off()
     paths <- c(paths, output_path)

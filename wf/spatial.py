@@ -2,6 +2,7 @@ import anndata
 import logging
 import matplotlib.pyplot as plt
 
+from matplotlib.backends.backend_pdf import PdfPages
 from pathlib import Path
 from typing import List, Optional
 
@@ -24,43 +25,34 @@ def plot_neighborhoods(
             filtered_adatas[sg] = filtered_adata
 
     plt.rcParams.update({'figure.autolayout': True})
-    output_stem = Path(outdir) / f"{group}_neighborhoods"
-    page_idx = 1
+    with PdfPages(f"{outdir}/{group}_neighborhoods.pdf") as pdf:
 
-    def save_page(fig) -> None:
-        nonlocal page_idx
-        fig.savefig(
-            output_stem.with_name(f"{output_stem.name}_{page_idx:03d}.png"),
-            dpi=200,
-            bbox_inches="tight",
-        )
-        page_idx += 1
-        plt.close(fig)
+        if subgroups:
+            for sg in subgroups:
+                fig = nhood_enrichment(
+                    filtered_adatas[sg],
+                    cluster_key="cluster",
+                    method="single",
+                    title=f"{group} {sg}: Neighborhood enrichment",
+                    cmap="bwr",
+                    vmin=-50,
+                    vmax=50,
+                )
+                pdf.savefig(fig, bbox_inches="tight")
+                plt.close(fig)
 
-    if subgroups:
-        for sg in subgroups:
+        elif group == "all":
             fig = nhood_enrichment(
-                filtered_adatas[sg],
+                adata,
                 cluster_key="cluster",
                 method="single",
-                title=f"{group} {sg}: Neighborhood enrichment",
+                title="All cells: Neighborhood enrichment",
                 cmap="bwr",
                 vmin=-50,
                 vmax=50,
             )
-            save_page(fig)
-
-    elif group == "all":
-        fig = nhood_enrichment(
-            adata,
-            cluster_key="cluster",
-            method="single",
-            title="All cells: Neighborhood enrichment",
-            cmap="bwr",
-            vmin=-50,
-            vmax=50,
-        )
-        save_page(fig)
+            pdf.savefig(fig, bbox_inches="tight")
+            plt.close(fig)
 
 
 def run_squidpy_analysis(
@@ -87,7 +79,7 @@ def run_squidpy_analysis(
     old_figdir = sc.settings.figdir
     try:
         sc.settings.figdir = str(figures_dir)
-        ripley(adata_gene, cluster_key="cluster", mode="L", save="ripleys_L.png")
+        ripley(adata_gene, cluster_key="cluster", mode="L", save="ripleys_L.pdf")
     finally:
         sc.settings.figdir = old_figdir
 

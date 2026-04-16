@@ -839,12 +839,11 @@ if (length(unique(proj$Condition)) > 1) {
         )
       }
 
-      save_paginated_plots(
-        volcano_plots,
-        file.path(figures_dir, paste0("volcano_plots_", cond)),
-        width = 10,
-        height = 8
-      )
+      pdf(file.path(figures_dir, paste0("volcano_plots_", cond, ".pdf")))
+      for (plot in volcano_plots) {
+        print(plot)
+      }
+      dev.off()
     }
   }
 
@@ -1142,12 +1141,11 @@ if (isTRUE(enriched_motifs_c$has_enrichment)) {
 
 print("+++++++++++creating heatmap plots++++++++++++++")
 
-save_paginated_plots(
-  heatmaps,
-  file.path(figures_dir, "heatmaps_all"),
-  width = 12,
-  height = 10
-)
+pdf(file.path(figures_dir, "heatmaps_all.pdf"))
+for (i in seq_along(heatmaps)) {
+  print(heatmaps[[i]])
+}
+dev.off()
 
 ###############################################################################
 
@@ -1586,12 +1584,11 @@ if (length(unique(proj$Condition)) > 1) {
         )
       }
 
-      save_paginated_plots(
-        volcano_plots_m,
-        file.path(figures_dir, paste0("volcano_plots_motifs_", j, "_", cond)),
-        width = 10,
-        height = 8
-      )
+      pdf(file.path(figures_dir, paste0("volcano_plots_motifs_", j, "_", cond, ".pdf")))
+      for (plot in volcano_plots_m) {
+        print(plot)
+      }
+      dev.off()
     }
   }
 } else {
