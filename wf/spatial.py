@@ -51,7 +51,6 @@ def plot_neighborhoods(
                 vmin=-50,
                 vmax=50,
             )
-
             pdf.savefig(fig, bbox_inches="tight")
             plt.close(fig)
 
@@ -61,6 +60,7 @@ def run_squidpy_analysis(
 ) -> anndata.AnnData:
     """Run Squidpy analysis and generate plots."""
     from squidpy.pl import ripley
+    import scanpy as sc
 
     logging.info("Running squidpy...")
     adata_gene = squidpy_analysis(adata_gene)
@@ -76,7 +76,12 @@ def run_squidpy_analysis(
 
     # Generate Ripley's plot
     logging.info("Running ripley...")
-    ripley(adata_gene, cluster_key="cluster", mode="L", save="ripleys_L.pdf")
+    old_figdir = sc.settings.figdir
+    try:
+        sc.settings.figdir = str(figures_dir)
+        ripley(adata_gene, cluster_key="cluster", mode="L", save="ripleys_L.pdf")
+    finally:
+        sc.settings.figdir = old_figdir
 
     return adata_gene
 
@@ -96,4 +101,3 @@ def squidpy_analysis(
     ripley(adata, cluster_key="cluster", mode="L", max_dist=500)
 
     return adata
-

@@ -48,6 +48,87 @@ build_atlas_seurat_object <- function(
   return(object)
 }
 
+save_paginated_batches <- function(
+  items,
+  output_stem,
+  renderer,
+  items_per_page = 1,
+  width = 12,
+  height = 12,
+  res = 200
+) {
+  if (length(items) == 0) {
+    return(invisible(character(0)))
+  }
+
+  open_png_device <- function(output_path) {
+    if (requireNamespace("ragg", quietly = TRUE)) {
+      ragg::agg_png(
+        filename = output_path,
+        width = width,
+        height = height,
+        units = "in",
+        res = res,
+        background = "white"
+      )
+      return(invisible(NULL))
+    }
+
+    if (capabilities("cairo")) {
+      grDevices::png(
+        filename = output_path,
+        width = width,
+        height = height,
+        units = "in",
+        res = res,
+        type = "cairo",
+        bg = "white"
+      )
+      return(invisible(NULL))
+    }
+
+    stop(
+      "No headless PNG device is available. Install the 'ragg' package ",
+      "or use an R build with Cairo support."
+    )
+  }
+
+  paths <- c()
+  batches <- split(items, ceiling(seq_along(items) / items_per_page))
+
+  for (i in seq_along(batches)) {
+    output_path <- sprintf("%s_%03d.png", output_stem, i)
+    open_png_device(output_path)
+    renderer(batches[[i]])
+    grDevices::dev.off()
+    paths <- c(paths, output_path)
+  }
+
+  invisible(paths)
+}
+
+save_paginated_plots <- function(
+  plots,
+  output_stem,
+  width = 10,
+  height = 8,
+  res = 200
+) {
+  save_paginated_batches(
+    items = plots,
+    output_stem = output_stem,
+    renderer = function(batch) {
+      for (plot in batch) {
+        print(plot)
+      }
+    },
+    items_per_page = 1,
+    width = width,
+    height = height,
+    res = res
+  )
+}
+
 plot_feature <- function(seurat_obj, feature, name) {
   # Wrapper of Seurat's SpatialFeaturePlot with specific aesthetics
 

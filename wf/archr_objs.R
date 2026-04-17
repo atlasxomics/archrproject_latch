@@ -56,6 +56,8 @@ inputs
 
 out_dir <- paste0(project_name, "_ArchRProject")
 output_root <- file.path("/root", project_name)
+figures_dir <- file.path(output_root, "figures")
+dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 
 # save input metrics in csv
 metrics <- as.list(args[1:14])
@@ -241,12 +243,16 @@ for (i in seq_along(treatment)) {
   umap_plots[[treatment[i]]] <- umap
 }
 
-pdf("umap_plots.pdf")
-grid.arrange(
-  grobs = umap_plots,
-  ncol = 2
+save_paginated_batches(
+  items = unname(umap_plots),
+  output_stem = file.path(figures_dir, "umap_plots"),
+  renderer = function(batch) {
+    gridExtra::grid.arrange(grobs = batch, ncol = 2)
+  },
+  items_per_page = 4,
+  width = 14,
+  height = 12
 )
-dev.off()
 
 # create seurat objects -------------------------------------------------------
 
@@ -298,15 +304,16 @@ for (i in seq_along(seurat_objs)) {
   spatial_cluster_plots[[i]] <- plot
 }
 
-spatial_lists <- split(
-  spatial_cluster_plots, ceiling(seq_along(spatial_cluster_plots) / 4)
+save_paginated_batches(
+  items = spatial_cluster_plots,
+  output_stem = file.path(figures_dir, "spatial_plots"),
+  renderer = function(batch) {
+    print(CombinePlots(batch, legend = "bottom"))
+  },
+  items_per_page = 4,
+  width = 14,
+  height = 12
 )
-
-pdf("spatial_plots.pdf")
-for (i in seq_along(spatial_lists)) {
-  print(CombinePlots(spatial_lists[[i]], legend = "bottom"))
-}
-dev.off()
 
 print("++++ creating qc plots ++++")
 
@@ -341,17 +348,26 @@ for (i in seq_along(seurat_objs)) {
   )
 }
 
-pdf("qc_plots.pdf")
+qc_pages <- list()
 for (i in seq_along(metrics)) {
-  lists <- split(all_qc_plots[[i]], ceiling(seq_along(all_qc_plots[[i]]) / 6))
-  for (list in lists) {
-    grid.arrange(
-      grobs = list,
-      ncol = 2
-    )
+  plot_batches <- split(
+    all_qc_plots[[i]],
+    ceiling(seq_along(all_qc_plots[[i]]) / 6)
+  )
+  for (plot_batch in plot_batches) {
+    qc_pages <- c(qc_pages, list(plot_batch))
   }
 }
-dev.off()
+save_paginated_batches(
+  items = qc_pages,
+  output_stem = file.path(figures_dir, "qc_plots"),
+  renderer = function(batch) {
+    gridExtra::grid.arrange(grobs = batch[[1]], ncol = 2)
+  },
+  items_per_page = 1,
+  width = 14,
+  height = 16
+)
 
 # save ArchR object
 saveArchRProject(
@@ -823,7 +839,7 @@ if (length(unique(proj$Condition)) > 1) {
         )
       }
 
-      pdf(paste0("volcano_plots_", cond, ".pdf"))
+      pdf(file.path(figures_dir, paste0("volcano_plots_", cond, ".pdf")))
       for (plot in volcano_plots) {
         print(plot)
       }
@@ -1125,7 +1141,7 @@ if (isTRUE(enriched_motifs_c$has_enrichment)) {
 
 print("+++++++++++creating heatmap plots++++++++++++++")
 
-pdf("heatmaps_all.pdf")
+pdf(file.path(figures_dir, "heatmaps_all.pdf"))
 for (i in seq_along(heatmaps)) {
   print(heatmaps[[i]])
 }
@@ -1568,7 +1584,7 @@ if (length(unique(proj$Condition)) > 1) {
         )
       }
 
-      pdf(paste0("volcano_plots_motifs_", j, "_", cond, ".pdf"))
+      pdf(file.path(figures_dir, paste0("volcano_plots_motifs_", j, "_", cond, ".pdf")))
       for (plot in volcano_plots_m) {
         print(plot)
       }
