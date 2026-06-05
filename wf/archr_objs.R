@@ -1181,6 +1181,9 @@ for (i in seq_len(length(markerMotifsList))) {
   }
 }
 
+motif_cell_names <- rownames(getCellColData(proj))
+dev_score <- NULL
+
 if (length(motifs) > 1) {
   print("Creating deviation score for motifs...")
   motifs <- unlist(motifs)
@@ -1198,18 +1201,51 @@ if (length(motifs) > 1) {
   dev_score[is.na(dev_score)] <- 0
 }
 
-dev_score2 <- dev_score[!is.infinite(rowSums(dev_score)), ]
-colnames(dev_score2) <- rownames(getCellColData(proj))
+if (is.null(dev_score)) {
+  message("No marker motifs available for deviation scoring.")
+  dev_score <- matrix(
+    numeric(0),
+    nrow = 0,
+    ncol = length(motif_cell_names),
+    dimnames = list(character(0), motif_cell_names)
+  )
+}
+
+dev_score2 <- dev_score[!is.infinite(rowSums(dev_score)), , drop = FALSE]
+colnames(dev_score2) <- motif_cell_names
 print(paste0(
   "Number of motifs not infinite: ", nrow(dev_score2)
 ))
 
 # remove 0 deviations per All samples
 all_zero <- names(which(rowSums(dev_score2) == 0))
-dev_score2 <- dev_score2[which(!rownames(dev_score2) %in% c(all_zero)), ]
+dev_score2 <- dev_score2[
+  which(!rownames(dev_score2) %in% c(all_zero)),
+  ,
+  drop = FALSE
+]
 print(paste0(
   "Number of motifs after removing 0 deviations: ", nrow(dev_score2)
 ))
+
+if (nrow(dev_score2) == 0) {
+  message(
+    "No motif deviation features remain after filtering; adding a zero-valued ",
+    "placeholder feature for downstream Seurat and h5ad conversion."
+  )
+  dev_score2 <- matrix(
+    0,
+    nrow = 2,
+    ncol = length(motif_cell_names),
+    dimnames = list(
+      c(
+        "no-motif-deviation-features-1",
+        "no-motif-deviation-features-2"
+      ),
+      motif_cell_names
+    )
+  )
+}
 
 # convert to dgCmatrix
 dev_score3 <- Matrix(as.matrix(dev_score2), sparse = TRUE)

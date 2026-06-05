@@ -33,7 +33,24 @@ build_atlas_seurat_object <- function(
   )
   metadata <- metadata[metadata$Sample == run_id, ]
 
-  matrix <- matrix[, c(grep(pattern = run_id, colnames(matrix)))]
+  if (nrow(matrix) == 0) {
+    stop(
+      "Cannot create Seurat object for run ",
+      run_id,
+      ": feature matrix has zero rows."
+    )
+  }
+
+  matching_cols <- grep(pattern = run_id, colnames(matrix), fixed = TRUE)
+  if (length(matching_cols) == 0) {
+    stop(
+      "Cannot create Seurat object for run ",
+      run_id,
+      ": feature matrix has no matching cells."
+    )
+  }
+
+  matrix <- matrix[, matching_cols, drop = FALSE]
   matrix@Dimnames[[2]] <- metadata@rownames
   matrix <- Seurat::CreateAssayObject(matrix)
 
@@ -450,7 +467,10 @@ combine_objs <- function(
     names(which(colSums(is.na(x@assays[[1]]@counts)) > 0))
   })
   filtered <- mapply(
-    function(x, y) x[, !colnames(x) %in% y], seurat_lst, to_remove
+    function(x, y) x[, !colnames(x) %in% y],
+    seurat_lst,
+    to_remove,
+    SIMPLIFY = FALSE
   )
 
   # ----------- Prepare coordinates -----------
@@ -488,23 +508,40 @@ combine_objs <- function(
   ncells  <- as.double(sum(sapply(filtered, ncol)))
   nfeats <- as.double(nrow(seurat_lst[[1]]))
   matrix_size <- ncells * nfeats
+  has_variable_feature_input <- TRUE
 
   if (matrix_size < 2^31 - 1) {
 
     print("Feature matrix less than 2^31 -1...")
 
-    # Convert list of SeuratObjs to list of feat counts as data frames.
-    filtered_dfs <- lapply(filtered, function(x) {
-      df <- as.data.frame(x@assays[[1]]@counts)
-      colnames(df) <- Seurat::Cells(x)
-      df$region <- rownames(df)
-      df
+    counts_mats <- lapply(filtered, function(x) {
+      mat <- x@assays[[1]]@counts
+      if (!inherits(mat, "sparseMatrix")) {
+        mat <- Matrix::Matrix(as.matrix(mat), sparse = TRUE)
+      }
+      colnames(mat) <- Seurat::Cells(x)
+      mat
     })
 
-    # Merge counts dfs, drop region
-    combined_mat <- purrr::reduce(filtered_dfs, full_join, by = "region")
-    rownames(combined_mat) <- combined_mat$region
-    combined_mat$region <- NULL
+    features <- Reduce(union, lapply(counts_mats, rownames))
+    counts_mats <- lapply(counts_mats, function(mat) {
+      missing_features <- setdiff(features, rownames(mat))
+      if (length(missing_features) > 0) {
+        missing_mat <- Matrix::Matrix(
+          0,
+          nrow = length(missing_features),
+          ncol = ncol(mat),
+          sparse = TRUE,
+          dimnames = list(missing_features, colnames(mat))
+        )
+        mat <- rbind(mat, missing_mat)
+      }
+      mat[features, , drop = FALSE]
+    })
+
+    combined_mat <- do.call(cbind, counts_mats)
+    has_variable_feature_input <- nrow(combined_mat) > 1 &&
+      Matrix::nnzero(combined_mat) > 0
 
     combined <- Seurat::CreateSeuratObject(
       counts = combined_mat,
@@ -546,9 +583,17 @@ combine_objs <- function(
     combined, normalization.method = "LogNormalize", scale.factor = 10000
   )
 
-  combined <- Seurat::FindVariableFeatures(
-    combined, selection.method = "vst", nfeatures = 2000, slot = "counts"
-  )
+  if (has_variable_feature_input) {
+    combined <- Seurat::FindVariableFeatures(
+      combined, selection.method = "vst", nfeatures = 2000, slot = "counts"
+    )
+  } else {
+    message(
+      "Skipping variable feature selection: combined matrix has too few ",
+      "non-zero features."
+    )
+    Seurat::VariableFeatures(combined) <- rownames(combined)
+  }
 
   # Make clusters factors
   combined@meta.data$Clusters <- factor(
