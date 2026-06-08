@@ -2,6 +2,7 @@ library("ArchR")
 library("BSgenome")
 library("BSgenome.Hsapiens.UCSC.hg38")
 library("BSgenome.Mmusculus.UCSC.mm10")
+library("BSgenome.Mmusculus.UCSC.mm39")
 library("BSgenome.Rnorvegicus.UCSC.rn6")
 library("ComplexHeatmap")
 library("chromVARmotifs")
@@ -17,6 +18,8 @@ library("readr")
 library("Seurat")
 library("seqLogo")
 library("tidyverse")
+library("TxDb.Mmusculus.UCSC.mm39.knownGene")
+library("org.Mm.eg.db")
 
 source("/root/getDeviation_ArchR.R")
 source("/root/wf/convert.R")
@@ -84,7 +87,7 @@ write.csv(metrics, file = "input_parameters.csv", row.names = FALSE)
 
 addArchRThreads(threads = 50)
 
-if (genome != "rnor6") {
+if (genome %in% c("hg38", "mm10")) {
 
   addArchRGenome(genome)
   arrow_files <- createArrowFiles(
@@ -103,6 +106,33 @@ if (genome != "rnor6") {
   proj <- ArchRProject(
     ArrowFiles = arrow_files,
     outputDirectory = out_dir
+  )
+} else if (genome == "mm39") {
+
+  annotations <- create_mm39_annotations()
+  geneAnnotation <- annotations$geneAnnotation
+  genomeAnnotation <- annotations$genomeAnnotation
+
+  arrow_files <- createArrowFiles(
+    inputFiles = inputs,
+    geneAnnotation = geneAnnotation,
+    genomeAnnotation = genomeAnnotation,
+    sampleNames = names(inputs),
+    minTSS = min_tss,
+    minFrags = min_frags,
+    maxFrags = 1e+07,
+    addTileMat = TRUE,
+    addGeneScoreMat = TRUE,
+    offsetPlus = 0,
+    offsetMinus = 0,
+    TileMatParams = list(tileSize = tile_size)
+  )
+
+  proj <- ArchRProject(
+    ArrowFiles = arrow_files,
+    outputDirectory = out_dir,
+    geneAnnotation = geneAnnotation,
+    genomeAnnotation = genomeAnnotation
   )
 } else if (genome == "rnor6") {
 
@@ -123,11 +153,16 @@ if (genome != "rnor6") {
     offsetMinus = 0,
     TileMatParams = list(tileSize = tile_size)
   )
+
   proj <- ArchRProject(
     ArrowFiles = arrow_files,
     outputDirectory = out_dir,
     geneAnnotation = geneAnnotation,
     genomeAnnotation = genomeAnnotation
+  )
+} else {
+  stop(
+    "Genome not one of 'hg38', 'mm10', 'mm39', 'rnor6'; please supply a supported genome."
   )
 }
 
@@ -877,8 +912,14 @@ if (genome == "hg38") {
   genome_size <- 3.3e+09
 } else if (genome == "mm10") {
   genome_size <- 3.0e+09
+} else if (genome == "mm39") {
+  genome_size <- 2.7e+09
 } else if (genome == "rnor6") {
   genome_size <- 2.9e+09
+} else {
+  stop(
+    "No genome size configured for genome: ", genome
+  )
 }
 
 pathToMacs2 <- findMacs2()

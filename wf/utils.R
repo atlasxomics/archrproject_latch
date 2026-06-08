@@ -286,23 +286,47 @@ scvolcano <- function(
 }
 
 add_motif_annotations <- function(proj, genome) {
-  if (genome == "hg38" || genome == "mm10") {
-    proj <- ArchR::addMotifAnnotations(
-      ArchRProj = proj,
-      motifSet = "cisbp",
-      name = "Motif",
-      force = TRUE
-    )
-  } else {
-    proj <- ArchR::addMotifAnnotations(
-      ArchRProj = proj,
-      motifSet = "encode",
-      name = "Motif",
-      force = TRUE,
-      species = ArchR::getGenome(ArchRProj = proj)
-    )
+  motif_set <- list(
+    "hg38" = "cisbp",
+    "mm10" = "cisbp",
+    "mm39" = "cisbp",
+    "rnor6" = "encode"
+  )
+
+  if (is.null(motif_set[[genome]])) {
+    stop("No motif annotation settings configured for genome: ", genome)
   }
+
+  species <- NULL
+  if (genome == "mm39") {
+    species <- "Mus musculus"
+  } else if (genome == "rnor6") {
+    species <- ArchR::getGenome(ArchRProj = proj)
+  }
+
+  proj <- ArchR::addMotifAnnotations(
+    ArchRProj = proj,
+    motifSet = motif_set[[genome]],
+    name = "Motif",
+    force = TRUE,
+    species = species
+  )
   return(proj)
+}
+
+create_mm39_annotations <- function() {
+  genomeAnnotation <- ArchR::createGenomeAnnotation(
+    genome = BSgenome.Mmusculus.UCSC.mm39::BSgenome.Mmusculus.UCSC.mm39
+  )
+  geneAnnotation <- ArchR::createGeneAnnotation(
+    TxDb = TxDb.Mmusculus.UCSC.mm39.knownGene::TxDb.Mmusculus.UCSC.mm39.knownGene,
+    OrgDb = org.Mm.eg.db::org.Mm.eg.db
+  )
+
+  return(list(
+    geneAnnotation = geneAnnotation,
+    genomeAnnotation = genomeAnnotation
+  ))
 }
 
 extract_nth_ele <- function(lst, n = 1) {
