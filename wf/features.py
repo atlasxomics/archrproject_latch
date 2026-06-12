@@ -98,6 +98,7 @@ def save_anndata_objects(
     logging.info("Saving full adata...")
 
     # Save full objects
+    adata_gene.X = adata_gene.X.astype(np.float32)
     adata_gene.write(f"{base_dir}/combined_ge.h5ad")
     adata_motif.write(f"{base_dir}/combined_motifs.h5ad")
 
