@@ -85,6 +85,7 @@ def archr_task(
     num_threads: int,
     min_cells_cluster: int,
     max_clusters: int,
+    include_y_chromosome: bool,
     output_dir: LatchDir,
 ) -> LatchDir:
 
@@ -120,7 +121,8 @@ def archr_task(
         f'{umap_mindist}',
         f'{num_threads}',
         f'{min_cells_cluster}',
-        f'{max_clusters}'
+        f'{max_clusters}',
+        f'{include_y_chromosome}'
     ]
 
     position_files = {}
@@ -367,6 +369,13 @@ metadata = LatchMetadata(
             batch_table_column=True,
             hidden=True
         ),
+        'include_y_chromosome': LatchParameter(
+            display_name='include y chromosome',
+            description='Include the Y chromosome in ArchR matrices and '
+                        'downstream analyses.',
+            batch_table_column=True,
+            hidden=True
+        ),
         "output_dir": LatchParameter(
             display_name="output directory",
             description="Folder in Latch Data to save outputs; defaults to \
@@ -408,6 +417,7 @@ def archrproject_workflow(
     num_threads: int = 50,
     min_cells_cluster: int = 20,
     max_clusters: int = 25,
+    include_y_chromosome: bool = False,
     output_dir: LatchDir = LatchDir("latch:///ArchRProjects/"),
     run_table_id: str = "761",
     project_table_id: str = "779"
@@ -535,7 +545,8 @@ def archrproject_workflow(
         num_threads=num_threads,
         min_cells_cluster=min_cells_cluster,
         output_dir=output_dir,
-        max_clusters=max_clusters
+        max_clusters=max_clusters,
+        include_y_chromosome=include_y_chromosome
     )
 
     archr_project = upload_to_registry(
@@ -593,4 +604,5 @@ if __name__ == '__main__':
         num_threads=50,
         min_cells_cluster=20,
         max_clusters=25,
+        include_y_chromosome=False,
     )
