@@ -12,10 +12,9 @@ RUN pip install --requirement /opt/latch/requirements.txt
 RUN pip3 uninstall -y aiobotocore botocore awscli s3transfer
 RUN pip3 install awscli
 
-RUN R -e "remotes::install_github('jpmcga/ArchR', ref = '619f75d')"
-RUN R -e 'remotes::install_version("ggplot2", version = "3.4.1", repos = "https://cran.r-project.org")'
+RUN R -e "remotes::install_github('jpmcga/ArchR', ref = '9ec08bb')"
 RUN R -e "BiocManager::install(c('BSgenome.Mmusculus.UCSC.mm39', 'TxDb.Mmusculus.UCSC.mm39.knownGene', 'org.Mm.eg.db'), ask = FALSE, update = FALSE)"
-
+RUN R -e "library('BSgenome.Mmusculus.UCSC.mm39'); library('TxDb.Mmusculus.UCSC.mm39.knownGene'); library('org.Mm.eg.db')"
 # Copy output files for Shiny app
 COPY getDeviation_ArchR.R /root/getDeviation_ArchR.R
 
