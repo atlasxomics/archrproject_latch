@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import List
 
-from latch import custom_task, workflow
+from latch import custom_task, message, workflow
 from latch.resources.launch_plan import LaunchPlan
 from latch.types import (
     LatchAuthor,
@@ -170,6 +170,28 @@ def archr_task(
 
     # Run spatial analysis
     adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)
+
+    # Spatially variable genes and motifs
+    for mod_adata, modality, prefix in [
+        (adata_gene, "Genes", "genes"),
+        (adata_motif, "Motifs", "motifs"),
+    ]:
+        try:
+            svg_df = sp.run_spatial_autocorr(mod_adata, n_jobs=4)
+            svg_df.to_csv(tables_dir / f"svg_{prefix}.csv")
+            sp.plot_svg_spatial(
+                mod_adata,
+                svg_df,
+                figures_dir,
+                filename=f"svg_spatial_{prefix}.png",
+                modality=modality,
+                top_n=10,
+                html_output_path=str(figures_dir / f"svg_spatial_{prefix}.html"),
+            )
+        except Exception as e:
+            warning = f"Spatial autocorrelation ({modality}) failed: {e}"
+            logging.warning(warning)
+            message(typ="warning", data={"title": f"SVG {modality} failed", "body": warning})
 
     # Load differential analysis results
     ft.load_analysis_results(adata_gene, adata_motif, groups)
