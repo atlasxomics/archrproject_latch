@@ -76,58 +76,56 @@ The **create ArchRProject** workflow can be found in the [Workflows](https://wik
 
 ## Outputs
 
-Outputs from **create ArchRProject** are loaded into latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) in the `ArchRProjects` directory.
+Outputs from **create ArchRProject** are loaded into latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) under `<output directory>/<project name>/`. By default this is `ArchRProjects/<project name>/`.
 
-* ArchRProject/
-  * This folder contains all of arrow/peak files and the ArchR object to load an pre-computed ArchRProject. 
-* _SeuratObj.rds
-  * A Seurat object for each of the samples in ArchRProject with all metadata. The count matrix is the gene accessibility matrix that is stored in the Arrow files as GeneScoreMatrix. 
-* _SeuratObjMotif.rds.
-  * Seurat object for each of the samples in ArchRProject with all metadata. The count matrix is the motif deviation score matrix calculated by [getDeviation ArchR script](https://github.com/atlasxomics/archrproject_latch/blob/main/getDeviation_ArchR.R).
-* UMAPHarmony.csv
-  * Coordinates of the UMAP plot for the merged samples, extracted from the ArchRProject.
-* enrichMotifs_clusters.rds
-  * [SummarizedExperiment](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html) object where rows are marker motifs per cluster and columns are the clusters. Pvalues, FDR and other informations per clusters can be found in the assays of this object.  
-* enrichMotifs_sample.rds
-  * Same as enrichMotifs_clusters.rds but per sample. 
-* enrichMotifs_condition.rds
-  * Same as enrichMotifs_clusters.rds but per condition. 
-* genes_per_cluster_hm.csv
-  * The general matrix data for gene accessibility heatmap of clusters.
-* genes_per_sample_hm.csv
-  * The general matrix data for gene accessibility heatmap of samples.
-* genes_per_condition_hm.csv
-  * The general matrix data for gene accessibility heatmap of conditions.
-* inpMarkers.txt
-  * A table with columns avg_log2FC, p_val,	p_val_adj,	gene, cluster, Significance that is used for volcano plots of genes per group.
-* inpMarkers_motif.txt
-  * A table with columns avg_log2FC, p_val,	p_val_adj,	gene, cluster, Significance  that used for volcano plots of motifs per group. 
-* markersGS_clusters.rds
-  * [SummarizedExperiment](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html) object where rows are marker genes per cluster and columns are the clusters. Pvalues, FDR and other informations per clusters can be found in the assays of this object.  
-* markersGS_sample.rds
-  * Same as markersGS_clusters.rds but per sample. 
-* markersGS_condition.rds
-  * Same as markersGS_clusters.rds but per condition.
-* motif_per_cluster_hm.csv
-  * The general matrix data for motif enrichment heatmap of clusters.
-* motif_per_sample_hm.csv
-  * The general matrix data for motif enrichment heatmap of samples.  
-* motif_per_condition_hm.csv
-  * The general matrix data for motif enrichment heatmap of conditions.
-* req_genes1.csv
-  * List of the genes used as default in heatmap of clusters. 
-* req_genes2.csv
-  * List of the genes used as default in heatmap of conditions.
-* req_genes3.csv
-  * List of the genes used as default in heatmap of samples. 
-* req_motifs1.csv
-  * List of the motifs used as default in heatmap of clusters. 
-* req_motifs2.csv
-  * List of the motifs used as default in heatmap of conditions.  
-* req_motifs3.csv
-  * List of the motifs used as default in heatmap of samples.  
-* seqlogo.rds
-  * Position weight matrices class for plotting sequence logos using the [seqlogo](https://bioconductor.org/packages/release/bioc/html/seqLogo.html) package.  
+* `<project_name>_ArchRProject/`
+  * Saved ArchRProject directory containing the Arrow files, ArchR project state, peak matrices, reproducible peak sets, motif annotations, and ArchR-generated group bigWig files.
+* `<run_id>_SeuratObj.rds`
+  * One Seurat object per run using the gene accessibility matrix from the ArchR `GeneScoreMatrix`, with spatial coordinates and ArchR metadata.
+* `<run_id>_SeuratObjMotif.rds`
+  * One Seurat object per run using the motif deviation score matrix calculated by the workflow's ArchR motif deviation step.
+* `combined.rds` and `combined_m.rds`
+  * Combined gene and motif Seurat objects across all runs.
+* `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad`
+  * Per-run AnnData conversions of the gene and motif Seurat objects.
+* `combined_ge.h5ad` and `combined_motifs.h5ad`
+  * Full combined gene and motif AnnData objects with embeddings and analysis tables attached.
+* `combined_sm_ge.h5ad` and `combined_sm_motifs.h5ad`
+  * Reduced combined gene and motif AnnData objects intended for plotting and downstream interactive visualization. FOR VISUALIZATION/PLOTTING ONLY.
+* `cluster_coverages/`, `sample_coverages/`, and `condition_coverages/`
+  * Copied `.bw` coverage tracks from ArchR group bigWig outputs. `condition_coverages/` is produced when condition-level grouping is available.
+* `cluster_peak_beds/`, `sample_peak_beds/`, `condition_peak_beds/`, and `condition_<n>_peak_beds/`
+  * BED files exported from reproducible peak sets for cluster, sample, and condition groupings. Condition folders are produced only when multiple conditions are present.
+* `Launch_Plots/artifact.json`
+  * Latch Plots artifact metadata for opening the output in the configured AtlasXomics Plots template.
+* `figures/`
+  * Generated plot files, including UMAP, spatial, QC, heatmap, volcano, and spatially variable feature figures. This folder can include `*.pdf`, `*.png`, and matching HTML galleries such as `svg_spatial_genes.html` and `svg_spatial_motifs.html`.
+* `tables/input_parameters.csv`
+  * Workflow parameters recorded for the run.
+* `tables/UMAPHarmony.csv` and `tables/spatial.csv`
+  * UMAP and spatial embeddings used in the Seurat and AnnData outputs.
+* `tables/obs.csv`
+  * Cell metadata from the combined gene AnnData object.
+* `tables/medians.csv`
+  * Per-run median QC summaries, including TSS enrichment, fragments, FRIP, and condition.
+* `tables/ranked_genes_per_cluster.csv`, `tables/ranked_genes_per_sample.csv`, and `tables/ranked_genes_per_condition_<n>.csv`
+  * Ranked gene accessibility markers for clusters, samples, and condition comparisons. Sample and condition files are produced only when the comparison has enough groups.
+* `tables/genes_per_cluster_hm.csv`, `tables/genes_per_sample_hm.csv`, and `tables/genes_per_condition_<n>_hm.csv`
+  * Gene accessibility heatmap matrices for cluster, sample, and condition groupings.
+* `tables/marker_peaks_per_cluster.csv`, `tables/marker_peaks_per_sample.csv`, and `tables/marker_peaks_per_condition-<n>.csv`
+  * Marker peak tables for cluster, sample, and condition groupings.
+* `tables/complete_peak_list_cluster.csv`, `tables/complete_peak_list_sample.csv`, and `tables/complete_peak_list_condition-<n>.csv`
+  * Marker peak tables joined to genomic peak coordinates and annotations.
+* `tables/enrichedMotifs_cluster.csv`, `tables/enrichedMotifs_sample.csv`, and `tables/enrichedMotifs_condition_<n>.csv`
+  * Enriched motif tables for cluster, sample, and condition peak sets.
+* `tables/motif_per_cluster_hm.csv`, `tables/motif_per_sample_hm.csv`, and `tables/motif_per_condition_<n>_hm.csv`
+  * Motif enrichment heatmap matrices for cluster, sample, and condition groupings.
+* `tables/volcanoMarkers_genes_<n>_<condition>.csv` and `tables/volcanoMarkers_motifs_<n>_<condition>.csv`
+  * Gene and motif volcano plot source tables for condition comparisons.
+* `tables/svg_genes.csv` and `tables/svg_motifs.csv`
+  * Spatial autocorrelation results for spatially variable genes and motifs, when the spatial analysis step succeeds.
+* `seqlogo.rds`
+  * Position weight matrices for plotting motif sequence logos with the [seqLogo](https://bioconductor.org/packages/release/bioc/html/seqLogo.html) package.
 
 
 ## Next Steps

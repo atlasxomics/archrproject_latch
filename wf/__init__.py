@@ -523,19 +523,51 @@ def archrproject_workflow(
 
     ## Outputs
     Outputs from **create ArchRProject** are loaded into latch.bio
-    [Data module](https://wiki.latch.bio/wiki/data/overview) in the
-    `ArchRProjects` directory.
-    * ArchRProject/
-    * SeuratObj.rds
-    * SeuratObjMotif.rds
-    * UMAPHarmony.csv
-    * ranked_genes_per_cluster.csv
-    * ranked_genes_per_sample.csv
-    * ranked_genes_per_condition.csv
-    * motif_per_cluster_hm.csv
-    * motif_per_sample_hm.csv
-    * motif_per_condition_hm.csv
-    * seqlogo.rds
+    [Data module](https://wiki.latch.bio/wiki/data/overview) under
+    `<output directory>/<project name>/`. By default this is
+    `ArchRProjects/<project name>/`.
+    * `<project_name>_ArchRProject/`: Saved ArchRProject directory containing
+      Arrow files, ArchR project state, peak matrices, reproducible peak sets,
+      motif annotations, and ArchR-generated group bigWig files.
+    * `<run_id>_SeuratObj.rds`: One gene accessibility Seurat object per run,
+      with spatial coordinates and ArchR metadata.
+    * `<run_id>_SeuratObjMotif.rds`: One motif deviation Seurat object per run.
+    * `combined.rds` and `combined_m.rds`: Combined gene and motif Seurat
+      objects across all runs.
+    * `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad`: Per-run
+      AnnData conversions of the gene and motif Seurat objects.
+    * `combined_ge.h5ad`, `combined_motifs.h5ad`, `combined_sm_ge.h5ad`, and
+      `combined_sm_motifs.h5ad`: Full and reduced combined AnnData objects.
+       FOR VISUALIZATION/PLOTTING ONLY.
+    * `cluster_coverages/`, `sample_coverages/`, and `condition_coverages/`:
+      copied `.bw` coverage tracks from ArchR group bigWig outputs.
+    * `cluster_peak_beds/`, `sample_peak_beds/`, `condition_peak_beds/`, and
+      `condition_<n>_peak_beds/`: BED files exported from reproducible peak
+      sets.
+    * `Launch_Plots/artifact.json`: Latch Plots artifact metadata for opening
+      the output in the configured AtlasXomics Plots template.
+    * `figures/`: Generated UMAP, spatial, QC, heatmap, volcano, and spatially
+      variable feature figures, including PDFs, PNGs, and HTML galleries.
+    * `tables/input_parameters.csv`: Workflow parameters recorded for the run.
+    * `tables/UMAPHarmony.csv`, `tables/spatial.csv`, `tables/obs.csv`, and
+      `tables/medians.csv`: Embeddings, cell metadata, and per-run QC summaries.
+    * `tables/ranked_genes_per_cluster.csv`,
+      `tables/ranked_genes_per_sample.csv`, and
+      `tables/ranked_genes_per_condition_<n>.csv`: Ranked gene accessibility
+      markers for clusters, samples, and condition comparisons.
+    * `tables/genes_per_*_hm.csv` and `tables/motif_per_*_hm.csv`: Gene
+      accessibility and motif enrichment heatmap matrices.
+    * `tables/marker_peaks_per_*.csv` and `tables/complete_peak_list_*.csv`:
+      Marker peak tables and marker peaks joined to genomic coordinates.
+    * `tables/enrichedMotifs_*.csv`: Enriched motif tables for cluster, sample,
+      and condition peak sets.
+    * `tables/volcanoMarkers_genes_*.csv` and
+      `tables/volcanoMarkers_motifs_*.csv`: Gene and motif volcano plot source
+      tables for condition comparisons.
+    * `tables/svg_genes.csv` and `tables/svg_motifs.csv`: Spatial
+      autocorrelation results for spatially variable genes and motifs.
+    * `seqlogo.rds`: Position weight matrices for plotting motif sequence
+      logos.
     ## Next Steps
     Analysis can be performed locally or in a latch.bio
     [Pod](https://wiki.latch.bio/wiki/pods/overview).  For access to
