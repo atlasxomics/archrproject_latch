@@ -169,7 +169,12 @@ def archr_task(
     adata_gene.obs.to_csv("/root/obs.csv", index=True)
 
     # Run spatial analysis
-    adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)
+    adata_gene = sp.run_squidpy_analysis(
+        adata_gene,
+        figures_dir,
+        sample_key="sample" if "sample" in groups else None,
+        group_keys=groups,
+    )
 
     # Spatially variable genes and motifs
     for mod_adata, modality, prefix in [
