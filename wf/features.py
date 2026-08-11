@@ -166,6 +166,55 @@ def clean_index_columns(*adatas: anndata.AnnData) -> None:
                 adata.raw.var.drop(columns=['_index'], inplace=True)
 
 
+def rechunk_dense_x_for_gene_access(
+    input_path: Path,
+    output_path: Path,
+    gene_block: int = 1,
+    stream_block: int = 512,
+) -> None:
+    """Stream-copy an H5AD with dense ``X`` into gene-aligned chunks.
+
+    All fields other than ``X`` are copied verbatim.  The cells-by-genes
+    orientation is retained while each HDF5 chunk spans all cells and only
+    ``gene_block`` genes, making backed single-gene reads fast.
+    """
+    import h5py
+
+    with h5py.File(input_path, "r") as src, h5py.File(output_path, "w") as dst:
+        for key, value in src.attrs.items():
+            dst.attrs[key] = value
+        for key in src.keys():
+            if key != "X":
+                src.copy(key, dst)
+
+        xsrc = src["X"]
+        if isinstance(xsrc, h5py.Group):
+            raise ValueError(
+                "X is stored sparse (an HDF5 group); gene rechunking requires "
+                "dense X."
+            )
+
+        n_obs, n_var = xsrc.shape
+        if n_obs == 0 or n_var == 0:
+            raise ValueError("Cannot gene-rechunk an AnnData object with an empty X.")
+        if gene_block < 1 or stream_block < 1:
+            raise ValueError("gene_block and stream_block must both be positive.")
+
+        x_attrs = dict(xsrc.attrs)
+        chunk_width = min(gene_block, n_var)
+        dset = dst.create_dataset(
+            "X",
+            shape=(n_obs, n_var),
+            dtype=xsrc.dtype,
+            chunks=(n_obs, chunk_width),
+        )
+        for start in range(0, n_var, stream_block):
+            stop = min(start + stream_block, n_var)
+            dset[:, start:stop] = xsrc[:, start:stop]
+        for key, value in x_attrs.items():
+            dset.attrs[key] = value
+
+
 def load_and_combine_data() -> Tuple[anndata.AnnData, anndata.AnnData]:
     """Load and combine gene and motif AnnData objects."""
     logging.info("Reading and combining gene AnnData...")
@@ -194,6 +243,7 @@ def save_anndata_objects(
     base_dir: Path
 ) -> None:
     """Save full and reduced AnnData objects."""
+    base_dir = Path(base_dir)
     logging.info("Saving full adata...")
 
     add_spatial_offset(adata_gene)
@@ -201,19 +251,28 @@ def save_anndata_objects(
 
     # Save full objects
     adata_gene.X = adata_gene.X.astype(np.float32)
-    adata_gene.write(f"{base_dir}/combined_ge.h5ad")
-    adata_motif.write(f"{base_dir}/combined_motifs.h5ad")
+    adata_gene.write(base_dir / "combined_ge.h5ad")
+    adata_motif.write(base_dir / "combined_motifs.h5ad")
 
     # Create and save reduced objects
     logging.info("Making reduced gene adata...")
     sm_adata_gene = clean_adata(adata_gene)
     sm_adata_motif = clean_adata(adata_motif)
 
-    logging.info("Saving gene adata...")
-    sm_adata_gene.write(f"{base_dir}/combined_sm_ge.h5ad")
+    logging.info("Saving gene adata with gene-aligned X chunks...")
+    raw_gene_path = base_dir / ".combined_sm_ge.unrechunked.h5ad"
+    chunked_gene_path = base_dir / ".combined_sm_ge.rechunking.h5ad"
+    final_gene_path = base_dir / "combined_sm_ge.h5ad"
+    try:
+        sm_adata_gene.write(raw_gene_path)
+        rechunk_dense_x_for_gene_access(raw_gene_path, chunked_gene_path)
+        chunked_gene_path.replace(final_gene_path)
+    finally:
+        raw_gene_path.unlink(missing_ok=True)
+        chunked_gene_path.unlink(missing_ok=True)
 
     logging.info("Saving motif adata...")
-    sm_adata_motif.write(f"{base_dir}/combined_sm_motifs.h5ad")
+    sm_adata_motif.write(base_dir / "combined_sm_motifs.h5ad")
 
 
 def load_analysis_results(
