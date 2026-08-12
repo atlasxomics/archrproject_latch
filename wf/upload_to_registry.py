@@ -81,36 +81,3 @@ def upload_to_registry(
     finally:
         return archr_project
 
-
-if __name__ == "__main__":
-    upload_to_registry(
-        runs=[
-            Run(
-                'D1291',
-                LatchFile('latch:///atac_outs/6bp_D01291_NG02620/outs/6bp_D01291_NG02620_fragments.tsv.gz'),
-                'old',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1291/spatial'),
-            ),
-            Run(
-                'D1292',
-                LatchFile('latch:///cleaned/Babayev_cleaned/cleaned_D01292_NG02621_fragments.tsv.gz'),
-                'old',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1292/spatial'),
-            ),
-            Run(
-                'D1293',
-                LatchFile('latch:///atac_outs/6bp_D01293_NG02622/outs/6bp_D01293_NG02622_fragments.tsv.gz'),
-                'young',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1293/spatial'),
-            ),
-            Run(
-                'D1294',
-                LatchFile('latch:///atac_outs/D01294_NG02624/outs/D01294_NG02624_fragments.tsv.gz'),
-                'young',
-                LatchDir('latch:///atx-illumina-1682977469.0200825/Images_spatial/D1294/spatial'),
-            )
-        ],
-        archr_project=LatchDir("latch://13502.account/ArchRProjects/Babeyev"),
-        run_table_id="761",
-        project_table_id="917",
-    )

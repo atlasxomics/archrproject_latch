@@ -71,27 +71,26 @@ The **create ArchRProject** workflow can be found in the [Workflows](https://wik
 
 6. From the Executions tab, you can view the status of the launched workflow.  Once the workflow has completed running, the status will change to 'Succeeded'; if the workflow has the status 'Failed', please contact an AtlasXomics Support Scientist.  You can click on the workflow execution to view a more granular workflow status and see output logs.
 
-7. Workflow outputs are loaded into the latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) in the `ArchRProjects` directory.
+7. Workflow outputs are loaded into the latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) in the `atac_analysis_archr` directory.
 
 
 ## Outputs
 
-Outputs from **create ArchRProject** are loaded into latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) under `<output directory>/<project name>/`. By default this is `ArchRProjects/<project name>/`.
+Outputs from **create ArchRProject** are loaded into latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) under `<output directory>/<project name>/`. By default this is `atac_analysis_archr/<project name>/`.
 
 * `<project_name>_ArchRProject/`
   * Saved ArchRProject directory containing the Arrow files, ArchR project state, peak matrices, reproducible peak sets, motif annotations, and ArchR-generated group bigWig files.
-* `<run_id>_SeuratObj.rds`
-  * One Seurat object per run using the gene accessibility matrix from the ArchR `GeneScoreMatrix`, with spatial coordinates and ArchR metadata.
-* `<run_id>_SeuratObjMotif.rds`
-  * One Seurat object per run using the motif deviation score matrix calculated by the workflow's ArchR motif deviation step.
-* `combined.rds` and `combined_m.rds`
-  * Combined gene and motif Seurat objects across all runs.
-* `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad`
-  * Per-run AnnData conversions of the gene and motif Seurat objects.
-* `combined_ge.h5ad` and `combined_motifs.h5ad`
-  * Full combined gene and motif AnnData objects with embeddings and analysis tables attached.
-* `combined_sm_ge.h5ad` and `combined_sm_motifs.h5ad`
-  * Reduced combined gene and motif AnnData objects intended for plotting and downstream interactive visualization. FOR VISUALIZATION/PLOTTING ONLY.
+* `seurat_objects/`
+  * All Seurat `.rds` objects for the project:
+    * `<run_id>_SeuratObj.rds` — one Seurat object per run using the gene accessibility matrix from the ArchR `GeneScoreMatrix`, with spatial coordinates and ArchR metadata.
+    * `<run_id>_SeuratObjMotif.rds` — one Seurat object per run using the motif deviation score matrix calculated by the workflow's ArchR motif deviation step.
+    * `combined.rds` and `combined_m.rds` — combined gene and motif Seurat objects across all runs.
+    * `seqlogo.rds` — position weight matrices for plotting motif sequence logos.
+* `anndata/`
+  * All AnnData `.h5ad` objects for the project:
+    * `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad` — per-run AnnData conversions of the gene and motif Seurat objects.
+    * `combined_ge.h5ad` and `combined_motifs.h5ad` — full combined gene and motif AnnData objects with embeddings and analysis tables attached.
+    * `combined_sm_ge.h5ad` and `combined_sm_motifs.h5ad` — reduced combined gene and motif AnnData objects intended for plotting and downstream interactive visualization. FOR VISUALIZATION/PLOTTING ONLY.
 * `cluster_coverages/`, `sample_coverages/`, and `condition_coverages/`
   * Copied `.bw` coverage tracks from ArchR group bigWig outputs. `condition_coverages/` is produced when condition-level grouping is available.
 * `cluster_peak_beds/`, `sample_peak_beds/`, `condition_peak_beds/`, and `condition_<n>_peak_beds/`
@@ -124,8 +123,6 @@ Outputs from **create ArchRProject** are loaded into latch.bio [Data module](htt
   * Gene and motif volcano plot source tables for condition comparisons.
 * `tables/svg_genes.csv` and `tables/svg_motifs.csv`
   * Spatial autocorrelation results for spatially variable genes and motifs, when the spatial analysis step succeeds.
-* `seqlogo.rds`
-  * Position weight matrices for plotting motif sequence logos with the [seqLogo](https://bioconductor.org/packages/release/bioc/html/seqLogo.html) package.
 
 
 ## Next Steps
