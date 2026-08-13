@@ -37,6 +37,15 @@ logging.basicConfig(
 )
 
 
+def _join_latch_dir(parent: str, child: str) -> str:
+    """Join a child name to a Latch URI without duplicating path separators."""
+    parent = parent.rstrip("/")
+    if parent == "latch:":
+        parent = "latch://"
+
+    return f"{parent}/{child.lstrip('/')}"
+
+
 def allocate_mem(runs: List[Run], **kwargs) -> int:
     '''Dynamic memory allocation for archr_task; counts total channels in
     execution, if total channels greater than one 220 (48,400) use 750 GiB RAM,
@@ -89,7 +98,7 @@ def archr_task(
     output_dir: LatchDir,
 ) -> LatchDir:
 
-    output_dir = f"{output_dir.remote_path}/{project_name}"
+    output_dir = _join_latch_dir(output_dir.remote_path, project_name)
 
     groups = utils.get_groups(runs)
     logging.info(f"Comparing features amoung groups {groups}.")
@@ -169,7 +178,12 @@ def archr_task(
     adata_gene.obs.to_csv("/root/obs.csv", index=True)
 
     # Run spatial analysis
-    adata_gene = sp.run_squidpy_analysis(adata_gene, figures_dir)
+    adata_gene = sp.run_squidpy_analysis(
+        adata_gene,
+        figures_dir,
+        sample_key="sample" if "sample" in groups else None,
+        group_keys=groups,
+    )
 
     # Spatially variable genes and motifs
     for mod_adata, modality, prefix in [
@@ -199,15 +213,30 @@ def archr_task(
     # Save AnnData
     ft.save_anndata_objects(adata_gene, adata_motif, results_dir)
 
+    # Move the saved ArchRProject directory into the results directory
     project_dirs = glob.glob(f'{project_name}_*')
-    seurat_objs = glob.glob('*.rds')
-    h5ad_files = glob.glob('*.h5ad')
+    if project_dirs:
+        subprocess.run(['mv'] + project_dirs + [results_dir], check=True)
 
-    _mv_cmd = (
-        ['mv'] + project_dirs + seurat_objs + h5ad_files + [results_dir]
-    )
+    # Collect per-run .rds/.h5ad objects (written to the working directory)
+    # into the results directory alongside the combined objects
+    cwd_objs = glob.glob('*.rds') + glob.glob('*.h5ad')
+    if cwd_objs:
+        subprocess.run(['mv'] + cwd_objs + [results_dir], check=True)
 
-    subprocess.run(_mv_cmd)
+    # Organize R and AnnData objects into dedicated subfolders
+    seurat_dir = Path(f'/root/{results_dir}/seurat_objects')
+    anndata_dir = Path(f'/root/{results_dir}/anndata')
+    seurat_dir.mkdir(parents=True, exist_ok=True)
+    anndata_dir.mkdir(parents=True, exist_ok=True)
+
+    rds_objs = glob.glob(f'/root/{results_dir}/*.rds')
+    if rds_objs:
+        subprocess.run(['mv'] + rds_objs + [str(seurat_dir)], check=True)
+
+    h5ad_objs = glob.glob(f'/root/{results_dir}/*.h5ad')
+    if h5ad_objs:
+        subprocess.run(['mv'] + h5ad_objs + [str(anndata_dir)], check=True)
 
     csv_tables = glob.glob('*.csv')
     csv_tables = [  # Exclude heatmap csv
@@ -245,10 +274,10 @@ def archr_task(
         bindings=PlotsArtifactBindings(
             plot_templates=[
                 PlotsArtifactTemplate(
-                    template_id="1090",
+                    template_id="1387",
                     widgets=[
                         Widget(
-                            transform_id="433333",
+                            transform_id="475880",
                             key="data_path",
                             value=output_dir
                         ),
@@ -295,7 +324,7 @@ metadata = LatchMetadata(
         ),
         'project_name': LatchParameter(
             display_name='project name',
-            description='Name of output directory in archr_outs/',
+            description='Name of output directory in atac_analysis_archr/',
             batch_table_column=True,
             rules=[
                 LatchRule(
@@ -401,8 +430,8 @@ metadata = LatchMetadata(
         "output_dir": LatchParameter(
             display_name="output directory",
             description="Folder in Latch Data to save outputs; defaults to \
-                'snap_outs'. Outputs will be saved in a subfolder named with \
-                the project name defined above.",
+                'atac_analysis_archr'. Outputs will be saved in a subfolder \
+                named with the project name defined above.",
             batch_table_column=True,
             hidden=True,
         ),
@@ -440,7 +469,7 @@ def archrproject_workflow(
     min_cells_cluster: int = 20,
     max_clusters: int = 25,
     include_y_chromosome: bool = False,
-    output_dir: LatchDir = LatchDir("latch:///ArchRProjects/"),
+    output_dir: LatchDir = LatchDir("latch:///atac_analysis_archr/"),
     run_table_id: str = "761",
     project_table_id: str = "779"
 ) -> LatchDir:
@@ -519,26 +548,27 @@ def archrproject_workflow(
     view a more granular workflow status and see output logs.
     7. Workflow outputs are loaded into the latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
-    `ArchRProjects` directory.
+    `atac_analysis_archr` directory.
 
     ## Outputs
     Outputs from **create ArchRProject** are loaded into latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) under
     `<output directory>/<project name>/`. By default this is
-    `ArchRProjects/<project name>/`.
+    `atac_analysis_archr/<project name>/`.
     * `<project_name>_ArchRProject/`: Saved ArchRProject directory containing
       Arrow files, ArchR project state, peak matrices, reproducible peak sets,
       motif annotations, and ArchR-generated group bigWig files.
-    * `<run_id>_SeuratObj.rds`: One gene accessibility Seurat object per run,
-      with spatial coordinates and ArchR metadata.
-    * `<run_id>_SeuratObjMotif.rds`: One motif deviation Seurat object per run.
-    * `combined.rds` and `combined_m.rds`: Combined gene and motif Seurat
-      objects across all runs.
-    * `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad`: Per-run
-      AnnData conversions of the gene and motif Seurat objects.
-    * `combined_ge.h5ad`, `combined_motifs.h5ad`, `combined_sm_ge.h5ad`, and
-      `combined_sm_motifs.h5ad`: Full and reduced combined AnnData objects.
-       FOR VISUALIZATION/PLOTTING ONLY.
+    * `seurat_objects/`: All Seurat `.rds` objects, including
+      `<run_id>_SeuratObj.rds` (per-run gene accessibility, with spatial
+      coordinates and ArchR metadata), `<run_id>_SeuratObjMotif.rds` (per-run
+      motif deviation), `combined.rds` and `combined_m.rds` (combined gene and
+      motif objects across all runs), and `seqlogo.rds`.
+    * `anndata/`: All AnnData `.h5ad` objects, including
+      `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad` (per-run
+      conversions of the gene and motif Seurat objects) and `combined_ge.h5ad`,
+      `combined_motifs.h5ad`, `combined_sm_ge.h5ad`, and `combined_sm_motifs.h5ad`
+      (full and reduced combined objects; the reduced `combined_sm_*` are
+      FOR VISUALIZATION/PLOTTING ONLY).
     * `cluster_coverages/`, `sample_coverages/`, and `condition_coverages/`:
       copied `.bw` coverage tracks from ArchR group bigWig outputs.
     * `cluster_peak_beds/`, `sample_peak_beds/`, `condition_peak_beds/`, and
@@ -566,8 +596,8 @@ def archrproject_workflow(
       tables for condition comparisons.
     * `tables/svg_genes.csv` and `tables/svg_motifs.csv`: Spatial
       autocorrelation results for spatially variable genes and motifs.
-    * `seqlogo.rds`: Position weight matrices for plotting motif sequence
-      logos.
+      (`seurat_objects/seqlogo.rds` holds the position weight matrices for
+      plotting motif sequence logos.)
     ## Next Steps
     Analysis can be performed locally or in a latch.bio
     [Pod](https://wiki.latch.bio/wiki/pods/overview).  For access to
