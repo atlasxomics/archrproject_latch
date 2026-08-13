@@ -37,6 +37,15 @@ logging.basicConfig(
 )
 
 
+def _join_latch_dir(parent: str, child: str) -> str:
+    """Join a child name to a Latch URI without duplicating path separators."""
+    parent = parent.rstrip("/")
+    if parent == "latch:":
+        parent = "latch://"
+
+    return f"{parent}/{child.lstrip('/')}"
+
+
 def allocate_mem(runs: List[Run], **kwargs) -> int:
     '''Dynamic memory allocation for archr_task; counts total channels in
     execution, if total channels greater than one 220 (48,400) use 750 GiB RAM,
@@ -89,7 +98,7 @@ def archr_task(
     output_dir: LatchDir,
 ) -> LatchDir:
 
-    output_dir = f"{output_dir.remote_path}/{project_name}"
+    output_dir = _join_latch_dir(output_dir.remote_path, project_name)
 
     groups = utils.get_groups(runs)
     logging.info(f"Comparing features amoung groups {groups}.")
