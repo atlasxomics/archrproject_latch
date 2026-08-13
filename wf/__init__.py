@@ -274,10 +274,10 @@ def archr_task(
         bindings=PlotsArtifactBindings(
             plot_templates=[
                 PlotsArtifactTemplate(
-                    template_id="1090",
+                    template_id="1387",
                     widgets=[
                         Widget(
-                            transform_id="433333",
+                            transform_id="475880",
                             key="data_path",
                             value=output_dir
                         ),
