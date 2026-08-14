@@ -282,7 +282,7 @@ def archr_task(
                             value=output_dir
                         ),
                         Widget(
-                            transform_id="433323",
+                            transform_id="475872",
                             key="coverages_genome",
                             value=genome.value
                         )
