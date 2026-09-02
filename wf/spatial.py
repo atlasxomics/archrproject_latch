@@ -388,7 +388,7 @@ def plot_svg_spatial(
                     spatial_scatter(
                         sample_adata,
                         color=feat,
-                        size=75,
+                        size=25,
                         shape=None,
                         ax=ax,
                         title=f"{feat}  I={moran_i:.3f}",
