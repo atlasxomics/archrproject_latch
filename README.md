@@ -71,12 +71,12 @@ The **create ArchRProject** workflow can be found in the [Workflows](https://wik
 
 6. From the Executions tab, you can view the status of the launched workflow.  Once the workflow has completed running, the status will change to 'Succeeded'; if the workflow has the status 'Failed', please contact an AtlasXomics Support Scientist.  You can click on the workflow execution to view a more granular workflow status and see output logs.
 
-7. Workflow outputs are loaded into the latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) in the `atac_analysis_archr` directory.
+7. Workflow outputs are loaded into the latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) in the `epi_analysis_archr` directory.
 
 
 ## Outputs
 
-Outputs from **create ArchRProject** are loaded into latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) under `<output directory>/<project name>/`. By default this is `atac_analysis_archr/<project name>/`.
+Outputs from **create ArchRProject** are loaded into latch.bio [Data module](https://wiki.latch.bio/wiki/data/overview) under `<output directory>/<project name>/`. By default this is `epi_analysis_archr/<project name>/`.
 
 * `<project_name>_ArchRProject/`
   * Saved ArchRProject directory containing the Arrow files, ArchR project state, peak matrices, reproducible peak sets, motif annotations, and ArchR-generated group bigWig files.

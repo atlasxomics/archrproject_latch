@@ -279,12 +279,12 @@ def archr_task(
                         Widget(
                             transform_id="489849",
                             key="data_path",
-                            value=results_dir.remote_path
+                            value=output_dir
                         ),
                         Widget(
                             transform_id="489844",
                             key="coverages_genome",
-                            value=genome
+                            value=genome.value
                         )
                     ],
                 )
@@ -324,7 +324,7 @@ metadata = LatchMetadata(
         ),
         'project_name': LatchParameter(
             display_name='project name',
-            description='Name of output directory in atac_analysis_archr/',
+            description='Name of output directory in epi_analysis_archr/',
             batch_table_column=True,
             rules=[
                 LatchRule(
@@ -430,7 +430,7 @@ metadata = LatchMetadata(
         "output_dir": LatchParameter(
             display_name="output directory",
             description="Folder in Latch Data to save outputs; defaults to \
-                'atac_analysis_archr'. Outputs will be saved in a subfolder \
+                'epi_analysis_archr'. Outputs will be saved in a subfolder \
                 named with the project name defined above.",
             batch_table_column=True,
             hidden=True,
@@ -469,7 +469,7 @@ def archrproject_workflow(
     min_cells_cluster: int = 20,
     max_clusters: int = 25,
     include_y_chromosome: bool = False,
-    output_dir: LatchDir = LatchDir("latch:///atac_analysis_archr/"),
+    output_dir: LatchDir = LatchDir("latch:///epi_analysis_archr/"),
     run_table_id: str = "761",
     project_table_id: str = "779"
 ) -> LatchDir:
@@ -548,13 +548,13 @@ def archrproject_workflow(
     view a more granular workflow status and see output logs.
     7. Workflow outputs are loaded into the latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) in the
-    `atac_analysis_archr` directory.
+    `epi_analysis_archr` directory.
 
     ## Outputs
     Outputs from **create ArchRProject** are loaded into latch.bio
     [Data module](https://wiki.latch.bio/wiki/data/overview) under
     `<output directory>/<project name>/`. By default this is
-    `atac_analysis_archr/<project name>/`.
+    `epi_analysis_archr/<project name>/`.
     * `<project_name>_ArchRProject/`: Saved ArchRProject directory containing
       Arrow files, ArchR project state, peak matrices, reproducible peak sets,
       motif annotations, and ArchR-generated group bigWig files.
