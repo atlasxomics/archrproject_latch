@@ -158,6 +158,51 @@ def clean_adata(adata: anndata.AnnData) -> anndata.AnnData:
     return adata
 
 
+def _sanitize_dataframe_for_h5ad(df) -> None:
+    """Ensure object columns can be written as H5AD string arrays."""
+    import pandas as pd
+
+    obj_cols = df.select_dtypes(include=["object"]).columns
+    if len(obj_cols) == 0:
+        return
+
+    for col in obj_cols:
+        series = df[col]
+        non_null = series.dropna()
+        if non_null.empty:
+            df[col] = series.astype(str)
+            continue
+
+        if non_null.map(
+            lambda x: isinstance(x, (int, float, np.integer, np.floating))
+        ).all():
+            df[col] = pd.to_numeric(series, errors="coerce")
+            continue
+
+        if non_null.map(lambda x: isinstance(x, str)).all():
+            df[col] = series.astype(str)
+            continue
+
+        df[col] = series.astype(str)
+
+
+def _sanitize_uns_for_h5ad(uns: Dict) -> None:
+    """Recursively sanitize DataFrames stored in AnnData unstructured data."""
+    import pandas as pd
+
+    for value in list(uns.values()):
+        if isinstance(value, pd.DataFrame):
+            _sanitize_dataframe_for_h5ad(value)
+        elif isinstance(value, dict):
+            _sanitize_uns_for_h5ad(value)
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                if isinstance(item, pd.DataFrame):
+                    _sanitize_dataframe_for_h5ad(item)
+                elif isinstance(item, dict):
+                    _sanitize_uns_for_h5ad(item)
+
+
 def clean_index_columns(*adatas: anndata.AnnData) -> None:
     """Remove _index columns from AnnData objects if they exist."""
     for adata in adatas:
@@ -251,6 +296,8 @@ def save_anndata_objects(
 
     # Save full objects
     adata_gene.X = adata_gene.X.astype(np.float32)
+    _sanitize_uns_for_h5ad(adata_gene.uns)
+    _sanitize_uns_for_h5ad(adata_motif.uns)
     adata_gene.write(base_dir / "combined_ge.h5ad")
     adata_motif.write(base_dir / "combined_motifs.h5ad")
 
@@ -258,6 +305,8 @@ def save_anndata_objects(
     logging.info("Making reduced gene adata...")
     sm_adata_gene = clean_adata(adata_gene)
     sm_adata_motif = clean_adata(adata_motif)
+    _sanitize_uns_for_h5ad(sm_adata_gene.uns)
+    _sanitize_uns_for_h5ad(sm_adata_motif.uns)
 
     logging.info("Saving gene adata with gene-aligned X chunks...")
     raw_gene_path = base_dir / ".combined_sm_ge.unrechunked.h5ad"
@@ -310,6 +359,7 @@ def load_csv_files_to_uns(
             if name_transform:
                 name = name_transform(name, file)
             df = pd.read_csv(file, dtype=dtype_spec, index_col=index_col)
+            _sanitize_dataframe_for_h5ad(df)
             target_uns[name] = df
     except Exception as e:
         logging.warning(f"Error loading files matching {pattern}: {e}")
