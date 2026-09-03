@@ -190,6 +190,32 @@ for (run in runs) {
 
 proj <- proj[proj$cellNames %in% all_ontissue]
 
+submitted_samples <- vapply(runs, function(run) run[[1]], character(1))
+if (anyDuplicated(submitted_samples)) {
+  duplicated_samples <- unique(submitted_samples[duplicated(submitted_samples)])
+  stop(
+    "Run IDs must be unique. Duplicated run ID(s): ",
+    paste(duplicated_samples, collapse = ", "),
+    "."
+  )
+}
+
+sample_counts <- table(as.character(proj$Sample))
+print("++++ Retained cells per sample ++++")
+print(sample_counts)
+
+missing_samples <- setdiff(submitted_samples, names(sample_counts))
+if (length(missing_samples) > 0) {
+  stop(
+    "Cannot continue because one or more submitted runs are absent from the ",
+    "filtered ArchR project. Missing run(s): ",
+    paste(missing_samples, collapse = ", "),
+    ". Verify that every fragment file was aligned to the selected ",
+    "genome assembly (", genome, ") and inspect the createArrowFiles log and ",
+    "on-tissue barcode inputs for the missing run(s)."
+  )
+}
+
 saveArchRProject(
   ArchRProj = proj, outputDirectory = paste0(project_name, "_ArchRProject")
 )
@@ -211,7 +237,7 @@ proj <- addIterativeLSI(
   force = TRUE
 )
 
-if (length(runs) > 1) {
+if (length(sample_counts) > 1) {
   proj <- addHarmony(
     ArchRProj = proj,
     reducedDims = "IterativeLSI",
