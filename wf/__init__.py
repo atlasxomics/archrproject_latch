@@ -3,6 +3,7 @@ objects for downstream analysis; additionally, generates UMAP and
 SpatialDimPlots for a list of lsi_varfeatures.
 '''
 import glob
+import gzip
 import json
 import logging
 import os
@@ -44,6 +45,70 @@ def _join_latch_dir(parent: str, child: str) -> str:
         parent = "latch://"
 
     return f"{parent}/{child.lstrip('/')}"
+
+
+def _validate_fragment_inputs(runs: List[Run]) -> None:
+    errors = []
+
+    for run in runs:
+        remote_path = run.fragments_file.remote_path
+        filename = remote_path.rstrip("/").rsplit("/", 1)[-1]
+        lowercase_filename = filename.lower()
+
+        if lowercase_filename.endswith((".tbi", ".csi", ".bai")):
+            errors.append(
+                f"Run {run.run_id}: '{filename}' is an index file, not a "
+                "fragments data file. Select the corresponding compressed "
+                "fragments file (for example, 'fragments.tsv.gz'); do not "
+                "select its '.tbi' index."
+            )
+            continue
+
+        if not lowercase_filename.endswith((".gz", ".bgz")):
+            errors.append(
+                f"Run {run.run_id}: '{filename}' is not a supported compressed "
+                "fragments filename. Expected a file ending in '.gz' or '.bgz', "
+                "such as 'fragments.tsv.gz'."
+            )
+            continue
+
+        local_path = run.fragments_file.local_path
+        try:
+            fragment_fields = None
+            with gzip.open(local_path, "rt", encoding="utf-8") as fragments:
+                for line in fragments:
+                    if line.strip() and not line.startswith("#"):
+                        fragment_fields = line.rstrip("\r\n").split("\t")
+                        break
+
+            if fragment_fields is None:
+                raise ValueError("the file contains no fragment records")
+            if len(fragment_fields) < 4:
+                raise ValueError(
+                    "the first fragment record has fewer than four "
+                    "tab-delimited fields"
+                )
+
+            start = int(fragment_fields[1])
+            end = int(fragment_fields[2])
+            if not fragment_fields[0] or not fragment_fields[3]:
+                raise ValueError(
+                    "the first fragment record has an empty chromosome or barcode"
+                )
+            if start < 0 or end <= start:
+                raise ValueError(
+                    "the first fragment record has invalid genomic coordinates"
+                )
+        except (OSError, UnicodeError, ValueError, IndexError) as error:
+            errors.append(
+                f"Run {run.run_id}: '{filename}' is not a readable fragments "
+                f"file ({error}). Select the compressed fragments data file, "
+                "not an index or another auxiliary file."
+            )
+
+    if errors:
+        details = "\n".join(f"- {error}" for error in errors)
+        raise ValueError(f"Invalid fragments input(s):\n{details}")
 
 
 def allocate_mem(runs: List[Run], **kwargs) -> int:
@@ -97,6 +162,8 @@ def archr_task(
     include_y_chromosome: bool,
     output_dir: LatchDir,
 ) -> LatchDir:
+
+    _validate_fragment_inputs(runs)
 
     output_dir = _join_latch_dir(output_dir.remote_path, project_name)
 
