@@ -745,27 +745,32 @@ if (length(unique(proj$Condition)) > 1) {
     ]
     req_clusters <- req_clusters[which(!req_clusters %in% not_req_list)]
     markerList_C <- list()
-    proj_C <- list()
 
-    for (i in seq_along(req_clusters)) {
+    for (cluster in req_clusters) {
 
-      idxSample <- BiocGenerics::which(proj$Clusters == req_clusters[i])
+      idxSample <- BiocGenerics::which(proj$Clusters == cluster)
       cellsSample <- proj$cellNames[idxSample]
-      proj_C[i] <- proj[cellsSample, ]
-      ncells[i] <- length(proj_C[[i]]$cellNames)
+      proj_cluster <- proj[cellsSample, ]
+      cluster_ncells <- length(proj_cluster$cellNames)
 
       # per each cluster separately
-      markerList_C[[i]] <- getMarkerFeatures(
-        ArchRProj = proj_C[[i]],
+      cluster_markers <- safe_get_marker_features(
+        ArchRProj = proj_cluster,
         useMatrix = "GeneScoreMatrix",
         groupBy = treatment[j],
         bias = c("TSSEnrichment", "log10(nFrags)"),
-        maxCells = ncells[[i]],
+        maxCells = cluster_ncells,
         normBy = "none",
-        testMethod = "ttest"
+        testMethod = "ttest",
+        context = paste0(
+          "gene marker analysis for ", treatment[j], " in cluster ", cluster
+        )
       )
+      if (!is.null(cluster_markers)) {
+        markerList_C[[cluster]] <- cluster_markers
+      }
     }
-    names(markerList_C) <- req_clusters
+    req_clusters <- names(markerList_C)
 
     gsm <- getMatrixFromProject(proj)
     gsm_mat <- assay(getMatrixFromProject(proj), "GeneScoreMatrix")
@@ -836,8 +841,15 @@ if (length(unique(proj$Condition)) > 1) {
       }
     }
 
-    names(markerList_df_C) <- req_clusters
-    markersGS_merged_df <- do.call(Map, c(f = rbind, markerList_df_C))
+    if (length(markerList_df_C) > 0) {
+      names(markerList_df_C) <- req_clusters
+      markersGS_merged_df <- do.call(Map, c(f = rbind, markerList_df_C))
+    } else {
+      markersGS_merged_df <- lapply(
+        markerList_df,
+        function(marker_df) marker_df[0, , drop = FALSE]
+      )
+    }
 
     # also data frame for all clusters together needs to be added
     for (cond in conditions) {
@@ -1533,29 +1545,33 @@ if (length(unique(proj$Condition)) > 1) {
     req_clusters <- req_clusters[which(!req_clusters %in% not_req_list)]
 
     markersMotifs_C <- list()
-    proj_C <- list()
 
-    for (i in seq_along(req_clusters)) {
+    for (cluster in req_clusters) {
 
-      idxSample <- BiocGenerics::which(proj$Clusters == req_clusters[i])
+      idxSample <- BiocGenerics::which(proj$Clusters == cluster)
 
       cellsSample <- proj$cellNames[idxSample]
-      proj_C[i] <- proj[cellsSample, ]
-
-      ncells[i] <- length(proj_C[[i]]$cellNames)
+      proj_cluster <- proj[cellsSample, ]
+      cluster_ncells <- length(proj_cluster$cellNames)
 
       # per each cluster separately
-      markersMotifs_C[[i]] <- getMarkerFeatures(
-        ArchRProj = proj_C[[i]],
+      cluster_markers <- safe_get_marker_features(
+        ArchRProj = proj_cluster,
         useMatrix = "MotifMatrix",
         groupBy = treatment[j],
         bias = c("TSSEnrichment", "log10(nFrags)"),
-        maxCells = ncells[[i]],
+        maxCells = cluster_ncells,
         normBy = "none",
-        testMethod = "wilcoxon"
+        testMethod = "wilcoxon",
+        context = paste0(
+          "motif marker analysis for ", treatment[j], " in cluster ", cluster
+        )
       )
+      if (!is.null(cluster_markers)) {
+        markersMotifs_C[[cluster]] <- cluster_markers
+      }
     }
-    names(markersMotifs_C) <- req_clusters
+    req_clusters <- names(markersMotifs_C)
     dev_score <- getDeviation_ArchR(
       ArchRProj = proj,
       name = motifs,
@@ -1627,8 +1643,15 @@ if (length(unique(proj$Condition)) > 1) {
         )
       }
     }
-    names(markersMotifs_df_C) <- req_clusters
-    markersMotifs_merged_df <- do.call(Map, c(f = rbind, markersMotifs_df_C))
+    if (length(markersMotifs_df_C) > 0) {
+      names(markersMotifs_df_C) <- req_clusters
+      markersMotifs_merged_df <- do.call(Map, c(f = rbind, markersMotifs_df_C))
+    } else {
+      markersMotifs_merged_df <- lapply(
+        markersMotifs_df,
+        function(marker_df) marker_df[0, , drop = FALSE]
+      )
+    }
 
     # also data frame for all clusters together needs to be added
     for (cond in conditions) {
