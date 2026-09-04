@@ -9,6 +9,20 @@ library("purrr")
 library("Seurat")
 library("SeuratDisk")
 
+safe_get_marker_features <- function(..., context = "marker features") {
+  tryCatch(
+    ArchR::getMarkerFeatures(...),
+    error = function(e) {
+      message(
+        "Skipping ", context,
+        " because ArchR could not construct background matches: ",
+        e$message
+      )
+      return(NULL)
+    }
+  )
+}
+
 find_func <- function(tempdir, pattern) {
   list.files(
     path = tempdir,     # replace tempdir with the directory you want
