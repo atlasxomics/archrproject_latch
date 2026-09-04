@@ -629,7 +629,8 @@ def archrproject_workflow(
       `<run_id>_SeuratObj.rds` (per-run gene accessibility, with spatial
       coordinates and ArchR metadata), `<run_id>_SeuratObjMotif.rds` (per-run
       motif deviation), `combined.rds` and `combined_m.rds` (combined gene and
-      motif objects across all runs), and `seqlogo.rds`.
+      motif objects across all runs), optional `<run_id>_BP/` backing stores for
+      large combined objects, and `seqlogo.rds`.
     * `anndata/`: All AnnData `.h5ad` objects, including
       `<run_id>_g_converted.h5ad` and `<run_id>_m_converted.h5ad` (per-run
       conversions of the gene and motif Seurat objects) and `combined_ge.h5ad`,

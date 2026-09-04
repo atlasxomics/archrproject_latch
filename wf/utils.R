@@ -593,10 +593,12 @@ combine_objs <- function(
 
     # Use BPCells to handle large matrices
     # Convert SeuratObjs to BPCells files
+    bp_root <- file.path(project_name, "seurat_objects")
+    dir.create(bp_root, recursive = TRUE, showWarnings = FALSE)
     counts_mat <- c()
     for (i in seq_along(filtered)) {
 
-      path <- paste0(project_name, "/", samples[[i]], "_BP")
+      path <- file.path(bp_root, paste0(samples[[i]], "_BP"))
 
       BPCells::write_matrix_dir(
         mat = filtered[[i]]@assays[["Spatial"]]@counts,

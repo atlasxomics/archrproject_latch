@@ -85,6 +85,7 @@ Outputs from **create ArchRProject** are loaded into latch.bio [Data module](htt
     * `<run_id>_SeuratObj.rds` — one Seurat object per run using the gene accessibility matrix from the ArchR `GeneScoreMatrix`, with spatial coordinates and ArchR metadata.
     * `<run_id>_SeuratObjMotif.rds` — one Seurat object per run using the motif deviation score matrix calculated by the workflow's ArchR motif deviation step.
     * `combined.rds` and `combined_m.rds` — combined gene and motif Seurat objects across all runs.
+    * `<run_id>_BP/` — BPCells matrix storage used by large combined Seurat objects, created only when the combined matrix exceeds the in-memory size limit.
     * `seqlogo.rds` — position weight matrices for plotting motif sequence logos.
 * `anndata/`
   * All AnnData `.h5ad` objects for the project:
