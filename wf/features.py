@@ -260,25 +260,79 @@ def rechunk_dense_x_for_gene_access(
             dset.attrs[key] = value
 
 
+def _ensure_anndata_root_encoding(path: Path) -> None:
+    """Add missing AnnData encoding metadata for older H5AD writers."""
+    import h5py
+
+    with h5py.File(path, "r") as handle:
+        encoding_type = handle.attrs.get("encoding-type")
+        encoding_version = handle.attrs.get("encoding-version")
+
+    if isinstance(encoding_type, bytes):
+        encoding_type = encoding_type.decode()
+    if isinstance(encoding_version, bytes):
+        encoding_version = encoding_version.decode()
+
+    if encoding_type != "anndata":
+        try:
+            backed = anndata.read_h5ad(path, backed="r")
+            backed.file.close()
+        except Exception as e:
+            raise ValueError(
+                f"{path} is not a readable AnnData h5ad file. "
+                f"Root encoding-type={encoding_type!r}."
+            ) from e
+
+    with h5py.File(path, "r+") as handle:
+        if encoding_type != "anndata":
+            logging.warning(
+                "Adding missing AnnData root encoding attrs to h5ad written by an "
+                f"older converter: {path}"
+            )
+            handle.attrs["encoding-type"] = "anndata"
+            handle.attrs["encoding-version"] = encoding_version or "0.1.0"
+
+        for group_name in ["layers", "obsm", "varm", "obsp", "varp", "uns"]:
+            if group_name not in handle:
+                logging.warning(
+                    f"Adding missing empty AnnData group '{group_name}' to {path}"
+                )
+                group = handle.create_group(group_name)
+            else:
+                group = handle[group_name]
+
+            if group.attrs.get("encoding-type") is None:
+                group.attrs["encoding-type"] = "dict"
+                group.attrs["encoding-version"] = "0.1.0"
+
+
+def _combine_h5ad_files(pattern: str) -> anndata.AnnData:
+    from anndata.experimental import concat_on_disk
+    from tempfile import TemporaryDirectory
+
+    # Preserve the existing glob order and Scanpy concatenation defaults.
+    files = glob.glob(pattern)
+    if not files:
+        raise FileNotFoundError(f"No AnnData files found matching {pattern!r}")
+    for file in files:
+        _ensure_anndata_root_encoding(Path(file))
+    with TemporaryDirectory(prefix="anndata_concat_", dir=".") as temp_dir:
+        combined_path = Path(temp_dir) / "combined.h5ad"
+        concat_on_disk(
+            files, combined_path, axis=0, join="inner", merge=None,
+            uns_merge=None, label=None, keys=None, index_unique=None,
+            pairwise=False,
+        )
+        return anndata.read_h5ad(combined_path)
+
+
 def load_and_combine_data() -> Tuple[anndata.AnnData, anndata.AnnData]:
-    """Load and combine gene and motif AnnData objects."""
-    logging.info("Reading and combining gene AnnData...")
-    gene_files = glob.glob("*g_converted.h5ad")
-    gene_adatas = [anndata.read_h5ad(file) for file in gene_files]
-    adata_gene = sc.concat(gene_adatas)
-
-    logging.info("Reading and combining motif AnnData...")
-    motif_files = glob.glob("*m_converted.h5ad")
-    motif_adatas = [anndata.read_h5ad(file) for file in motif_files]
-    adata_motif = sc.concat(motif_adatas)
-
-    # Clean up memory
-    del gene_adatas, motif_adatas
-    gc.collect()
-
-    # Clean up index columns if they exist
+    """Concatenate samples on disk, loading only each combined modality."""
+    logging.info("Combining gene AnnData on disk...")
+    adata_gene = _combine_h5ad_files("*g_converted.h5ad")
+    logging.info("Combining motif AnnData on disk...")
+    adata_motif = _combine_h5ad_files("*m_converted.h5ad")
     clean_index_columns(adata_gene, adata_motif)
-
     return adata_gene, adata_motif
 
 

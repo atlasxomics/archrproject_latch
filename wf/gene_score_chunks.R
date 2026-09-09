@@ -182,3 +182,26 @@ write_gene_score_chunks <- function(
   run_chunk_dirs
 }
 
+
+# Only retain names of empty genes, never the full project-wide matrix.
+find_empty_gene_features <- function(proj) {
+  seqnames <- ArchR::getSeqnames(proj, useMatrix = "GeneScoreMatrix")
+  if (length(seqnames) == 0) stop("No GeneScoreMatrix seqnames found.")
+  empty_genes <- character(0)
+  for (seqname in seqnames) {
+    message("Scanning empty gene features on ", seqname)
+    gene_matrix <- ArchR::getMatrixFromProject(
+      ArchRProj = proj, useMatrix = "GeneScoreMatrix",
+      useSeqnames = seqname, threads = 1, asMatrix = TRUE
+    )
+    gene_assay <- SummarizedExperiment::assay(gene_matrix, "GeneScoreMatrix")
+    gene_names <- as.character(SummarizedExperiment::rowData(gene_matrix)$name)
+    if (length(gene_names) != nrow(gene_assay)) {
+      stop("Gene names do not match matrix rows on ", seqname)
+    }
+    empty_genes <- c(empty_genes, gene_names[which(Matrix::rowSums(gene_assay) == 0)])
+    rm(gene_matrix, gene_assay, gene_names)
+    gc(verbose = FALSE)
+  }
+  empty_genes
+}

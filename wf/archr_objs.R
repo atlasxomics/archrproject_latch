@@ -720,6 +720,7 @@ if (length(unique(proj$Condition)) > 1) {
 
 # Volcano plots for genes
 if (length(unique(proj$Condition)) > 1) {
+  empty_gene <- find_empty_gene_features(proj)
   for (j in seq_along(treatment)) {
 
     ncells <- length(proj$cellNames)
@@ -780,15 +781,6 @@ if (length(unique(proj$Condition)) > 1) {
       }
     }
     req_clusters <- names(markerList_C)
-
-    gsm <- getMatrixFromProject(proj)
-    gsm_mat <- assay(getMatrixFromProject(proj), "GeneScoreMatrix")
-
-    which(rowSums(is.na(gsm_mat)) > 0)
-    any(rowSums((gsm_mat)) == 0)
-
-    empty_gene_idx <- which(rowSums((gsm_mat)) == 0)
-    empty_gene <- rowData(gsm)$name[empty_gene_idx]
 
     markerList_df1 <- assay(markerList, "Log2FC")
     markerList_df2 <- assay(markerList, "Pval")

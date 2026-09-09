@@ -55,3 +55,14 @@ tryCatch({
   cat("PASS: chunked scores equal full multiplication; cell/gene ordering,\n",
       "sample prefixes, global weights, and single-gene chunks preserved.\n")
 }, finally = unlink(root, recursive = TRUE))
+
+# Empty-gene scanning must match the original row-sum criterion, including
+# cancellation and missing values, without a full-project extraction.
+raw[1, ] <- 0
+raw[502, ] <- c(-1, 0, 1)
+raw[503, ] <- NA_real_
+reads <- character()
+empty <- sandbox$find_empty_gene_features(proj)
+stopifnot(identical(empty, rownames(raw)[which(rowSums(raw) == 0)]))
+stopifnot(identical(reads, c("chr1", "chr2")))
+cat("PASS: chromosome-wise empty-gene scan matches full row sums.\n")
