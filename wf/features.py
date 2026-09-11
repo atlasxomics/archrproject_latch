@@ -306,6 +306,20 @@ def _ensure_anndata_root_encoding(path: Path) -> None:
                 group.attrs["encoding-version"] = "0.1.0"
 
 
+        # Legacy SeuratDisk numeric arrays may lack their own encoding attrs.
+        # Without these, concat_on_disk reads obsm/layers eagerly as ndarrays,
+        # which its mapping concatenation does not support. Annotate only
+        # numeric datasets; never load/rewrite values or relabel sparse groups.
+        for group_name in ("obsm", "varm", "layers", "obsp", "varp"):
+            for key, element in handle[group_name].items():
+                if (isinstance(element, h5py.Dataset)
+                        and element.dtype.kind in "biufc"
+                        and element.attrs.get("encoding-type") in (None, "", b"")):
+                    logging.info("Adding array encoding to %s:%s/%s", path, group_name, key)
+                    element.attrs["encoding-type"] = "array"
+                    element.attrs["encoding-version"] = "0.2.0"
+
+
 def _combine_h5ad_files(pattern: str) -> anndata.AnnData:
     from anndata.experimental import concat_on_disk
     from tempfile import TemporaryDirectory

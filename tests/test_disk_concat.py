@@ -36,12 +36,18 @@ class DiskConcatTest(unittest.TestCase):
                             var=pd.DataFrame(index=genes),
                         )
                         obj.obsm['spatial'] = np.ones((2, 2)) * i
+                        obj.layers['scores'] = x.copy()
                         obj.write_h5ad(f'{i}_g_converted.h5ad')
                         objects.append(obj)
                     # Exercise compatibility with older SeuratDisk root metadata.
                     with h5py.File('0_g_converted.h5ad', 'r+') as handle:
                         del handle.attrs['encoding-type']
                         del handle.attrs['encoding-version']
+                    for file in glob.glob('*g_converted.h5ad'):
+                        with h5py.File(file, 'r+') as handle:
+                            for key in ('obsm/spatial', 'layers/scores'):
+                                del handle[key].attrs['encoding-type']
+                                del handle[key].attrs['encoding-version']
                     expected = anndata.concat([
                         anndata.read_h5ad(file)
                         for file in glob.glob("*g_converted.h5ad")
@@ -49,6 +55,7 @@ class DiskConcatTest(unittest.TestCase):
                     actual = namespace['_combine_h5ad_files']('*g_converted.h5ad')
                     dense = lambda x: x.toarray() if sparse.issparse(x) else x
                     np.testing.assert_array_equal(dense(actual.X), dense(expected.X))
+                    np.testing.assert_array_equal(actual.layers['scores'], expected.layers['scores'])
                     pd.testing.assert_frame_equal(actual.obs, expected.obs)
                     pd.testing.assert_frame_equal(actual.var, expected.var)
                     np.testing.assert_array_equal(actual.obsm['spatial'], expected.obsm['spatial'])
