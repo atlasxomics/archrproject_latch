@@ -55,7 +55,7 @@ build_atlas_seurat_object <- function(
     )
   }
 
-  matching_cols <- grep(pattern = run_id, colnames(matrix), fixed = TRUE)
+  matching_cols <- which(sub("#.*$", "", colnames(matrix)) == run_id)
   if (length(matching_cols) == 0) {
     stop(
       "Cannot create Seurat object for run ",
@@ -65,7 +65,14 @@ build_atlas_seurat_object <- function(
   }
 
   matrix <- matrix[, matching_cols, drop = FALSE]
-  matrix@Dimnames[[2]] <- metadata@rownames
+  matrix_cells <- sub("-.*$", "", sub("^[^#]*#", "", colnames(matrix)))
+  metadata_cells <- rownames(metadata)
+  if (anyDuplicated(matrix_cells) || anyDuplicated(metadata_cells) ||
+      !setequal(matrix_cells, metadata_cells)) {
+    stop("Matrix cells do not match metadata for run: ", run_id)
+  }
+  matrix <- matrix[, match(metadata_cells, matrix_cells), drop = FALSE]
+  colnames(matrix) <- metadata_cells
   matrix <- Seurat::CreateAssayObject(matrix)
 
   object <- Seurat::CreateSeuratObject(

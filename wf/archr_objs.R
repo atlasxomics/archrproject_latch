@@ -24,6 +24,7 @@ library("org.Mm.eg.db")
 source("/root/getDeviation_ArchR.R")
 source("/root/wf/convert.R")
 source("/root/wf/utils.R")
+source("/root/wf/gene_score_chunks.R")
 
 
 # globals ---------------------------------------------------------------------
@@ -336,22 +337,26 @@ rownames(metadata) <- str_split_fixed(
 )[, 1]
 metadata["log10_nFrags"] <- log(metadata$nFrags)
 
-# create gene matrix for Seurat object
-gene_matrix <- getMatrixFromProject(
-  ArchRProj = proj,
-  useMatrix = "GeneScoreMatrix"
-)
-matrix <- imputeMatrix(
-  mat = assay(gene_matrix),
-  imputeWeights = getImputeWeights(proj)
-)
-gene_row_names <- gene_matrix@elementMetadata$name
-rownames(matrix) <- gene_row_names
+# Read one chromosome at a time and impute bounded feature blocks across
+# all cells, preserving the project's global imputation neighborhoods.
+chunk_root <- tempfile(pattern = "gene_score_chunks_")
+run_chunk_dirs <- write_gene_score_chunks(proj, runs, chunk_root)
 
 print("++++ creating seurat objs ++++")
 
 seurat_objs <- c()
 for (run in runs) {
+  chunk_files <- sort(list.files(
+    run_chunk_dirs[[run[1]]],
+    pattern = "^chunk_[0-9]+\\.rds$",
+    full.names = TRUE
+  ))
+  if (length(chunk_files) == 0) {
+    stop("No persisted gene chunks found for run: ", run[1])
+  }
+  run_chunks <- lapply(chunk_files, readRDS)
+  matrix <- do.call(rbind, run_chunks)
+  rm(run_chunks)
 
   obj <- build_atlas_seurat_object(
     run_id = run[1],
@@ -362,7 +367,11 @@ for (run in runs) {
 
   saveRDS(obj, file = paste0(run[1], "_SeuratObj.rds"))
   seurat_objs <- c(seurat_objs, obj)
+  rm(matrix, obj)
+  unlink(run_chunk_dirs[[run[1]]], recursive = TRUE)
+  gc(verbose = FALSE)
 }
+unlink(chunk_root, recursive = TRUE)
 
 print("++++ creating spatial plots ++++")
 
@@ -711,6 +720,7 @@ if (length(unique(proj$Condition)) > 1) {
 
 # Volcano plots for genes
 if (length(unique(proj$Condition)) > 1) {
+  empty_gene <- find_empty_gene_features(proj)
   for (j in seq_along(treatment)) {
 
     ncells <- length(proj$cellNames)
@@ -771,15 +781,6 @@ if (length(unique(proj$Condition)) > 1) {
       }
     }
     req_clusters <- names(markerList_C)
-
-    gsm <- getMatrixFromProject(proj)
-    gsm_mat <- assay(getMatrixFromProject(proj), "GeneScoreMatrix")
-
-    which(rowSums(is.na(gsm_mat)) > 0)
-    any(rowSums((gsm_mat)) == 0)
-
-    empty_gene_idx <- which(rowSums((gsm_mat)) == 0)
-    empty_gene <- rowData(gsm)$name[empty_gene_idx]
 
     markerList_df1 <- assay(markerList, "Log2FC")
     markerList_df2 <- assay(markerList, "Pval")
