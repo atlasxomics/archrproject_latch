@@ -322,6 +322,7 @@ def plot_svg_spatial(
     modality: str,
     top_n: int = 10,
     html_output_path: Optional[str] = None,
+    pt_size: float = 12.5,
 ) -> None:
     """Spatial scatter plots for the top N spatially variable features."""
     import scipy.sparse as sparse_mod
@@ -388,7 +389,7 @@ def plot_svg_spatial(
                     spatial_scatter(
                         sample_adata,
                         color=feat,
-                        size=25,
+                        size=pt_size,
                         shape=None,
                         ax=ax,
                         title=f"{feat}  I={moran_i:.3f}",

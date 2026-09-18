@@ -48,11 +48,12 @@ num_threads <- as.integer(args[12])
 min_cells_cluster <- as.integer(args[13])
 max_clusters <- as.integer(args[14])
 include_y_chromosome <- tolower(args[15]) == "true"
+disable_harmony <- tolower(args[16]) == "true"
 exclude_chromosomes <- if (include_y_chromosome) "chrM" else c("chrM", "chrY")
 print(paste("Number of threads:", num_threads))
 print(paste("Include Y chromosome:", include_y_chromosome))
 
-runs <- strsplit(args[16:length(args)], ",")
+runs <- strsplit(args[17:length(args)], ",")
 runs
 
 inputs <- c()
@@ -67,7 +68,7 @@ figures_dir <- file.path(output_root, "figures")
 dir.create(figures_dir, showWarnings = FALSE, recursive = TRUE)
 
 # save input metrics in csv
-metrics <- as.list(args[1:15])
+metrics <- as.list(args[1:16])
 names(metrics) <- c(
   "project_name",
   "genome",
@@ -83,7 +84,8 @@ names(metrics) <- c(
   "number_threads",
   "min_cells_cluster",
   "max_clusters",
-  "include_y_chromosome"
+  "include_y_chromosome",
+  "disable_harmony"
 )
 write.csv(metrics, file = "input_parameters.csv", row.names = FALSE)
 
@@ -238,7 +240,7 @@ proj <- addIterativeLSI(
   force = TRUE
 )
 
-if (length(sample_counts) > 1) {
+if (length(sample_counts) > 1 && !disable_harmony) {
   proj <- addHarmony(
     ArchRProj = proj,
     reducedDims = "IterativeLSI",
@@ -248,6 +250,7 @@ if (length(sample_counts) > 1) {
   )
   name <- "Harmony"
 } else {
+  message("Skipping Harmony: ", if (disable_harmony) "disabled by parameter" else "single run")
   name <- "IterativeLSI"
 }
 

@@ -161,6 +161,8 @@ def archr_task(
     max_clusters: int,
     include_y_chromosome: bool,
     output_dir: LatchDir,
+    disable_harmony: bool = False,
+    svg_point_size: float = 12.5,
 ) -> LatchDir:
 
     _validate_fragment_inputs(runs)
@@ -198,7 +200,8 @@ def archr_task(
         f'{num_threads}',
         f'{min_cells_cluster}',
         f'{max_clusters}',
-        f'{include_y_chromosome}'
+        f'{include_y_chromosome}',
+        f'{disable_harmony}'
     ]
 
     position_files = {}
@@ -267,6 +270,7 @@ def archr_task(
                 filename=f"svg_spatial_{prefix}.png",
                 modality=modality,
                 top_n=10,
+                pt_size=svg_point_size,
                 html_output_path=str(figures_dir / f"svg_spatial_{prefix}.html"),
             )
         except Exception as e:
@@ -494,6 +498,20 @@ metadata = LatchMetadata(
             batch_table_column=True,
             hidden=True
         ),
+        'disable_harmony': LatchParameter(
+            display_name='disable Harmony',
+            description='Skip Harmony batch correction and use the uncorrected '
+                        'IterativeLSI embedding. Defaults to False.',
+            batch_table_column=True,
+            hidden=True,
+        ),
+        'svg_point_size': LatchParameter(
+            display_name='SVG point size',
+            description='Point size for spatially variable gene and motif plots. '
+                        'Defaults to 12.5; passed to the spatial scatter size argument.',
+            batch_table_column=True,
+            hidden=True,
+        ),
         "output_dir": LatchParameter(
             display_name="output directory",
             description="Folder in Latch Data to save outputs; defaults to \
@@ -538,7 +556,9 @@ def archrproject_workflow(
     include_y_chromosome: bool = False,
     output_dir: LatchDir = LatchDir("latch:///epi_analysis_archr/"),
     run_table_id: str = "761",
-    project_table_id: str = "779"
+    project_table_id: str = "779",
+    disable_harmony: bool = False,
+    svg_point_size: float = 2.0,
 ) -> LatchDir:
     '''Workflow for converting fragment.tsv.gz files to ArchRProjects.
 
@@ -584,6 +604,10 @@ def archrproject_workflow(
     * clustering resolution: A decimal value used as input to the `resolution`
     parameter of the `addClusters` function in
     [ArchR](https://www.archrproject.com/reference/addClusters.html).
+    * disable Harmony: Optional toggle under Hidden Parameters (default False).
+    When enabled, skip batch correction and use IterativeLSI for clustering and UMAP.
+    * SVG point size: Point size for spatially variable gene and motif plots
+    under Hidden Parameters (default 2).
     > The Project also takes a series of single-value parameters that can be
     found under the 'Hidden Parameters' dropdown; these parameters are less
     commonly varied inputs to ArchR functions.
@@ -698,7 +722,9 @@ def archrproject_workflow(
         min_cells_cluster=min_cells_cluster,
         output_dir=output_dir,
         max_clusters=max_clusters,
-        include_y_chromosome=include_y_chromosome
+        include_y_chromosome=include_y_chromosome,
+        disable_harmony=disable_harmony,
+        svg_point_size=svg_point_size,
     )
 
     archr_project = upload_to_registry(

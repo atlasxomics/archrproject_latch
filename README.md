@@ -39,6 +39,10 @@ Individual runs are batched in a Project with the following global parameters,
 
 * clustering resolution: A decimal value used as input to the `resolution` parameter of the `addClusters` function in [ArchR](https://www.archrproject.com/reference/addClusters.html).
 
+* disable Harmony (`disable_harmony`, hidden, default `False`): Skip Harmony batch correction and use the uncorrected IterativeLSI embedding for clustering and UMAP. By default, Harmony runs when more than one sample remains after filtering.
+
+* SVG point size (`svg_point_size`, hidden, default `12.5`): Point size for spatially variable gene and motif plots, passed to the spatial scatter `size` argument.
+
 > The Project also takes a series of single-value parameters that can be found under the 'Hidden Parameters' dropdown; these parameters are less commonly varied inputs to ArchR functions.
 
 
